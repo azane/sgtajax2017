@@ -1,2 +1,2 @@
 # sgtajax2017
-The mighty destroyer brain of robot armies.
+The mighty destroyer brain of gardening robot armies.

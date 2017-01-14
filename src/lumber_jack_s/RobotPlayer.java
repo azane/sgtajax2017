@@ -42,6 +42,9 @@ public strictfp class RobotPlayer {
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
 
+                // Donate bullets on last round
+                donateBullets();
+
                 // Generate a random direction
                 Direction dir = randomDirection();
 
@@ -76,6 +79,9 @@ public strictfp class RobotPlayer {
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
+
+                // Donate bullets on last round
+                donateBullets();
 
                 // Listen for home archon's location
                 int xPos = rc.readBroadcast(0);
@@ -117,6 +123,10 @@ public strictfp class RobotPlayer {
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
+
+                // Donate bullets on last round
+                donateBullets();
+
                 MapLocation myLocation = rc.getLocation();
 
                 // See if there are any nearby enemy robots
@@ -154,6 +164,9 @@ public strictfp class RobotPlayer {
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
+
+                // Donate bullets on last round
+                donateBullets();
 
                 // See if there are any trees within striking range (distance 1 from lumberjack's radius)
                 TreeInfo[] trees = rc.senseNearbyTrees();
@@ -281,5 +294,18 @@ public strictfp class RobotPlayer {
         float perpendicularDist = (float)Math.abs(distToRobot * Math.sin(theta)); // soh cah toa :)
 
         return (perpendicularDist <= rc.getType().bodyRadius);
+    }
+
+    public static void donateBullets(){
+        // Donate bullets on last round
+        // This needs spread to all robots eventually
+        int total_rounds = rc.getRoundLimit();
+        int current_round = rc.getRoundNum();
+
+        if (total_rounds - current_round < 2){
+            System.out.println("if statement works.");
+            float team_bullets = rc.getTeamBullets();
+                rc.donate(team_bullets);
+        }
     }
 }

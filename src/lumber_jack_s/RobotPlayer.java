@@ -81,21 +81,22 @@ public strictfp class RobotPlayer {
                 int xPos = rc.readBroadcast(0);
                 int yPos = rc.readBroadcast(1);
                 MapLocation archonLoc = new MapLocation(xPos,yPos);
+                MapLocation myLoc = rc.getLocation();
 
                 // Generate a random direction
-                Direction dir = randomDirection();
+                Direction dir = new Direction(myLoc, archonLoc);
+                Direction buildDir = randomDirection();
 
                 // Randomly attempt to build a soldier or lumberjack in this direction
-                if (rc.canBuildRobot(RobotType.SOLDIER, dir) && Math.random() < .01 && rc.isBuildReady()) {
-                    rc.buildRobot(RobotType.SOLDIER, dir);
-                } else if (rc.canBuildRobot(RobotType.LUMBERJACK, dir) && Math.random() < .01 && rc.isBuildReady()) {
-                    rc.buildRobot(RobotType.LUMBERJACK, dir);
-                } else if (rc.canPlantTree(dir) && Math.random() < .01 && rc.hasTreeBuildRequirements() && rc.isBuildReady()) {
-                    rc.plantTree(dir);
+                
+                if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && Math.random() < .01 && rc.isBuildReady()) {
+                    rc.buildRobot(RobotType.LUMBERJACK, buildDir);
+                } else if (rc.canPlantTree(buildDir) && Math.random() < .01 && rc.hasTreeBuildRequirements() && rc.isBuildReady()) {
+                    rc.plantTree(buildDir);
                 }
 
                 // Move randomly
-                tryMove(randomDirection());
+                tryMove(dir);
 
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
                 Clock.yield();

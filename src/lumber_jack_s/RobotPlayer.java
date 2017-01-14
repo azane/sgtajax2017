@@ -95,7 +95,7 @@ public strictfp class RobotPlayer {
 
                 // Randomly attempt to build a soldier or lumberjack in this direction
                 
-                if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && Math.random() < .01 && rc.isBuildReady()) {
+                if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && Math.random() < .05 && rc.isBuildReady()) {
                     rc.buildRobot(RobotType.LUMBERJACK, buildDir);
                 } else if (rc.canPlantTree(buildDir) && Math.random() < .01 && rc.hasTreeBuildRequirements() && rc.isBuildReady()) {
                     rc.plantTree(buildDir);
@@ -164,38 +164,44 @@ public strictfp class RobotPlayer {
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
+                // Get my location
+                MapLocation myLoc = rc.getLocation();
 
                 // Donate bullets on last round
                 donateBullets();
 
-                // See if there are any trees within striking range (distance 1 from lumberjack's radius)
-                TreeInfo[] trees = rc.senseNearbyTrees();
-                if(trees.length > 0) {
-	                for (TreeInfo tree : trees){
-	                    MapLocation treeLocation = tree.getLocation();
-	                    if(!rc.hasAttacked() && rc.canStrike() && tree.getTeam() != myTeam) {
-	                        // Use chop() to chop the tree!
-	                        rc.strike();
-	                        Clock.yield();
-	                    }
-	                }
-	                
-	                // If there is a tree that is not on my team, move to it
-                	for (TreeInfo tree : trees){
+                // Tree chopping code
+                // Sense trees, get robots, get bullets, chop down
+                TreeInfo[] trees = rc.senseNearbyTrees(RobotType.LUMBERJACK.bodyRadius+GameConstants.LUMBERJACK_STRIKE_RADIUS);
+                if (trees.length > 0) {
+                    for (TreeInfo tree : trees) {
                         MapLocation treeLocation = tree.getLocation();
-                        if(tree.getTeam() != myTeam) {
-                            // Use chop() to chop the tree!
-                            MapLocation myLocation = rc.getLocation();
-                        	Direction toTree = myLocation.directionTo(treeLocation);
-                            tryMove(toTree);
-                            Clock.yield();
+                        // Chop down robot trees
+                        if (tree.getContainedRobot() != null && !rc.hasAttacked()) {
+                            rc.chop(treeLocation);
+                            // Shake bullet trees
+                        } else if (tree.getContainedBullets() > 0 && rc.canShake(treeLocation)) {
+                            rc.shake(treeLocation);
+                            // Chop down non friendly trees
+                        } else if (tree.getTeam() != myTeam && !rc.hasAttacked()) {
+                            rc.chop(treeLocation);
                         }
-                	}
-                }
-                // Move Randomly
-                tryMove(randomDirection());
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
+                        // Sense full radius, move toward first tree sensed
+                    }
+                } else {
+                    trees = rc.senseNearbyTrees();
+                    Direction dirToMove = randomDirection();
+
+                    // Move toward first tree, if sensed
+                    if (trees.length >0) {
+                        MapLocation treeLocation = trees[0].getLocation();
+                        dirToMove = myLoc.directionTo(treeLocation);
+                        }
+
+                    tryMove(dirToMove);
+                    }
                 Clock.yield();
+
 
             } catch (Exception e) {
                 System.out.println("Lumberjack Exception");
@@ -296,7 +302,7 @@ public strictfp class RobotPlayer {
         return (perpendicularDist <= rc.getType().bodyRadius);
     }
 
-    public static void donateBullets(){
+    public static void donateBullets() throws GameActionException {
         // Donate bullets on last round
         // This needs spread to all robots eventually
         int total_rounds = rc.getRoundLimit();

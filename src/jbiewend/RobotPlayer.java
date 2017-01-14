@@ -16,7 +16,6 @@ public strictfp class RobotPlayer {
         // and to get information on its current status.
         RobotPlayer.rc = rc;
 
-        donateBullets();
 
         // Here, we've separated the controls into a different method for each RobotType.
         // You can add the missing ones or rewrite this into your own control structure.
@@ -44,17 +43,7 @@ public strictfp class RobotPlayer {
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
-
-				// Donate bullets on last round
-				// This needs spread to all robots eventually
-				//int total_rounds = rc.getRoundLimit();
-				//int current_round = rc.getRoundNum();
-				
-				//if (total_rounds - current_round < 2){
-				//	System.out.println("if statement works.");
-				//	float team_bullets = rc.getTeamBullets();
-				//	rc.donate(team_bullets);
-				//}
+                donateBullets();
 				
                 // Generate a random direction
                 Direction dir = randomDirection();
@@ -293,20 +282,16 @@ public strictfp class RobotPlayer {
         return (perpendicularDist <= rc.getType().bodyRadius);
     }
 
-    public static void donateBullets(){
+    public static void donateBullets() throws GameActionException{
         // Donate bullets on last round
         // This needs spread to all robots eventually
         int total_rounds = rc.getRoundLimit();
         int current_round = rc.getRoundNum();
+        float team_bullets = rc.getTeamBullets();
 
-        if (total_rounds - current_round < 2){
+        if (total_rounds - current_round < 2 && team_bullets > 10){
             System.out.println("if statement works.");
-            float team_bullets = rc.getTeamBullets();
-            try {
-                rc.donate(team_bullets);
-            } catch (GameActionException e) {
-                e.printStackTrace();
-            }
+            rc.donate(team_bullets);
         }
     }
 }

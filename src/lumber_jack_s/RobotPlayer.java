@@ -213,7 +213,7 @@ public strictfp class RobotPlayer {
                 //--- Lumberjack Chop/Shake Code
                 //------------------------
                 // Sense trees, get robots, get bullets, chop down
-                TreeInfo[] trees = rc.senseNearbyTrees(RobotType.LUMBERJACK.bodyRadius+GameConstants.LUMBERJACK_STRIKE_RADIUS);
+                TreeInfo[] trees = rc.senseNearbyTrees(GameConstants.LUMBERJACK_STRIKE_RADIUS);
                 if (trees.length > 0) {
                     for (TreeInfo tree : trees) {
                     	if (tree.getTeam() == myTeam){
@@ -226,7 +226,7 @@ public strictfp class RobotPlayer {
                             // Shake bullet trees
                         } else if (tree.getContainedBullets() > 0 && rc.canShake(treeLocation)) {
                             rc.shake(treeLocation);
-                            // Chop down non friendly trees
+                            // Chop down trees
                         } else if (!rc.hasAttacked()) {
                             rc.chop(treeLocation);
                         }

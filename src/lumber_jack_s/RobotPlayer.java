@@ -366,9 +366,8 @@ public strictfp class RobotPlayer {
         // This needs spread to all robots eventually
         int total_rounds = rc.getRoundLimit();
         int current_round = rc.getRoundNum();
-
-        if (total_rounds - current_round < 2){
-            System.out.println("if statement works.");
+        
+        if (total_rounds - current_round < 2 || rc.getTeamBullets() >= 10000){
             float team_bullets = rc.getTeamBullets();
                 rc.donate(team_bullets);
         }

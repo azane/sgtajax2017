@@ -76,6 +76,7 @@ public strictfp class RobotPlayer {
         int xPos = rc.readBroadcast(0);
         int yPos = rc.readBroadcast(1);
         MapLocation archonLoc = new MapLocation(xPos,yPos);
+        Team myTeam = rc.getTeam();
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {
@@ -89,7 +90,6 @@ public strictfp class RobotPlayer {
                 // Listen for home archon's location
                 MapLocation myLoc = rc.getLocation();
                 Direction dir = myLoc.directionTo(archonLoc);
-                Team myTeam = rc.getTeam();
                 
                 // Get all robots on my team
                 RobotInfo[] nearbyRobots = rc.senseNearbyRobots(-1, myTeam);
@@ -210,11 +210,15 @@ public strictfp class RobotPlayer {
                 // Donate bullets on last round
                 donateBullets();
 
-                // Tree chopping code
+                //--- Lumberjack Chop/Shake Code
+                //------------------------
                 // Sense trees, get robots, get bullets, chop down
                 TreeInfo[] trees = rc.senseNearbyTrees(RobotType.LUMBERJACK.bodyRadius+GameConstants.LUMBERJACK_STRIKE_RADIUS);
                 if (trees.length > 0) {
                     for (TreeInfo tree : trees) {
+                    	if (tree.getTeam() == myTeam){
+                    		continue;
+                    	}
                         MapLocation treeLocation = tree.getLocation();
                         // Chop down robot trees
                         if (tree.getContainedRobot() != null && !rc.hasAttacked()) {
@@ -223,23 +227,38 @@ public strictfp class RobotPlayer {
                         } else if (tree.getContainedBullets() > 0 && rc.canShake(treeLocation)) {
                             rc.shake(treeLocation);
                             // Chop down non friendly trees
-                        } else if (tree.getTeam() != myTeam && !rc.hasAttacked()) {
+                        } else if (!rc.hasAttacked()) {
                             rc.chop(treeLocation);
                         }
                         // Sense full radius, move toward first tree sensed
                     }
-                } else {
-                    trees = rc.senseNearbyTrees();
-                    Direction dirToMove = randomDirection();
+                }
+                //--- End Chop/Shake Code
+                //------------------------
 
-                    // Move toward first tree, if sensed
-                    if (trees.length >0) {
-                        MapLocation treeLocation = trees[0].getLocation();
-                        dirToMove = myLoc.directionTo(treeLocation);
-                        }
-
-                    tryMove(dirToMove);
-                    }
+                
+                //--- Lumberjack Move Code
+                //------------------------
+                if (!rc.hasAttacked()){
+	                trees = rc.senseNearbyTrees();
+	                Direction dirToMove = randomDirection();
+	
+	                
+	                // Move toward first tree, if sensed
+	                if (trees.length > 0) {
+	                    for (TreeInfo tree : trees){
+	                    	if (tree.getTeam() != myTeam){
+	                    		MapLocation treeLocation = tree.getLocation();
+	                            dirToMove = myLoc.directionTo(treeLocation);
+	                            break;
+	                    		}
+	                    	}
+	                    }
+	                tryMove(dirToMove);
+                }
+                //--- End Move Code
+                //------------------------
+                
                 Clock.yield();
 
 

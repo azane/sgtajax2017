@@ -73,6 +73,9 @@ public strictfp class RobotPlayer {
 
 	static void runGardener() throws GameActionException {
         System.out.println("I'm a gardener!");
+        int xPos = rc.readBroadcast(0);
+        int yPos = rc.readBroadcast(1);
+        MapLocation archonLoc = new MapLocation(xPos,yPos);
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {
@@ -84,26 +87,63 @@ public strictfp class RobotPlayer {
                 donateBullets();
 
                 // Listen for home archon's location
-                int xPos = rc.readBroadcast(0);
-                int yPos = rc.readBroadcast(1);
-                MapLocation archonLoc = new MapLocation(xPos,yPos);
                 MapLocation myLoc = rc.getLocation();
-
-                // Generate a random direction
-                Direction dir = new Direction(myLoc, archonLoc);
-                Direction buildDir = randomDirection();
-
-                // Randomly attempt to build a soldier or lumberjack in this direction
+                Direction dir = myLoc.directionTo(archonLoc);
+                Team myTeam = rc.getTeam();
                 
-                if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && Math.random() < .05 && rc.isBuildReady()) {
+                // Get all robots on my team
+                RobotInfo[] nearbyRobots = rc.senseNearbyRobots(-1, myTeam);
+                
+                
+                //--- Gardener Move Code
+                //----------------------
+                // Find a "home" archon
+                for (RobotInfo robot : nearbyRobots){
+                	if (robot.getType() == RobotType.ARCHON)
+                	{
+                		archonLoc = robot.getLocation();
+                		dir = randomDirection();
+                		break;
+                	}
+                }
+                // either move randomly or towards an archon if we are not within a sensing radius of it
+                tryMove(dir); 
+                //--- End Move Code
+                //-----------------
+                
+                
+                //--- Gardener Build Code
+                //-----------------------
+                // Generate a random direction
+                Direction buildDir = randomDirection();
+                float bullets = rc.getTeamBullets();
+
+                // If we have twice the cost of a lumberjack, build a lumberjack, else try to build a tree
+                if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && rc.isBuildReady() && bullets > RobotType.LUMBERJACK.bulletCost * 2) {
                     rc.buildRobot(RobotType.LUMBERJACK, buildDir);
-                } else if (rc.canPlantTree(buildDir) && Math.random() < .01 && rc.hasTreeBuildRequirements() && rc.isBuildReady()) {
+                } else if (rc.canPlantTree(buildDir)) {
                     rc.plantTree(buildDir);
                 }
+                //--- End Build Code
+                //------------------
 
-                // Move randomly
-                tryMove(dir);
-
+                //--- Gardener Water Code
+                //-----------------------
+                TreeInfo[] myTrees = rc.senseNearbyTrees(RobotType.GARDENER.bodyRadius+1, myTeam);
+                float min_health = GameConstants.BULLET_TREE_MAX_HEALTH;
+                int tree_id = -1;
+                for (TreeInfo tree : myTrees){
+	                if (rc.canWater(tree.getLocation()) && tree.getHealth() < min_health){
+	                	min_health = tree.getHealth();
+	                	tree_id = tree.getID();
+	                }
+                }
+                if (tree_id != -1){
+                	rc.water(tree_id);
+                }
+                //--- End Water Code
+                //------------------
+                
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
                 Clock.yield();
 
@@ -302,7 +342,7 @@ public strictfp class RobotPlayer {
         return (perpendicularDist <= rc.getType().bodyRadius);
     }
 
-    public static void donateBullets() throws GameActionException {
+    public static void donateBullets() throws GameActionException{
         // Donate bullets on last round
         // This needs spread to all robots eventually
         int total_rounds = rc.getRoundLimit();

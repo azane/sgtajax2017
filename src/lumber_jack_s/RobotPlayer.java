@@ -27,6 +27,12 @@ public strictfp class RobotPlayer {
             case SOLDIER:
                 runSoldier();
                 break;
+            case TANK:
+                runSoldier();
+                break;
+            case SCOUT:
+                runSoldier();
+                break;
             case LUMBERJACK:
                 runLumberjack();
                 break;
@@ -119,8 +125,10 @@ public strictfp class RobotPlayer {
                 float bullets = rc.getTeamBullets();
 
                 // If we have twice the cost of a lumberjack, build a lumberjack, else try to build a tree
-                if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && rc.isBuildReady() && bullets > RobotType.LUMBERJACK.bulletCost * 2) {
+                if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && rc.isBuildReady() && bullets > RobotType.LUMBERJACK.bulletCost * 1.5 && rc.getRobotCount() < 200) {
                     rc.buildRobot(RobotType.LUMBERJACK, buildDir);
+                } else if (rc.canBuildRobot(RobotType.TANK, buildDir) && rc.isBuildReady() && rc.getRobotCount() > 200) {
+                    rc.buildRobot(RobotType.TANK, buildDir);
                 } else if (rc.canPlantTree(buildDir)) {
                     rc.plantTree(buildDir);
                 }
@@ -209,26 +217,29 @@ public strictfp class RobotPlayer {
 
                 // Donate bullets on last round
                 donateBullets();
+                
 
                 //--- Lumberjack Chop/Shake Code
                 //------------------------
                 // Sense trees, get robots, get bullets, chop down
-                TreeInfo[] trees = rc.senseNearbyTrees(RobotType.LUMBERJACK.bodyRadius+GameConstants.LUMBERJACK_STRIKE_RADIUS);
+                TreeInfo[] trees = rc.senseNearbyTrees(GameConstants.LUMBERJACK_STRIKE_RADIUS);
                 if (trees.length > 0) {
                     for (TreeInfo tree : trees) {
-                    	if (tree.getTeam() == myTeam){
-                    		continue;
-                    	}
-                        MapLocation treeLocation = tree.getLocation();
-                        // Chop down robot trees
-                        if (tree.getContainedRobot() != null && !rc.hasAttacked()) {
-                            rc.chop(treeLocation);
-                            // Shake bullet trees
-                        } else if (tree.getContainedBullets() > 0 && rc.canShake(treeLocation)) {
-                            rc.shake(treeLocation);
-                            // Chop down non friendly trees
-                        } else if (!rc.hasAttacked()) {
-                            rc.chop(treeLocation);
+                    	if (tree.getTeam() != myTeam){
+	                        MapLocation treeLocation = tree.getLocation();
+	                        // Chop down robot trees
+	                        if (tree.getContainedRobot() != null && !rc.hasAttacked()) {
+	                            rc.chop(treeLocation);
+	                            break;
+	                            // Shake bullet trees
+	                        } else if (tree.getContainedBullets() > 0 && rc.canShake(treeLocation)) {
+	                            rc.shake(treeLocation);
+	                            break;
+	                            // Chop down non friendly trees
+	                        } else if (!rc.hasAttacked()) {
+	                            rc.chop(treeLocation);
+	                            break;
+	                        }
                         }
                         // Sense full radius, move toward first tree sensed
                     }
@@ -241,8 +252,8 @@ public strictfp class RobotPlayer {
                 //------------------------
                 if (!rc.hasAttacked()){
 	                trees = rc.senseNearbyTrees();
+	                
 	                Direction dirToMove = randomDirection();
-	
 	                
 	                // Move toward first tree, if sensed
 	                if (trees.length > 0) {

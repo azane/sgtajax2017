@@ -42,11 +42,22 @@ public strictfp class scout extends RobotPlayer{
                 //--- End Search Code
                 //-------------------
 
+                //--- Scout Attack Code
+                //---------------------
+
+                // If enemy archon is found, fire at it, don't fire too early or scout will run into his own bullets
+                MapLocation myLocation = rc.getLocation();
+                Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
+
+                if (foundEnemyArchon && rc.canFireSingleShot()) {
+                    rc.fireSingleShot(towardsEnemyArchon);
+                }
+                //--- End Attack Code
+                //-------------------
+
                 
                 //--- Scout Move Code
                 //-------------------
-                MapLocation myLocation = rc.getLocation();
-                Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
 
                 // Move towards the enemy archon or perpendicular to it
                 if (foundEnemyArchon){

@@ -19,6 +19,10 @@ public strictfp class lumberJack extends RobotPlayer{
         Team myTeam = rc.getTeam();
         Team enemy = rc.getTeam().opponent();
         boolean archonNotFound = true;
+        int enemyArchonX = rc.readBroadcast(10);
+        int enemyArchonY = rc.readBroadcast(11);
+        MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {
@@ -30,7 +34,9 @@ public strictfp class lumberJack extends RobotPlayer{
 
                 // Donate bullets on last round
                 donateBullets();
-                
+
+                // Search for enemy archons
+                searchForArchon();
 
                 //--- Lumberjack Chop/Shake Code
                 //------------------------
@@ -97,6 +103,7 @@ public strictfp class lumberJack extends RobotPlayer{
                 }
                 //--- End Move Code
                 //------------------------
+
                 
                 Clock.yield();
 

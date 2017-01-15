@@ -3,6 +3,7 @@ import battlecode.common.*;
 
 public strictfp class RobotPlayer {
     static RobotController rc;
+    static int ARCHON_SEARCH_OFFSET = 20;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -141,10 +142,10 @@ public strictfp class RobotPlayer {
                 rc.donate(team_bullets);
         }
     }
-    
+
     public static Direction huntEnemyArchon() throws GameActionException{
         MapLocation myLoc = rc.getLocation();
-        
+
 //    	// First, look if there is an archon in range --- this is useless
 //    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots();
 //    	for (RobotInfo enemyRobot : nearbyEnemies){
@@ -153,21 +154,22 @@ public strictfp class RobotPlayer {
 //            	return myLoc.directionTo(enemyArchonLocation);
 //        	}
 //    	}
-    	
-    	// If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
+
+        // If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
         int enemyArchonX = rc.readBroadcast(10);
         int enemyArchonY = rc.readBroadcast(11);
         if (enemyArchonX != 0 && enemyArchonY != 0) {
-        	MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
-        	return myLoc.directionTo(enemyArchonLocation);
+            MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+            return myLoc.directionTo(enemyArchonLocation);
         }
-        
+
         // return a random direction if we don't know where the archon is -- this point should never be reached
         return randomDirection();
     }
     
     public static boolean foundEnemyArchon() throws GameActionException{
-        
+        // Return true if archon is sensed or robot is within 20 units of the archon location, else return false
+
     	// First, look if there is an archon in range
     	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
     	for (RobotInfo enemyRobot : nearbyEnemies){
@@ -186,5 +188,29 @@ public strictfp class RobotPlayer {
         	}
         }
         return false;
+    }
+
+
+    public static void searchForArchon() throws GameActionException{
+        int bytesUsed = Clock.getBytecodeNum();
+        System.out.println(bytesUsed);
+
+    	// If an archon is in range, broadcast archon's ID and coordinates
+    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots();
+    	for (RobotInfo enemyRobot : nearbyEnemies){
+        	if (enemyRobot.getType() == RobotType.ARCHON){
+            	MapLocation enemyArchonLocation = enemyRobot.getLocation();
+            	int enemyArchonID = enemyRobot.getID();
+            	int archonSearch = ARCHON_SEARCH_OFFSET;
+            	while (rc.readBroadcast(archonSearch) != 0 && rc.readBroadcast(archonSearch) != enemyArchonID) {
+            	    archonSearch = archonSearch + 3;
+                }
+                rc.broadcast(archonSearch, enemyArchonID);
+            	rc.broadcast(archonSearch + 1, (int)enemyArchonLocation.x);
+            	rc.broadcast(archonSearch + 2, (int)enemyArchonLocation.y);
+        	}
+    	}
+        int bytesUsedNew = Clock.getBytecodeNum();
+        System.out.println(bytesUsedNew);
     }
 }

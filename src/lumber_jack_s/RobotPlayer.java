@@ -15,273 +15,29 @@ public strictfp class RobotPlayer {
         // and to get information on its current status.
         RobotPlayer.rc = rc;
 
-        // Here, we've separated the controls into a different method for each RobotType.
+		// Here, we've separated the controls into a different method for each RobotType.
         // You can add the missing ones or rewrite this into your own control structure.
         switch (rc.getType()) {
             case ARCHON:
-                runArchon();
+                archon.runArchon(rc);
                 break;
             case GARDENER:
-                runGardener();
+                gardener.runGardener(rc);
                 break;
             case SOLDIER:
-                runSoldier();
+                soldier.runSoldier(rc);
                 break;
             case TANK:
-                runSoldier();
+                tank.runTank(rc);
                 break;
             case SCOUT:
-                runSoldier();
+                scout.runScout(rc);
                 break;
             case LUMBERJACK:
-                runLumberjack();
+                lumberJack.runLumberjack(rc);
                 break;
         }
 	}
-
-    static void runArchon() throws GameActionException {
-        System.out.println("I'm an archon!");
-
-        // The code you want your robot to perform every round should be in this loop
-        while (true) {
-
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
-            try {
-
-                // Donate bullets on last round
-                donateBullets();
-
-                // Generate a random direction
-                Direction dir = randomDirection();
-
-                // Randomly attempt to build a gardener in this direction
-                if (rc.canHireGardener(dir) && Math.random() < .20) {
-                    rc.hireGardener(dir);
-                }
-
-                // Move randomly
-                tryMove(randomDirection());
-
-                // Broadcast archon's location for other robots on the team to know
-                MapLocation myLocation = rc.getLocation();
-                rc.broadcast(0,(int)myLocation.x);
-                rc.broadcast(1,(int)myLocation.y);
-
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
-
-            } catch (Exception e) {
-                System.out.println("Archon Exception");
-                e.printStackTrace();
-            }
-        }
-    }
-
-	static void runGardener() throws GameActionException {
-        System.out.println("I'm a gardener!");
-        MapLocation startLoc = rc.getLocation();
-        Team myTeam = rc.getTeam();
-
-        // The code you want your robot to perform every round should be in this loop
-        while (true) {
-
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
-            try {
-
-                // Donate bullets on last round
-                donateBullets();
-
-                // Listen for home archon's location
-                MapLocation myLoc = rc.getLocation();
-                Direction homeDir = myLoc.directionTo(startLoc);
-                
-                
-                //--- Gardener Move Code
-                //----------------------
-                // Find a "home" archon
-                Direction dir = randomDirection();
-                if (myLoc.distanceTo(startLoc) > 10){
-                	dir = homeDir;
-                }
-                tryMove(dir); 
-                //--- End Move Code
-                //-----------------
-                
-                
-                //--- Gardener Build Code
-                //-----------------------
-                // Generate a random direction
-                Direction buildDir = randomDirection();
-                float bullets = rc.getTeamBullets();
-                TreeInfo[] myTrees = rc.senseNearbyTrees(-1, myTeam);
-
-                // If we have twice the cost of a lumberjack, build a lumberjack, else try to build a tree
-                if (rc.canPlantTree(buildDir) && myTrees.length < 5) {
-                    rc.plantTree(buildDir);
-                } else if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && rc.isBuildReady() && bullets > RobotType.LUMBERJACK.bulletCost * 1.5 && rc.getRobotCount() < 200) {
-                    rc.buildRobot(RobotType.LUMBERJACK, buildDir);
-                } else if (rc.canBuildRobot(RobotType.TANK, buildDir) && rc.isBuildReady() && rc.getRobotCount() > 200) {
-                    rc.buildRobot(RobotType.TANK, buildDir);
-                }
-                //--- End Build Code
-                //------------------
-
-                //--- Gardener Water Code
-                //-----------------------
-                TreeInfo[] myLocalTrees = rc.senseNearbyTrees(RobotType.GARDENER.bodyRadius+1, myTeam);
-                float min_health = GameConstants.BULLET_TREE_MAX_HEALTH;
-                int tree_id = -1;
-                for (TreeInfo tree : myLocalTrees){
-	                if (rc.canWater(tree.getLocation()) && tree.getHealth() < min_health){
-	                	min_health = tree.getHealth();
-	                	tree_id = tree.getID();
-	                }
-                }
-                if (tree_id != -1){
-                	rc.water(tree_id);
-                }
-                //--- End Water Code
-                //------------------
-                
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
-
-            } catch (Exception e) {
-                System.out.println("Gardener Exception");
-                e.printStackTrace();
-            }
-        }
-    }
-
-    static void runSoldier() throws GameActionException {
-        System.out.println("I'm an soldier!");
-        Team enemy = rc.getTeam().opponent();
-
-        // The code you want your robot to perform every round should be in this loop
-        while (true) {
-
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
-            try {
-
-                // Donate bullets on last round
-                donateBullets();
-
-                MapLocation myLocation = rc.getLocation();
-
-                // See if there are any nearby enemy robots
-                RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
-
-                // If there are some...
-                if (robots.length > 0) {
-                    // And we have enough bullets, and haven't attacked yet this turn...
-                    if (rc.canFireSingleShot()) {
-                        // ...Then fire a bullet in the direction of the enemy.
-                        rc.fireSingleShot(rc.getLocation().directionTo(robots[0].location));
-                    }
-                }
-
-                // Move randomly
-                tryMove(randomDirection());
-
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
-
-            } catch (Exception e) {
-                System.out.println("Soldier Exception");
-                e.printStackTrace();
-            }
-        }
-    }
-
-    static void runLumberjack() throws GameActionException {
-        System.out.println("I'm a lumberjack!");
-        Team myTeam = rc.getTeam();
-        Team enemy = rc.getTeam().opponent();
-
-        // The code you want your robot to perform every round should be in this loop
-        while (true) {
-
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
-            try {
-                // Get my location
-                MapLocation myLoc = rc.getLocation();
-
-                // Donate bullets on last round
-                donateBullets();
-                
-
-                //--- Lumberjack Chop/Shake Code
-                //------------------------
-                // Sense trees, get robots, get bullets, chop down
-                TreeInfo[] trees = rc.senseNearbyTrees(GameConstants.LUMBERJACK_STRIKE_RADIUS);
-                if (trees.length > 0 ) {
-                    for (TreeInfo tree : trees) {
-                    	if (tree.getTeam() != myTeam){
-	                        MapLocation treeLocation = tree.getLocation();
-	                        // Chop down robot trees
-	                        if (tree.getContainedRobot() != null && !rc.hasAttacked()) {
-	                            rc.chop(treeLocation);
-	                            break;
-	                            // Shake bullet trees
-	                        } else if (tree.getContainedBullets() > 0 && rc.canShake(treeLocation)) {
-	                            rc.shake(treeLocation);
-	                            break;
-	                            // Chop down non friendly trees
-	                        } else if (!rc.hasAttacked()) {
-	                            rc.chop(treeLocation);
-	                            break;
-	                        }
-                        }
-                    }
-                }
-                if (!rc.hasAttacked()) {
-                    RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.LUMBERJACK_STRIKE_RADIUS, enemy);
-                    if(robots.length > 0) {
-                        rc.strike();
-                    }
-                }
-                //--- End Chop/Shake Code
-                //------------------------
-
-                
-                //--- Lumberjack Move Code
-                //------------------------
-                if (!rc.hasAttacked()){
-	                trees = rc.senseNearbyTrees();
-	                
-	                Direction dirToMove = randomDirection();
-	                
-	                // Move toward first tree, if sensed
-	                if (trees.length > 0) {
-	                    for (TreeInfo tree : trees){
-	                    	if (tree.getTeam() != myTeam){
-	                    		MapLocation treeLocation = tree.getLocation();
-	                            dirToMove = myLoc.directionTo(treeLocation);
-	                            break;
-	                    		}
-	                    	}
-                    } else {
-                        RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
-                        if (robots.length > 0) {
-                            MapLocation robotLocation = robots[0].getLocation();
-                            dirToMove = myLoc.directionTo(robotLocation);
-                        }
-                    }
-	                tryMove(dirToMove);
-                }
-                //--- End Move Code
-                //------------------------
-                
-                Clock.yield();
-
-
-            } catch (Exception e) {
-                System.out.println("Lumberjack Exception");
-                e.printStackTrace();
-            }
-        }
-    }
-
     /**
      * Returns a random Direction
      * @return a random Direction

@@ -17,7 +17,7 @@
 *.ipr
 *.iws
 /.idea/
-
+/.metadata/
 
 # User-specific stuff:
 battlecode-scaffold.iws

@@ -223,7 +223,7 @@ public strictfp class RobotPlayer {
                 //------------------------
                 // Sense trees, get robots, get bullets, chop down
                 TreeInfo[] trees = rc.senseNearbyTrees(GameConstants.LUMBERJACK_STRIKE_RADIUS);
-                if (trees.length > 0) {
+                if (trees.length > 0 ) {
                     for (TreeInfo tree : trees) {
                     	if (tree.getTeam() != myTeam){
 	                        MapLocation treeLocation = tree.getLocation();
@@ -241,7 +241,12 @@ public strictfp class RobotPlayer {
 	                            break;
 	                        }
                         }
-                        // Sense full radius, move toward first tree sensed
+                    }
+                }
+                if (!rc.hasAttacked()) {
+                    RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.LUMBERJACK_STRIKE_RADIUS, enemy);
+                    if(robots.length > 0) {
+                        rc.strike();
                     }
                 }
                 //--- End Chop/Shake Code
@@ -264,7 +269,13 @@ public strictfp class RobotPlayer {
 	                            break;
 	                    		}
 	                    	}
-	                    }
+                    } else {
+                        RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
+                        if (robots.length > 0) {
+                            MapLocation robotLocation = robots[0].getLocation();
+                            dirToMove = myLoc.directionTo(robotLocation);
+                        }
+                    }
 	                tryMove(dirToMove);
                 }
                 //--- End Move Code

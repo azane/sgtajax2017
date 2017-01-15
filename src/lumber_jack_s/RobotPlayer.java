@@ -54,7 +54,7 @@ public strictfp class RobotPlayer {
      * @throws GameActionException
      */
     static boolean tryMove(Direction dir) throws GameActionException {
-        return tryMove(dir,20,5);
+        return tryMove(dir,25,3);
     }
 
     /**
@@ -169,7 +169,7 @@ public strictfp class RobotPlayer {
     public static boolean foundEnemyArchon() throws GameActionException{
         
     	// First, look if there is an archon in range
-    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots();
+    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
     	for (RobotInfo enemyRobot : nearbyEnemies){
         	if (enemyRobot.getType() == RobotType.ARCHON){
         		return true;

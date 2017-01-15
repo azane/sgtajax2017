@@ -17,17 +17,24 @@ public strictfp class gardener extends RobotPlayer{
         System.out.println("I'm a gardener!");
         MapLocation startLoc = rc.getLocation();
         Team myTeam = rc.getTeam();
-
-        Direction buildDir = randomDirection();
-        if (rc.canBuildRobot(RobotType.SCOUT, buildDir)) {
-        	rc.buildRobot(RobotType.SCOUT, buildDir);
-        }
+        boolean scoutNotBuilt = true;
+    	Direction buildDir = randomDirection();
+        
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
+            	while(scoutNotBuilt){
+            		buildDir = randomDirection();
+	                if (rc.canBuildRobot(RobotType.SCOUT, buildDir)) {
+	                	rc.buildRobot(RobotType.SCOUT, buildDir);
+	                	scoutNotBuilt = false;
+	                }
+	                Clock.yield();
+                }
+            	
 
                 // Donate bullets on last round
                 donateBullets();

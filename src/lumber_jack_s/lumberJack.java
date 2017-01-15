@@ -18,6 +18,7 @@ public strictfp class lumberJack extends RobotPlayer{
         System.out.println("I'm a lumberjack!");
         Team myTeam = rc.getTeam();
         Team enemy = rc.getTeam().opponent();
+        boolean archonNotFound = true;
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {
@@ -28,7 +29,7 @@ public strictfp class lumberJack extends RobotPlayer{
                 MapLocation myLoc = rc.getLocation();
 
                 // Donate bullets on last round
-                RobotPlayer.donateBullets();
+                donateBullets();
                 
 
                 //--- Lumberjack Chop/Shake Code
@@ -70,7 +71,11 @@ public strictfp class lumberJack extends RobotPlayer{
                 if (!rc.hasAttacked()){
 	                trees = rc.senseNearbyTrees();
 	                
-	                Direction dirToMove = randomDirection();
+	                // If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
+                	Direction dirToMove = randomDirection();
+	                if (!RobotPlayer.foundEnemyArchon()) {
+	                	dirToMove = RobotPlayer.huntEnemyArchon();
+	                }
 	                
 	                // Move toward first tree, if sensed
 	                if (trees.length > 0) {
@@ -88,7 +93,7 @@ public strictfp class lumberJack extends RobotPlayer{
                             dirToMove = myLoc.directionTo(robotLocation);
                         }
                     }
-	                RobotPlayer.tryMove(dirToMove);
+	                tryMove(dirToMove);
                 }
                 //--- End Move Code
                 //------------------------

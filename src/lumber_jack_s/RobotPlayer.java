@@ -31,7 +31,7 @@ public strictfp class RobotPlayer {
                 tank.runTank(rc);
                 break;
             case SCOUT:
-                scout.runScout(rc);
+            	scout.runScout(rc);
                 break;
             case LUMBERJACK:
                 lumberJack.runLumberjack(rc);
@@ -54,7 +54,7 @@ public strictfp class RobotPlayer {
      * @throws GameActionException
      */
     static boolean tryMove(Direction dir) throws GameActionException {
-        return tryMove(dir,20,3);
+        return tryMove(dir,20,5);
     }
 
     /**
@@ -140,5 +140,51 @@ public strictfp class RobotPlayer {
             float team_bullets = rc.getTeamBullets();
                 rc.donate(team_bullets);
         }
+    }
+    
+    public static Direction huntEnemyArchon() throws GameActionException{
+        MapLocation myLoc = rc.getLocation();
+        
+//    	// First, look if there is an archon in range --- this is useless
+//    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots();
+//    	for (RobotInfo enemyRobot : nearbyEnemies){
+//        	if (enemyRobot.getType() == RobotType.ARCHON){
+//            	MapLocation enemyArchonLocation = enemyRobot.getLocation();
+//            	return myLoc.directionTo(enemyArchonLocation);
+//        	}
+//    	}
+    	
+    	// If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
+        int enemyArchonX = rc.readBroadcast(10);
+        int enemyArchonY = rc.readBroadcast(11);
+        if (enemyArchonX != 0 && enemyArchonY != 0) {
+        	MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+        	return myLoc.directionTo(enemyArchonLocation);
+        }
+        
+        // return a random direction if we don't know where the archon is -- this point should never be reached
+        return randomDirection();
+    }
+    
+    public static boolean foundEnemyArchon() throws GameActionException{
+        
+    	// First, look if there is an archon in range
+    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots();
+    	for (RobotInfo enemyRobot : nearbyEnemies){
+        	if (enemyRobot.getType() == RobotType.ARCHON){
+        		return true;
+        	}
+    	}
+    	    	
+    	// If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
+        int enemyArchonX = rc.readBroadcast(10);
+        int enemyArchonY = rc.readBroadcast(11);
+        if (enemyArchonX != 0 && enemyArchonY != 0) {
+        	MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+        	if (enemyArchonLocation.distanceTo(rc.getLocation()) < 20){
+        		return true;
+        	}
+        }
+        return false;
     }
 }

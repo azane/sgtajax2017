@@ -15,6 +15,9 @@ public strictfp class archon extends RobotPlayer{
         // and to get information on its current status.
         archon.rc = rc;
         System.out.println("I'm an archon!");
+		rc.broadcast(10, 0);
+		rc.broadcast(11, 0);
+        
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {

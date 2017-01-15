@@ -16,6 +16,7 @@ public strictfp class soldier extends RobotPlayer{
         soldier.rc = rc;
         System.out.println("I'm an soldier!");
         Team enemy = rc.getTeam().opponent();
+        boolean archonNotFound = true;
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {
@@ -40,8 +41,12 @@ public strictfp class soldier extends RobotPlayer{
                     }
                 }
 
-                // Move randomly
-                tryMove(randomDirection());
+                // If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
+            	Direction dirToMove = randomDirection();
+                if (!RobotPlayer.foundEnemyArchon()) {
+                	dirToMove = RobotPlayer.huntEnemyArchon();
+                }
+                tryMove(dirToMove);
 
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
                 Clock.yield();

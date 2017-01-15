@@ -18,6 +18,11 @@ public strictfp class gardener extends RobotPlayer{
         MapLocation startLoc = rc.getLocation();
         Team myTeam = rc.getTeam();
 
+        Direction buildDir = randomDirection();
+        if (rc.canBuildRobot(RobotType.SCOUT, buildDir)) {
+        	rc.buildRobot(RobotType.SCOUT, buildDir);
+        }
+
         // The code you want your robot to perform every round should be in this loop
         while (true) {
 
@@ -34,9 +39,9 @@ public strictfp class gardener extends RobotPlayer{
                 
                 //--- Gardener Move Code
                 //----------------------
-                // Find a "home" archon
+                // Create a tether for all gardeners, just so they stay in one place. (20 distance from their spawn location)
                 Direction dir = randomDirection();
-                if (myLoc.distanceTo(startLoc) > 10){
+                if (myLoc.distanceTo(startLoc) > 20){
                 	dir = homeDir;
                 }
                 tryMove(dir); 
@@ -47,7 +52,7 @@ public strictfp class gardener extends RobotPlayer{
                 //--- Gardener Build Code
                 //-----------------------
                 // Generate a random direction
-                Direction buildDir = randomDirection();
+                buildDir = randomDirection();
                 float bullets = rc.getTeamBullets();
                 TreeInfo[] myTrees = rc.senseNearbyTrees(-1, myTeam);
 

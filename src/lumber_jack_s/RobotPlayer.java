@@ -192,8 +192,8 @@ public strictfp class RobotPlayer {
 
 
     public static void searchForArchon() throws GameActionException{
-        int bytesUsed = Clock.getBytecodeNum();
-        System.out.println(bytesUsed);
+//        int bytesUsed = Clock.getBytecodeNum();
+//        System.out.println(bytesUsed);
 
     	// If an archon is in range, broadcast archon's ID and coordinates
     	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots();
@@ -210,7 +210,7 @@ public strictfp class RobotPlayer {
             	rc.broadcast(archonSearch + 2, (int)enemyArchonLocation.y);
         	}
     	}
-        int bytesUsedNew = Clock.getBytecodeNum();
-        System.out.println(bytesUsedNew);
+//        int bytesUsedNew = Clock.getBytecodeNum();
+//        System.out.println(bytesUsedNew);
     }
 }

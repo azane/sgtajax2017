@@ -46,11 +46,12 @@ public strictfp class gardener extends RobotPlayer{
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
-            	while(scoutNotBuilt && gardener.underBuildLimit(RobotType.SCOUT)){
+            	while(scoutNotBuilt && underBuildLimit(RobotType.SCOUT)){
             		buildDir = randomDirection();
 	                if (rc.canBuildRobot(RobotType.SCOUT, buildDir)) {
 	                	rc.buildRobot(RobotType.SCOUT, buildDir);
 	                	scoutNotBuilt = false;
+                		addOneRobotBuilt(RobotType.SCOUT);
 	                }
 	                Clock.yield();
                 }
@@ -86,18 +87,27 @@ public strictfp class gardener extends RobotPlayer{
 
                 // First try and build a tree, if you cannot, then try and build robots
                 if (rc.isBuildReady()) {
-	                if (rc.canPlantTree(buildDir) && myTrees.length < 5 && allTrees.length < 10 && (rc.getRoundNum() < treeRoundLimit)) {
-	                    rc.plantTree(buildDir);
+	                if (rc.canPlantTree(buildDir) && (rc.getRoundNum() < treeRoundLimit)){
+	                	// Count the trees around us to make sure we don't have too many clogging up the area
+	                	if (myTrees.length < 4 && allTrees.length < 6) {
+		                    rc.plantTree(buildDir);
+	                	} 
+	                	// If we have too many trees, try and build a lumberjack
+	                	else if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && underBuildLimit(RobotType.LUMBERJACK)){
+	                		System.out.println("Number of units built: "+getNumberRobotsBuilt(RobotType.LUMBERJACK)+"Build Limit: "+getBuildLimit(RobotType.LUMBERJACK));
+	                		rc.buildRobot(RobotType.LUMBERJACK, buildDir);
+	                		addOneRobotBuilt(RobotType.LUMBERJACK);	                		
+	                	}
+	                	
 	                } 
 	                // This is the robot building code
 	                else {
 	                	RobotType[] robotTypeList = {RobotType.LUMBERJACK, RobotType.TANK};  // Get a list of the robot types
 	                	for (RobotType robotType : robotTypeList) {
-		            		int numRobots = gardener.getNumberRobotsBuilt(robotType);
-		                	if (rc.canBuildRobot(robotType, buildDir) && gardener.underBuildLimit(robotType)) {
+		            		int numRobots = getNumberRobotsBuilt(robotType);
+		                	if (rc.canBuildRobot(robotType, buildDir) && underBuildLimit(robotType)) {
 		                		rc.buildRobot(robotType, buildDir);
-		                		numRobots++;
-		                		gardener.setNumberRobotsBuilt(robotType, numRobots);
+		                		addOneRobotBuilt(robotType);
 		                	}
 	                	}
 	                }
@@ -132,60 +142,88 @@ public strictfp class gardener extends RobotPlayer{
         }
     }
 
-    public static int getNumberRobotsBuilt(RobotType type) throws GameActionException{
+    static int getNumberRobotsBuilt(RobotType type) throws GameActionException{
     	int channel = 0;
+//    	System.out.println("In getNumberRobotsBuilt for type: "+type.toString());
     	switch (type) {
     		case GARDENER:
     			channel = GARDENER_BASE_OFFSET + GARDENERS_BUILT_OFFSET;
+    			break;
     		case SCOUT:
     			channel = GARDENER_BASE_OFFSET + SCOUTS_BUILT_OFFSET;
+    			break;
     		case SOLDIER:
     			channel = GARDENER_BASE_OFFSET + SOLDIERS_BUILT_OFFSET;
+    			break;
     		case LUMBERJACK:
     			channel = GARDENER_BASE_OFFSET + LUMBERJACKS_BUILT_OFFSET;
+    			break;
     		case TANK:
     			channel = GARDENER_BASE_OFFSET + TANKS_BUILT_OFFSET;
+    			break;
     		case ARCHON:
-    			return rc.getInitialArchonLocations(rc.getTeam()).length;
+    			return rc.getInitialArchonLocations(RobotPlayer.rc.getTeam()).length;
     	}
-    	return rc.readBroadcast(channel);
+    	int numBuilt = RobotPlayer.rc.readBroadcast(channel);
+//    	System.out.println("Number of "+type+" built: "+numBuilt);
+    	return numBuilt;
     }
 
-    public static void setNumberRobotsBuilt(RobotType type, int value) throws GameActionException{
+    static void setNumberRobotsBuilt(RobotType type, int value) throws GameActionException{
     	int channel = 0;
+//    	System.out.println("In setNumberRobotsBuilt");
     	switch (type) {
     		case GARDENER:
     			channel = GARDENER_BASE_OFFSET + GARDENERS_BUILT_OFFSET;
+    			break;
     		case SCOUT:
     			channel = GARDENER_BASE_OFFSET + SCOUTS_BUILT_OFFSET;
+    			break;
     		case SOLDIER:
     			channel = GARDENER_BASE_OFFSET + SOLDIERS_BUILT_OFFSET;
+    			break;
     		case LUMBERJACK:
     			channel = GARDENER_BASE_OFFSET + LUMBERJACKS_BUILT_OFFSET;
+    			break;
     		case TANK:
     			channel = GARDENER_BASE_OFFSET + TANKS_BUILT_OFFSET;
+    			break;
     	}
-    	rc.broadcast(channel, value);
+    	RobotPlayer.rc.broadcast(channel, value);
     }
 
-    public static int getBuildLimit(RobotType type) throws GameActionException{
+    static int getBuildLimit(RobotType type) throws GameActionException{
     	int max = 0;
+//    	System.out.println("In getBuildLimit");
     	switch (type) {
     		case GARDENER:
     			max = GARDENER_BUILD_LIMIT;
+    			break;
     		case SCOUT:
     			max = SCOUT_BUILD_LIMIT;
+    			break;
     		case SOLDIER:
     			max = SOLDIER_BUILD_LIMIT;
+    			break;
     		case LUMBERJACK:
     			max = LUMBERJACK_BUILD_LIMIT;
+    			break;
     		case TANK:
     			max = TANK_BUILD_LIMIT;
+    			break;
     	}
     	return max;
     }
     
-    public static boolean underBuildLimit(RobotType type) throws GameActionException{
-    	return (gardener.getNumberRobotsBuilt(type) < gardener.getBuildLimit(type));
+    static void addOneRobotBuilt(RobotType type) throws GameActionException{
+//    	System.out.println("In addOneRobotBuilt");
+    	int num_bots = getNumberRobotsBuilt(type);
+    	num_bots++;
+    	setNumberRobotsBuilt(type, num_bots);
+    }
+    
+    static boolean underBuildLimit(RobotType type) throws GameActionException{
+    	System.out.println("In underBuildLimit");
+    	return (getNumberRobotsBuilt(type) < getBuildLimit(type));
     }
 }

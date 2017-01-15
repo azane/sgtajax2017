@@ -3,6 +3,24 @@ import battlecode.common.*;
 
 public strictfp class gardener extends RobotPlayer{
     static RobotController rc;
+    
+    static int GARDENER_BASE_OFFSET = 900;
+    static int GARDENERS_BUILT_OFFSET = 0;
+    static int LUMBERJACKS_BUILT_OFFSET = 1;
+    static int SOLDIERS_BUILT_OFFSET = 2;
+    static int SCOUTS_BUILT_OFFSET = 3;
+    static int TANKS_BUILT_OFFSET = 4;
+    
+    static int GARDENER_BUILD_LIMIT = 10;
+    static int SCOUT_BUILD_LIMIT = 10;
+    static int SOLDIER_BUILD_LIMIT = 40;
+    static int LUMBERJACK_BUILD_LIMIT = 75;
+    static int TANK_BUILD_LIMIT = 75;
+    
+    static int GARDENER_HOME_RANGE = 50;
+    
+    static float MAX_PRODUCTION = GameConstants.BULLET_TREE_BULLET_PRODUCTION_RATE * GameConstants.BULLET_TREE_MAX_HEALTH;
+    
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -14,6 +32,8 @@ public strictfp class gardener extends RobotPlayer{
         // This is the RobotController object. You use it to perform actions from this robot,
         // and to get information on its current status.
         gardener.rc = rc;
+        int treeRoundLimit = rc.getRoundLimit() - (int)MAX_PRODUCTION * (int)GameConstants.BULLET_TREE_COST;
+        
         System.out.println("I'm a gardener!");
         MapLocation startLoc = rc.getLocation();
         Team myTeam = rc.getTeam();
@@ -26,7 +46,7 @@ public strictfp class gardener extends RobotPlayer{
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
-            	while(scoutNotBuilt){
+            	while(scoutNotBuilt && gardener.underBuildLimit(RobotType.SCOUT)){
             		buildDir = randomDirection();
 	                if (rc.canBuildRobot(RobotType.SCOUT, buildDir)) {
 	                	rc.buildRobot(RobotType.SCOUT, buildDir);
@@ -48,7 +68,7 @@ public strictfp class gardener extends RobotPlayer{
                 //----------------------
                 // Create a tether for all gardeners, just so they stay in one place. (20 distance from their spawn location)
                 Direction dir = randomDirection();
-                if (myLoc.distanceTo(startLoc) > 20){
+                if (myLoc.distanceTo(startLoc) > GARDENER_HOME_RANGE){
                 	dir = homeDir;
                 }
                 tryMove(dir); 
@@ -62,14 +82,25 @@ public strictfp class gardener extends RobotPlayer{
                 buildDir = randomDirection();
                 float bullets = rc.getTeamBullets();
                 TreeInfo[] myTrees = rc.senseNearbyTrees(-1, myTeam);
+                TreeInfo[] allTrees = rc.senseNearbyTrees(-1, myTeam);
 
-                // If we have twice the cost of a lumberjack, build a lumberjack, else try to build a tree
-                if (rc.canPlantTree(buildDir) && myTrees.length < 5) {
-                    rc.plantTree(buildDir);
-                } else if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && rc.isBuildReady() && bullets > RobotType.LUMBERJACK.bulletCost * 1.5 && rc.getRobotCount() < 200) {
-                    rc.buildRobot(RobotType.LUMBERJACK, buildDir);
-                } else if (rc.canBuildRobot(RobotType.TANK, buildDir) && rc.isBuildReady() && rc.getRobotCount() > 200) {
-                    rc.buildRobot(RobotType.TANK, buildDir);
+                // First try and build a tree, if you cannot, then try and build robots
+                if (rc.isBuildReady()) {
+	                if (rc.canPlantTree(buildDir) && myTrees.length < 5 && allTrees.length < 10 && (rc.getRoundNum() < treeRoundLimit)) {
+	                    rc.plantTree(buildDir);
+	                } 
+	                // This is the robot building code
+	                else {
+	                	RobotType[] robotTypeList = {RobotType.LUMBERJACK, RobotType.TANK};  // Get a list of the robot types
+	                	for (RobotType robotType : robotTypeList) {
+		            		int numRobots = gardener.getNumberRobotsBuilt(robotType);
+		                	if (rc.canBuildRobot(robotType, buildDir) && gardener.underBuildLimit(robotType)) {
+		                		rc.buildRobot(robotType, buildDir);
+		                		numRobots++;
+		                		gardener.setNumberRobotsBuilt(robotType, numRobots);
+		                	}
+	                	}
+	                }
                 }
                 //--- End Build Code
                 //------------------
@@ -99,5 +130,62 @@ public strictfp class gardener extends RobotPlayer{
                 e.printStackTrace();
             }
         }
+    }
+
+    public static int getNumberRobotsBuilt(RobotType type) throws GameActionException{
+    	int channel = 0;
+    	switch (type) {
+    		case GARDENER:
+    			channel = GARDENER_BASE_OFFSET + GARDENERS_BUILT_OFFSET;
+    		case SCOUT:
+    			channel = GARDENER_BASE_OFFSET + SCOUTS_BUILT_OFFSET;
+    		case SOLDIER:
+    			channel = GARDENER_BASE_OFFSET + SOLDIERS_BUILT_OFFSET;
+    		case LUMBERJACK:
+    			channel = GARDENER_BASE_OFFSET + LUMBERJACKS_BUILT_OFFSET;
+    		case TANK:
+    			channel = GARDENER_BASE_OFFSET + TANKS_BUILT_OFFSET;
+    		case ARCHON:
+    			return rc.getInitialArchonLocations(rc.getTeam()).length;
+    	}
+    	return rc.readBroadcast(channel);
+    }
+
+    public static void setNumberRobotsBuilt(RobotType type, int value) throws GameActionException{
+    	int channel = 0;
+    	switch (type) {
+    		case GARDENER:
+    			channel = GARDENER_BASE_OFFSET + GARDENERS_BUILT_OFFSET;
+    		case SCOUT:
+    			channel = GARDENER_BASE_OFFSET + SCOUTS_BUILT_OFFSET;
+    		case SOLDIER:
+    			channel = GARDENER_BASE_OFFSET + SOLDIERS_BUILT_OFFSET;
+    		case LUMBERJACK:
+    			channel = GARDENER_BASE_OFFSET + LUMBERJACKS_BUILT_OFFSET;
+    		case TANK:
+    			channel = GARDENER_BASE_OFFSET + TANKS_BUILT_OFFSET;
+    	}
+    	rc.broadcast(channel, value);
+    }
+
+    public static int getBuildLimit(RobotType type) throws GameActionException{
+    	int max = 0;
+    	switch (type) {
+    		case GARDENER:
+    			max = GARDENER_BUILD_LIMIT;
+    		case SCOUT:
+    			max = SCOUT_BUILD_LIMIT;
+    		case SOLDIER:
+    			max = SOLDIER_BUILD_LIMIT;
+    		case LUMBERJACK:
+    			max = LUMBERJACK_BUILD_LIMIT;
+    		case TANK:
+    			max = TANK_BUILD_LIMIT;
+    	}
+    	return max;
+    }
+    
+    public static boolean underBuildLimit(RobotType type) throws GameActionException{
+    	return (gardener.getNumberRobotsBuilt(type) < gardener.getBuildLimit(type));
     }
 }

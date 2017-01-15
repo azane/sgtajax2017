@@ -55,7 +55,7 @@ public strictfp class RobotPlayer {
                 Direction dir = randomDirection();
 
                 // Randomly attempt to build a gardener in this direction
-                if (rc.canHireGardener(dir) && Math.random() < .10) {
+                if (rc.canHireGardener(dir) && Math.random() < .20) {
                     rc.hireGardener(dir);
                 }
 
@@ -79,9 +79,7 @@ public strictfp class RobotPlayer {
 
 	static void runGardener() throws GameActionException {
         System.out.println("I'm a gardener!");
-        int xPos = rc.readBroadcast(0);
-        int yPos = rc.readBroadcast(1);
-        MapLocation archonLoc = new MapLocation(xPos,yPos);
+        MapLocation startLoc = rc.getLocation();
         Team myTeam = rc.getTeam();
 
         // The code you want your robot to perform every round should be in this loop
@@ -95,24 +93,16 @@ public strictfp class RobotPlayer {
 
                 // Listen for home archon's location
                 MapLocation myLoc = rc.getLocation();
-                Direction dir = myLoc.directionTo(archonLoc);
-                
-                // Get all robots on my team
-                RobotInfo[] nearbyRobots = rc.senseNearbyRobots(-1, myTeam);
+                Direction homeDir = myLoc.directionTo(startLoc);
                 
                 
                 //--- Gardener Move Code
                 //----------------------
                 // Find a "home" archon
-                for (RobotInfo robot : nearbyRobots){
-                	if (robot.getType() == RobotType.ARCHON)
-                	{
-                		archonLoc = robot.getLocation();
-                		dir = randomDirection();
-                		break;
-                	}
+                Direction dir = randomDirection();
+                if (myLoc.distanceTo(startLoc) > 10){
+                	dir = homeDir;
                 }
-                // either move randomly or towards an archon if we are not within a sensing radius of it
                 tryMove(dir); 
                 //--- End Move Code
                 //-----------------
@@ -123,24 +113,25 @@ public strictfp class RobotPlayer {
                 // Generate a random direction
                 Direction buildDir = randomDirection();
                 float bullets = rc.getTeamBullets();
+                TreeInfo[] myTrees = rc.senseNearbyTrees(-1, myTeam);
 
                 // If we have twice the cost of a lumberjack, build a lumberjack, else try to build a tree
-                if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && rc.isBuildReady() && bullets > RobotType.LUMBERJACK.bulletCost * 1.5 && rc.getRobotCount() < 200) {
+                if (rc.canPlantTree(buildDir) && myTrees.length < 5) {
+                    rc.plantTree(buildDir);
+                } else if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && rc.isBuildReady() && bullets > RobotType.LUMBERJACK.bulletCost * 1.5 && rc.getRobotCount() < 200) {
                     rc.buildRobot(RobotType.LUMBERJACK, buildDir);
                 } else if (rc.canBuildRobot(RobotType.TANK, buildDir) && rc.isBuildReady() && rc.getRobotCount() > 200) {
                     rc.buildRobot(RobotType.TANK, buildDir);
-                } else if (rc.canPlantTree(buildDir)) {
-                    rc.plantTree(buildDir);
                 }
                 //--- End Build Code
                 //------------------
 
                 //--- Gardener Water Code
                 //-----------------------
-                TreeInfo[] myTrees = rc.senseNearbyTrees(RobotType.GARDENER.bodyRadius+1, myTeam);
+                TreeInfo[] myLocalTrees = rc.senseNearbyTrees(RobotType.GARDENER.bodyRadius+1, myTeam);
                 float min_health = GameConstants.BULLET_TREE_MAX_HEALTH;
                 int tree_id = -1;
-                for (TreeInfo tree : myTrees){
+                for (TreeInfo tree : myLocalTrees){
 	                if (rc.canWater(tree.getLocation()) && tree.getHealth() < min_health){
 	                	min_health = tree.getHealth();
 	                	tree_id = tree.getID();

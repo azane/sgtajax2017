@@ -38,6 +38,8 @@ public strictfp class lumberJack extends RobotPlayer{
                 // Search for enemy archons
                 searchForArchon();
 
+                System.out.println(rc.readBroadcast(21));
+
 
                 //--- Lumberjack Chop/Shake Code
                 //------------------------

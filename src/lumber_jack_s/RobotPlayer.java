@@ -205,10 +205,19 @@ public strictfp class RobotPlayer {
             	while (rc.readBroadcast(archonSearch) != 0 && rc.readBroadcast(archonSearch) != enemyArchonID) {
             	    archonSearch = archonSearch + 3;
                 }
-                rc.broadcast(archonSearch, enemyArchonID);
-            	rc.broadcast(archonSearch + 1, (int)enemyArchonLocation.x);
-            	rc.broadcast(archonSearch + 2, (int)enemyArchonLocation.y);
-            	return enemyArchonLocation;
+                // If archon is about to die (<= 10 health) coordinates are called as zero to mark archon as dead
+                if (enemyRobot.getHealth() <= 10) {
+                    rc.broadcast(archonSearch, enemyArchonID);
+                    rc.broadcast(archonSearch + 1, 0);
+                    rc.broadcast(archonSearch + 2, 0);
+                    return enemyArchonLocation;
+                } else {
+                    rc.broadcast(archonSearch, enemyArchonID);
+                    rc.broadcast(archonSearch + 1, (int)enemyArchonLocation.x);
+                    rc.broadcast(archonSearch + 2, (int)enemyArchonLocation.y);
+                    return enemyArchonLocation;
+                }
+
         	}
     	}
         return null;
@@ -220,7 +229,9 @@ public strictfp class RobotPlayer {
     public static MapLocation findClosestArchon() throws GameActionException{
 
         // Read enemy archon's coordinates, return closest
+        // Needs updated to account for dead archons
         MapLocation myLoc = rc.getLocation();
+
         if (rc.readBroadcast(27) != 0){
             MapLocation archon1 = new MapLocation((float)rc.readBroadcast(21), (float)rc.readBroadcast(22));
             MapLocation archon2 = new MapLocation((float)rc.readBroadcast(24), (float)rc.readBroadcast(25));

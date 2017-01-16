@@ -36,7 +36,7 @@ public strictfp class lumberJack extends RobotPlayer{
                 donateBullets();
 
                 // Search for enemy archons
-                boolean foundEnemyArchon = searchForArchon();
+                searchForArchon();
 
 
                 //--- Lumberjack Chop/Shake Code
@@ -79,10 +79,11 @@ public strictfp class lumberJack extends RobotPlayer{
 	                trees = rc.senseNearbyTrees();
 	                
 	                // If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
-                	Direction dirToMove = randomDirection();
+                    Direction dirToMove = myLoc.directionTo(findClosestArchon());
+/*                	Direction dirToMove = randomDirection();
 	                if (!RobotPlayer.foundEnemyArchon()) {
 	                	dirToMove = RobotPlayer.huntEnemyArchon();
-	                }
+	                }*/
 	                
 	                // Move toward first tree, if sensed
 	                if (trees.length > 0) {

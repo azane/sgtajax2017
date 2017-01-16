@@ -3,7 +3,7 @@ import battlecode.common.*;
 
 public strictfp class RobotPlayer {
     static RobotController rc;
-    static int ARCHON_SEARCH_OFFSET = 20;
+    static int ARCHON_SEARCH_OFFSET = 20; //Other stuff is hardcoded into this :(
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -191,16 +191,14 @@ public strictfp class RobotPlayer {
     }
 
 
-    public static boolean searchForArchon() throws GameActionException{
+    public static MapLocation searchForArchon() throws GameActionException{
 //        int bytesUsed = Clock.getBytecodeNum();
 //        System.out.println(bytesUsed);
-        boolean enemyArchonFound = false;
 
     	// If an archon is in range, broadcast archon's ID and coordinates
-    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots();
+    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
     	for (RobotInfo enemyRobot : nearbyEnemies){
         	if (enemyRobot.getType() == RobotType.ARCHON){
-                enemyArchonFound = true;
             	MapLocation enemyArchonLocation = enemyRobot.getLocation();
             	int enemyArchonID = enemyRobot.getID();
             	int archonSearch = ARCHON_SEARCH_OFFSET;
@@ -210,10 +208,48 @@ public strictfp class RobotPlayer {
                 rc.broadcast(archonSearch, enemyArchonID);
             	rc.broadcast(archonSearch + 1, (int)enemyArchonLocation.x);
             	rc.broadcast(archonSearch + 2, (int)enemyArchonLocation.y);
+            	return enemyArchonLocation;
         	}
     	}
-        return enemyArchonFound;
+        return null;
 //        int bytesUsedNew = Clock.getBytecodeNum();
 //        System.out.println(bytesUsedNew);
     }
+
+
+    public static MapLocation findClosestArchon() throws GameActionException{
+
+        // Read enemy archon's coordinates, return closest
+        MapLocation myLoc = rc.getLocation();
+        if (rc.readBroadcast(27) != 0){
+            MapLocation archon1 = new MapLocation((float)rc.readBroadcast(21), (float)rc.readBroadcast(22));
+            MapLocation archon2 = new MapLocation((float)rc.readBroadcast(24), (float)rc.readBroadcast(25));
+            MapLocation archon3 = new MapLocation((float)rc.readBroadcast(27), (float)rc.readBroadcast(28));
+            if (myLoc.distanceTo(archon1) < myLoc.distanceTo(archon2) && myLoc.distanceTo(archon1) < myLoc.distanceTo(archon3)){
+                return archon1;
+            } else if (myLoc.distanceTo(archon2) < myLoc.distanceTo(archon3)) {
+                return archon2;
+            } else {
+                return archon3;
+            }
+
+        } else if (rc.readBroadcast(24) != 0) {
+            MapLocation archon1 = new MapLocation((float)rc.readBroadcast(21), (float)rc.readBroadcast(22));
+            MapLocation archon2 = new MapLocation((float)rc.readBroadcast(24), (float)rc.readBroadcast(25));
+            if (myLoc.distanceTo(archon1) < myLoc.distanceTo(archon2)) {
+                return archon1;
+            } else {
+                return archon2;
+            }
+        } else {
+            MapLocation archon1 = new MapLocation((float)rc.readBroadcast(21), (float)rc.readBroadcast(22));
+            return archon1;
+        }
+    }
 }
+/*
+
+    int enemyArchonX = rc.readBroadcast(24);
+    int enemyArchonY = rc.readBroadcast(25);
+    MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+            return enemyArchonLocation;*/

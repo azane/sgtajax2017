@@ -18,10 +18,10 @@ public strictfp class scout extends RobotPlayer{
         // and to get information on its current status.
         scout.rc = rc;
         System.out.println("I'm an scout!");
-        Team enemy = rc.getTeam().opponent();// If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
-        int enemyArchonX = rc.readBroadcast(21);
-        int enemyArchonY = rc.readBroadcast(22);
-        MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+        Team enemy = rc.getTeam().opponent();
+        int startRound = rc.getRoundNum();
+
+        MapLocation enemyArchonLocation = pickInitialArchon();
         boolean foundEnemyArchon = false;
 
         // The code you want your robot to perform every round should be in this loop
@@ -32,7 +32,13 @@ public strictfp class scout extends RobotPlayer{
             	
             	//--- Scout Search Code
             	//---------------------
-                foundEnemyArchon = searchForArchon();
+                if (rc.getRoundNum() - startRound > 5) {
+                    if (searchForArchon() != null) {
+                        enemyArchonLocation = searchForArchon();
+                        foundEnemyArchon = true;
+                    }
+                }
+
 /*                RobotInfo[] nearbyEnemyRobots = rc.senseNearbyRobots(-1, enemy);
                 for (RobotInfo enemyRobot : nearbyEnemyRobots){
                 	if (enemyRobot.getType() == RobotType.ARCHON){
@@ -83,5 +89,25 @@ public strictfp class scout extends RobotPlayer{
             }
         }
     }
-    
+
+    // Read different enemy archon location for each scout
+    static MapLocation pickInitialArchon() throws GameActionException{
+        int scoutChannel = gardener.GARDENER_BASE_OFFSET + gardener.SCOUTS_BUILT_OFFSET;
+        if (rc.readBroadcast(scoutChannel)%3 == 1 && rc.readBroadcast(24) != 0) {
+            int enemyArchonX = rc.readBroadcast(24);
+            int enemyArchonY = rc.readBroadcast(25);
+            MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+            return enemyArchonLocation;
+        } else if (rc.readBroadcast(scoutChannel)%3 == 2 && rc.readBroadcast(27) != 0) {
+            int enemyArchonX = rc.readBroadcast(27);
+            int enemyArchonY = rc.readBroadcast(28);
+            MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+            return enemyArchonLocation;
+        } else {
+            int enemyArchonX = rc.readBroadcast(21);
+            int enemyArchonY = rc.readBroadcast(22);
+            MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+            return enemyArchonLocation;
+        }
+    }
 }

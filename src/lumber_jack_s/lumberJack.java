@@ -36,7 +36,8 @@ public strictfp class lumberJack extends RobotPlayer{
                 donateBullets();
 
                 // Search for enemy archons
-                searchForArchon();
+                boolean foundEnemyArchon = searchForArchon();
+
 
                 //--- Lumberjack Chop/Shake Code
                 //------------------------

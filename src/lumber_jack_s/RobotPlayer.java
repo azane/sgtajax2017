@@ -191,14 +191,16 @@ public strictfp class RobotPlayer {
     }
 
 
-    public static void searchForArchon() throws GameActionException{
+    public static boolean searchForArchon() throws GameActionException{
 //        int bytesUsed = Clock.getBytecodeNum();
 //        System.out.println(bytesUsed);
+        boolean enemyArchonFound = false;
 
     	// If an archon is in range, broadcast archon's ID and coordinates
     	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots();
     	for (RobotInfo enemyRobot : nearbyEnemies){
         	if (enemyRobot.getType() == RobotType.ARCHON){
+                enemyArchonFound = true;
             	MapLocation enemyArchonLocation = enemyRobot.getLocation();
             	int enemyArchonID = enemyRobot.getID();
             	int archonSearch = ARCHON_SEARCH_OFFSET;
@@ -210,6 +212,7 @@ public strictfp class RobotPlayer {
             	rc.broadcast(archonSearch + 2, (int)enemyArchonLocation.y);
         	}
     	}
+        return enemyArchonFound;
 //        int bytesUsedNew = Clock.getBytecodeNum();
 //        System.out.println(bytesUsedNew);
     }

@@ -19,8 +19,8 @@ public strictfp class scout extends RobotPlayer{
         scout.rc = rc;
         System.out.println("I'm an scout!");
         Team enemy = rc.getTeam().opponent();// If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
-        int enemyArchonX = rc.readBroadcast(10);
-        int enemyArchonY = rc.readBroadcast(11);
+        int enemyArchonX = rc.readBroadcast(21);
+        int enemyArchonY = rc.readBroadcast(22);
         MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
         boolean foundEnemyArchon = false;
 
@@ -32,7 +32,8 @@ public strictfp class scout extends RobotPlayer{
             	
             	//--- Scout Search Code
             	//---------------------
-                RobotInfo[] nearbyEnemyRobots = rc.senseNearbyRobots(-1, enemy);
+                foundEnemyArchon = searchForArchon();
+/*                RobotInfo[] nearbyEnemyRobots = rc.senseNearbyRobots(-1, enemy);
                 for (RobotInfo enemyRobot : nearbyEnemyRobots){
                 	if (enemyRobot.getType() == RobotType.ARCHON){
                 		foundEnemyArchon = true;
@@ -40,7 +41,7 @@ public strictfp class scout extends RobotPlayer{
                 		rc.broadcast(10, (int)enemyArchonLocation.x);
                 		rc.broadcast(11, (int)enemyArchonLocation.y);
                 	}
-                }
+                }*/
                 //--- End Search Code
                 //-------------------
 

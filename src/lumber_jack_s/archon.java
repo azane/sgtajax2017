@@ -18,7 +18,17 @@ public strictfp class archon extends RobotPlayer{
         MapLocation enemyArchonInitialLocation = rc.getInitialArchonLocations(rc.getTeam().opponent())[0];
 		rc.broadcast(10, (int)enemyArchonInitialLocation.x);
 		rc.broadcast(11, (int)enemyArchonInitialLocation.y);
-        
+
+        // Code above should be removed eventually. Code below broadcasts the enemy archon locations for scouts
+        int initialArchonOffset = ARCHON_SEARCH_OFFSET;
+        MapLocation[] enemyArchonInitialLocations = rc.getInitialArchonLocations(rc.getTeam().opponent());
+        for (MapLocation enemyArchonStart : enemyArchonInitialLocations) {
+            initialArchonOffset = initialArchonOffset + 1;
+            rc.broadcast(initialArchonOffset, (int)enemyArchonStart.x);
+            initialArchonOffset = initialArchonOffset + 1;
+            rc.broadcast(initialArchonOffset, (int)enemyArchonStart.y);
+            initialArchonOffset = initialArchonOffset + 1;
+        }
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {

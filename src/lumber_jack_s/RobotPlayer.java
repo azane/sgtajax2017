@@ -228,39 +228,31 @@ public strictfp class RobotPlayer {
 
     public static MapLocation findClosestArchon() throws GameActionException{
 
+        // Need to add something to tell it where to go when all archons are dead
+
+
         // Read enemy archon's coordinates, return closest
         // Needs updated to account for dead archons
         MapLocation myLoc = rc.getLocation();
+        int archonSearchX = ARCHON_SEARCH_OFFSET + 1;
+        int archonSearchY = ARCHON_SEARCH_OFFSET + 2;
 
-        if (rc.readBroadcast(27) != 0){
-            MapLocation archon1 = new MapLocation((float)rc.readBroadcast(21), (float)rc.readBroadcast(22));
-            MapLocation archon2 = new MapLocation((float)rc.readBroadcast(24), (float)rc.readBroadcast(25));
-            MapLocation archon3 = new MapLocation((float)rc.readBroadcast(27), (float)rc.readBroadcast(28));
-            if (myLoc.distanceTo(archon1) < myLoc.distanceTo(archon2) && myLoc.distanceTo(archon1) < myLoc.distanceTo(archon3)){
-                return archon1;
-            } else if (myLoc.distanceTo(archon2) < myLoc.distanceTo(archon3)) {
-                return archon2;
-            } else {
-                return archon3;
-            }
-
-        } else if (rc.readBroadcast(24) != 0) {
-            MapLocation archon1 = new MapLocation((float)rc.readBroadcast(21), (float)rc.readBroadcast(22));
-            MapLocation archon2 = new MapLocation((float)rc.readBroadcast(24), (float)rc.readBroadcast(25));
-            if (myLoc.distanceTo(archon1) < myLoc.distanceTo(archon2)) {
-                return archon1;
-            } else {
-                return archon2;
-            }
-        } else {
-            MapLocation archon1 = new MapLocation((float)rc.readBroadcast(21), (float)rc.readBroadcast(22));
-            return archon1;
+        while (rc.readBroadcast(archonSearchX) == 0){
+            archonSearchX = archonSearchX + 3;
+            archonSearchY = archonSearchY + 3;
         }
+        MapLocation closestArchon = new MapLocation((float)rc.readBroadcast(archonSearchX), (float)rc.readBroadcast(archonSearchY));
+
+        while(archonSearchX < ARCHON_SEARCH_OFFSET + 8) {
+            float distToArchon = myLoc.distanceTo(closestArchon);
+            archonSearchX = archonSearchX + 3;
+            archonSearchY = archonSearchY + 3;
+            MapLocation nextArchon = new MapLocation((float)rc.readBroadcast(archonSearchX), (float)rc.readBroadcast(archonSearchY));
+            if (rc.readBroadcast(archonSearchX) != 0 && myLoc.distanceTo(nextArchon) < distToArchon) {
+                closestArchon = nextArchon;
+            }
+        }
+        return closestArchon;
+
     }
 }
-/*
-
-    int enemyArchonX = rc.readBroadcast(24);
-    int enemyArchonY = rc.readBroadcast(25);
-    MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
-            return enemyArchonLocation;*/

@@ -26,3 +26,8 @@ battlecode-scaffold.iws
 .classpath
 .project
 .settings/
+
+#gradle stuff, different for mac
+/gradle/
+gradlew
+gradlew.bat

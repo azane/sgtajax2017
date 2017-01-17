@@ -31,3 +31,4 @@ battlecode-scaffold.iws
 /gradle/
 gradlew
 gradlew.bat
+out/

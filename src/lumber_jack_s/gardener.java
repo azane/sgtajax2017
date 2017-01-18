@@ -111,7 +111,7 @@ public strictfp class gardener extends RobotPlayer{
         if (rc.isBuildReady()) {
             if (rc.canPlantTree(buildDir) && (rc.getRoundNum() < treeRoundLimit)){
             	// Count the trees around us to make sure we don't have too many clogging up the area
-            	if (myTrees.length < 4 && allTrees.length < 6) {
+            	if (myTrees.length < 2 && allTrees.length < 5) {
                     rc.plantTree(buildDir);
             	} 
             	// If we have too many trees, try and build a lumberjack
@@ -188,7 +188,7 @@ public strictfp class gardener extends RobotPlayer{
         if (rc.isBuildReady()) {
             if (rc.canPlantTree(buildDir) && (rc.getRoundNum() < treeRoundLimit)){
             	// Count the trees around us to make sure we don't have too many clogging up the area
-            	if (myTrees.length < 4 && allTrees.length < 6) {
+            	if (myTrees.length < 3 && allTrees.length < 5) {
                     rc.plantTree(buildDir);
             	} 
             	// If we have too many trees, try and build a lumberjack

@@ -3,6 +3,9 @@ import battlecode.common.*;
 
 public strictfp class archon extends RobotPlayer{
     static RobotController rc;
+    
+
+    static int GARDENER_BUILD_LIMIT;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -18,7 +21,7 @@ public strictfp class archon extends RobotPlayer{
         MapLocation enemyArchonInitialLocation = rc.getInitialArchonLocations(rc.getTeam().opponent())[0];
 		rc.broadcast(10, (int)enemyArchonInitialLocation.x);
 		rc.broadcast(11, (int)enemyArchonInitialLocation.y);
-
+		
         // Code above should be removed eventually. Code below broadcasts the enemy archon locations for scouts
         int initialArchonOffset = ARCHON_SEARCH_OFFSET;
         MapLocation[] enemyArchonInitialLocations = rc.getInitialArchonLocations(rc.getTeam().opponent());
@@ -29,6 +32,7 @@ public strictfp class archon extends RobotPlayer{
             rc.broadcast(initialArchonOffset, (int)enemyArchonStart.y);
             initialArchonOffset = initialArchonOffset + 1;
         }
+		GARDENER_BUILD_LIMIT = 10;
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {
@@ -43,7 +47,7 @@ public strictfp class archon extends RobotPlayer{
                 Direction dir = randomDirection();
 
                 // Randomly attempt to build a gardener in this direction
-                if (rc.canHireGardener(dir) && Math.random() < .50 && gardener.underBuildLimit(RobotType.GARDENER)) {
+                if (rc.canHireGardener(dir) && Math.random() < .50 && getNumberRobotsBuilt(RobotType.GARDENER) < GARDENER_BUILD_LIMIT) {
                     rc.hireGardener(dir);
                     gardener.addOneRobotBuilt(RobotType.GARDENER);
                 }

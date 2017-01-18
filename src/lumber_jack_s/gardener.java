@@ -86,6 +86,7 @@ public strictfp class gardener extends RobotPlayer{
         // Listen for home archon's location
         MapLocation myLoc = rc.getLocation();
         Direction homeDir = myLoc.directionTo(startLoc);
+        boolean didBuildRobot = false;
         
         
         //--- Gardener Move Code
@@ -122,13 +123,7 @@ public strictfp class gardener extends RobotPlayer{
             } 
             // This is the robot building code
             else {
-            	  // Loop through a list of the robot types
-            	for (RobotType robotType : robotTypeList) {
-                	if (rc.canBuildRobot(robotType, buildDir) && underBuildLimit(robotType)) {
-                		rc.buildRobot(robotType, buildDir);
-                		addOneRobotBuilt(robotType);
-                	}
-            	}
+            	didBuildRobot = tryBuildRobot();
             }
         }
         //--- End Build Code
@@ -163,6 +158,7 @@ public strictfp class gardener extends RobotPlayer{
         // Listen for home location
         MapLocation myLoc = rc.getLocation();
         Direction homeDir = myLoc.directionTo(startLoc);
+        boolean didBuildRobot = false;
         
         
         //--- Gardener Move Code
@@ -201,13 +197,7 @@ public strictfp class gardener extends RobotPlayer{
             } 
             // This is the robot building code
             else {
-            	  // Loop through a list of the robot types
-            	for (RobotType robotType : robotTypeList) {
-                	if (rc.canBuildRobot(robotType, buildDir) && underBuildLimit(robotType)) {
-                		rc.buildRobot(robotType, buildDir);
-                		addOneRobotBuilt(robotType);
-                	}
-            	}
+            	didBuildRobot = tryBuildRobot();
             }
         }
         //--- End Build Code
@@ -246,6 +236,7 @@ public strictfp class gardener extends RobotPlayer{
         // Listen for home location
         MapLocation myLoc = rc.getLocation();
         Direction homeDir = myLoc.directionTo(startLoc);
+        boolean didBuildRobot = false;
         
         
         //--- Gardener Move Code
@@ -265,15 +256,21 @@ public strictfp class gardener extends RobotPlayer{
         // Generate a random direction
         buildDir = randomDirection();
 
-        // First try and build a tree, if you cannot, then try and build robots
+        // Don't build any more trees, just upkeep and build units
         if (rc.isBuildReady()) {
         	// Loop through a list of the robot types
-        	for (RobotType robotType : robotTypeList) {
-            	if (rc.canBuildRobot(robotType, buildDir) && underBuildLimit(robotType)) {
-            		rc.buildRobot(robotType, buildDir);
-            		addOneRobotBuilt(robotType);
+        	didBuildRobot = tryBuildRobot();
+        }
+        // If we didn't build a unit, this probably means we don't have enough bullets, so build a tree.
+        if (!didBuildRobot) {
+            TreeInfo[] myTrees = rc.senseNearbyTrees(FRIENDLY_TREE_RADIUS, myTeam);
+            TreeInfo[] allTrees = rc.senseNearbyTrees(-1, myTeam);
+            if (rc.canPlantTree(buildDir) && (rc.getRoundNum() < treeRoundLimit)){
+            	// Count the trees around us to make sure we don't have too many clogging up the area
+            	if (myTrees.length < 3 && allTrees.length < 5) {
+                    rc.plantTree(buildDir);
             	}
-        	}
+            } 
         }
         //--- End Build Code
         //------------------
@@ -310,6 +307,7 @@ public strictfp class gardener extends RobotPlayer{
         // Listen for home location
         MapLocation myLoc = rc.getLocation();
         Direction homeDir = myLoc.directionTo(startLoc);
+        boolean didBuildRobot = false;
         
         
         //--- Gardener Move Code
@@ -331,13 +329,18 @@ public strictfp class gardener extends RobotPlayer{
 
         // Don't build any more trees, just upkeep and build units
         if (rc.isBuildReady()) {
-        	// Loop through a list of the robot types
-        	for (RobotType robotType : robotTypeList) {
-            	if (rc.canBuildRobot(robotType, buildDir) && underBuildLimit(robotType)) {
-            		rc.buildRobot(robotType, buildDir);
-            		addOneRobotBuilt(robotType);
+        	didBuildRobot = tryBuildRobot();
+        }
+        // If we didn't build a unit, this probably means we don't have enough bullets, so build a tree.
+        if (!didBuildRobot) {
+            TreeInfo[] myTrees = rc.senseNearbyTrees(FRIENDLY_TREE_RADIUS, myTeam);
+            TreeInfo[] allTrees = rc.senseNearbyTrees(-1, myTeam);
+            if (rc.canPlantTree(buildDir) && (rc.getRoundNum() < treeRoundLimit)){
+            	// Count the trees around us to make sure we don't have too many clogging up the area
+            	if (myTrees.length < 3 && allTrees.length < 5) {
+                    rc.plantTree(buildDir);
             	}
-        	}
+            } 
         }
         //--- End Build Code
         //------------------
@@ -374,6 +377,7 @@ public strictfp class gardener extends RobotPlayer{
         // Listen for home location
         MapLocation myLoc = rc.getLocation();
         Direction homeDir = myLoc.directionTo(startLoc);
+        boolean didBuildRobot = false;
         
         
         //--- Gardener Move Code
@@ -405,13 +409,7 @@ public strictfp class gardener extends RobotPlayer{
             } 
             // This is the robot building code
             else {
-            	  // Loop through a list of the robot types
-            	for (RobotType robotType : robotTypeList) {
-                	if (rc.canBuildRobot(robotType, buildDir) && underBuildLimit(robotType)) {
-                		rc.buildRobot(robotType, buildDir);
-                		addOneRobotBuilt(robotType);
-                	}
-            	}
+            	didBuildRobot = tryBuildRobot();
             }
         }
         //--- End Build Code
@@ -435,7 +433,45 @@ public strictfp class gardener extends RobotPlayer{
         //------------------
     }
       
-    
+    boolean tryBuildRobot() throws GameActionException{
+    	buildDir = randomDirection();
+    	float degreeOffset = 20;
+    	int checksPerSide = 3;
+    	
+    	
+    	for (RobotType robotType : robotTypeList) {
+        	if (underBuildLimit(robotType) && rc.getTeamBullets() > robotType.bulletCost) {
+
+		        // First, try intended direction
+		        if (rc.canBuildRobot(robotType, buildDir)) {
+		        	rc.buildRobot(robotType, buildDir);
+            		addOneRobotBuilt(robotType);
+		            return true;
+		        }
+
+		        // Now try a bunch of similar angles
+		        int currentCheck = 1;
+
+		        while(currentCheck<=checksPerSide) {
+		            // Try the offset of the left side
+		            if(rc.canMove(buildDir.rotateLeftDegrees(degreeOffset*currentCheck))) {
+		            	rc.buildRobot(robotType, buildDir);
+		            	addOneRobotBuilt(robotType);
+		                return true;
+		            }
+		            // Try the offset on the right side
+		            if(rc.canMove(buildDir.rotateRightDegrees(degreeOffset*currentCheck))) {
+		            	rc.buildRobot(robotType, buildDir);
+	            		addOneRobotBuilt(robotType);
+		                return true;
+		            }
+		            // No build performed, try slightly further
+		            currentCheck++;
+        		}
+        	}
+    	}
+    	return false;
+    }
     
     boolean underBuildLimit(RobotType type) throws GameActionException{
     	System.out.println("In underBuildLimit");

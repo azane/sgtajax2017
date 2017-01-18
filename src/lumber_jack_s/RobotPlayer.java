@@ -259,7 +259,11 @@ public strictfp class RobotPlayer {
                 closestArchon = nextArchon;
             }
         }
-        return closestArchon;
+        if (closestArchon.x != 0) {
+            return closestArchon;
+        } else {
+            return null;
+        }
 
     }
     static int getNumberRobotsBuilt(RobotType type) throws GameActionException{

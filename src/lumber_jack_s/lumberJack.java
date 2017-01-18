@@ -83,7 +83,7 @@ public strictfp class lumberJack extends RobotPlayer{
                     Direction dirToMove = randomDirection();
 	                // Store closest archon's location. Trees and enemies will take priority over the archon.
                     MapLocation closestArchon = findClosestArchon();
-                    if (closestArchon.x != 0) {
+                    if (closestArchon != null) {
                         dirToMove = myLoc.directionTo(closestArchon);
                     }
 	                

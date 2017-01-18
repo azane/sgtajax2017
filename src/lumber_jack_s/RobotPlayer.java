@@ -4,6 +4,14 @@ import battlecode.common.*;
 public strictfp class RobotPlayer {
     static RobotController rc;
     static int ARCHON_SEARCH_OFFSET = 20; //Other stuff is hardcoded into this :(
+    
+    // Unit building offsets
+    static int GARDENER_BASE_OFFSET = 900;
+    static int GARDENERS_BUILT_OFFSET = 0;
+    static int LUMBERJACKS_BUILT_OFFSET = 1;
+    static int SOLDIERS_BUILT_OFFSET = 2;
+    static int SCOUTS_BUILT_OFFSET = 3;
+    static int TANKS_BUILT_OFFSET = 4;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -23,7 +31,8 @@ public strictfp class RobotPlayer {
                 archon.runArchon(rc);
                 break;
             case GARDENER:
-                gardener.runGardener(rc);
+                gardener gardObject = new gardener();
+                gardObject.runGardener(rc);
                 break;
             case SOLDIER:
                 soldier.runSoldier(rc);
@@ -224,8 +233,6 @@ public strictfp class RobotPlayer {
 //        int bytesUsedNew = Clock.getBytecodeNum();
 //        System.out.println(bytesUsedNew);
     }
-
-
     public static MapLocation findClosestArchon() throws GameActionException{
 
         // Need to add something to tell it where to go when all archons are dead
@@ -252,7 +259,68 @@ public strictfp class RobotPlayer {
                 closestArchon = nextArchon;
             }
         }
-        return closestArchon;
+        if (closestArchon.x != 0) {
+            return closestArchon;
+        } else {
+            return null;
+        }
 
     }
+    static int getNumberRobotsBuilt(RobotType type) throws GameActionException{
+    	int channel = 0;
+//    	System.out.println("In getNumberRobotsBuilt for type: "+type.toString());
+    	switch (type) {
+    		case GARDENER:
+    			channel = GARDENER_BASE_OFFSET + GARDENERS_BUILT_OFFSET;
+    			break;
+    		case SCOUT:
+    			channel = GARDENER_BASE_OFFSET + SCOUTS_BUILT_OFFSET;
+    			break;
+    		case SOLDIER:
+    			channel = GARDENER_BASE_OFFSET + SOLDIERS_BUILT_OFFSET;
+    			break;
+    		case LUMBERJACK:
+    			channel = GARDENER_BASE_OFFSET + LUMBERJACKS_BUILT_OFFSET;
+    			break;
+    		case TANK:
+    			channel = GARDENER_BASE_OFFSET + TANKS_BUILT_OFFSET;
+    			break;
+    		case ARCHON:
+    			return rc.getInitialArchonLocations(RobotPlayer.rc.getTeam()).length;
+    	}
+    	int numBuilt = RobotPlayer.rc.readBroadcast(channel);
+//    	System.out.println("Number of "+type+" built: "+numBuilt);
+    	return numBuilt;
+    }
+
+    static void setNumberRobotsBuilt(RobotType type, int value) throws GameActionException{
+    	int channel = 0;
+//    	System.out.println("In setNumberRobotsBuilt");
+    	switch (type) {
+    		case GARDENER:
+    			channel = GARDENER_BASE_OFFSET + GARDENERS_BUILT_OFFSET;
+    			break;
+    		case SCOUT:
+    			channel = GARDENER_BASE_OFFSET + SCOUTS_BUILT_OFFSET;
+    			break;
+    		case SOLDIER:
+    			channel = GARDENER_BASE_OFFSET + SOLDIERS_BUILT_OFFSET;
+    			break;
+    		case LUMBERJACK:
+    			channel = GARDENER_BASE_OFFSET + LUMBERJACKS_BUILT_OFFSET;
+    			break;
+    		case TANK:
+    			channel = GARDENER_BASE_OFFSET + TANKS_BUILT_OFFSET;
+    			break;
+    	}
+    	RobotPlayer.rc.broadcast(channel, value);
+    }
+
+    static void addOneRobotBuilt(RobotType type) throws GameActionException{
+//    	System.out.println("In addOneRobotBuilt");
+    	int num_bots = getNumberRobotsBuilt(type);
+    	num_bots++;
+    	setNumberRobotsBuilt(type, num_bots);
+    }
 }
+

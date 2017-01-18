@@ -79,13 +79,13 @@ public strictfp class lumberJack extends RobotPlayer{
                 //------------------------
                 if (!rc.hasAttacked()){
 	                trees = rc.senseNearbyTrees();
-	                
-	                // If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
-                    Direction dirToMove = myLoc.directionTo(findClosestArchon());
-/*                	Direction dirToMove = randomDirection();
-	                if (!RobotPlayer.foundEnemyArchon()) {
-	                	dirToMove = RobotPlayer.huntEnemyArchon();
-	                }*/
+
+                    Direction dirToMove = randomDirection();
+	                // Store closest archon's location. Trees and enemies will take priority over the archon.
+                    MapLocation closestArchon = findClosestArchon();
+                    if (closestArchon != null) {
+                        dirToMove = myLoc.directionTo(closestArchon);
+                    }
 	                
 	                // Move toward first tree, if sensed
 	                if (trees.length > 0) {

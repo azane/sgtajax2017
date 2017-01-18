@@ -32,10 +32,12 @@ public strictfp class scout extends RobotPlayer{
             	
             	//--- Scout Search Code
             	//---------------------
-                if (rc.getRoundNum() - startRound > 5) {
+                if (rc.getRoundNum() - startRound > 15) {
                     if (searchForArchon() != null) {
                         enemyArchonLocation = searchForArchon();
                         foundEnemyArchon = true;
+                    } else {
+                        foundEnemyArchon = false;
                     }
                 }
 
@@ -93,20 +95,39 @@ public strictfp class scout extends RobotPlayer{
     // Read different enemy archon location for each scout
     static MapLocation pickInitialArchon() throws GameActionException{
         int scoutChannel = gardener.GARDENER_BASE_OFFSET + gardener.SCOUTS_BUILT_OFFSET;
-        if (rc.readBroadcast(scoutChannel)%3 == 1 && rc.readBroadcast(24) != 0) {
-            int enemyArchonX = rc.readBroadcast(24);
-            int enemyArchonY = rc.readBroadcast(25);
-            MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
-            return enemyArchonLocation;
-        } else if (rc.readBroadcast(scoutChannel)%3 == 2 && rc.readBroadcast(27) != 0) {
-            int enemyArchonX = rc.readBroadcast(27);
-            int enemyArchonY = rc.readBroadcast(28);
-            MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
-            return enemyArchonLocation;
-        } else {
+        if (rc.readBroadcast(scoutChannel) == 1) {
             int enemyArchonX = rc.readBroadcast(21);
             int enemyArchonY = rc.readBroadcast(22);
             MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+            return enemyArchonLocation;
+        } else if (rc.readBroadcast(scoutChannel) == 2) {
+                if (rc.readBroadcast(24) != 0) {
+                    int enemyArchonX = rc.readBroadcast(24);
+                    int enemyArchonY = rc.readBroadcast(25);
+                    MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+                    return enemyArchonLocation;
+                } else {
+                    int enemyArchonX = rc.readBroadcast(21);
+                    int enemyArchonY = rc.readBroadcast(22);
+                    MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+                    return enemyArchonLocation;
+                }
+        } else if (rc.readBroadcast(scoutChannel) == 3) {
+            if (rc.readBroadcast(27) != 0) {
+                int enemyArchonX = rc.readBroadcast(27);
+                int enemyArchonY = rc.readBroadcast(28);
+                MapLocation enemyArchonLocation = new MapLocation((float) enemyArchonX, (float) enemyArchonY);
+                return enemyArchonLocation;
+            } else {
+                int enemyArchonX = rc.readBroadcast(21);
+                int enemyArchonY = rc.readBroadcast(22);
+                MapLocation enemyArchonLocation = new MapLocation((float) enemyArchonX, (float) enemyArchonY);
+                return enemyArchonLocation;
+            }
+        } else {
+            int enemyArchonX = rc.readBroadcast(21);
+            int enemyArchonY = rc.readBroadcast(22);
+            MapLocation enemyArchonLocation = new MapLocation((float) enemyArchonX, (float) enemyArchonY);
             return enemyArchonLocation;
         }
     }

@@ -13,7 +13,7 @@ public strictfp class gardener extends RobotPlayer{
     
     static int GARDENER_BUILD_LIMIT = 10;
     static int SCOUT_BUILD_LIMIT = 10;
-    static int SOLDIER_BUILD_LIMIT = 20;
+    static int SOLDIER_BUILD_LIMIT = 10;
     static int LUMBERJACK_BUILD_LIMIT = 75;
     static int TANK_BUILD_LIMIT = 75;
     

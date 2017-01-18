@@ -14,7 +14,7 @@ public strictfp class soldier extends RobotPlayer{
         // This is the RobotController object. You use it to perform actions from this robot,
         // and to get information on its current status.
         soldier.rc = rc;
-        System.out.println("I'm an soldier!");
+        System.out.println("I'm a soldier!");
         Team enemy = rc.getTeam().opponent();
         boolean archonNotFound = true;
 
@@ -29,15 +29,6 @@ public strictfp class soldier extends RobotPlayer{
 
                 MapLocation myLocation = rc.getLocation();
 
-//                // If there are some...
-//                if (robots.length > 0) {
-//                    // And we have enough bullets, and haven't attacked yet this turn...
-//                    if (rc.canFireSingleShot()) {
-//                        // ...Then fire a bullet in the direction of the enemy.
-//                        rc.fireSingleShot(rc.getLocation().directionTo(robots[0].location));
-//                    }
-//                }
-
                 // TODO figure out if this takes up too much bytecode, if it does, take a random sample of nearby bots.
                 //          over a few turns, the collective result will effectively be an average over all bots.
                 // TODO softcode all the curve parameters.
@@ -50,18 +41,37 @@ public strictfp class soldier extends RobotPlayer{
                 double[] friendlyGradient = new double[] {0., 0.};
                 double[] enemyGradient = new double[] {0., 0.};
 
+                // Store the closest enemy for updating.
+                RobotInfo closestEnemy = null;
+
+                // Store the number of enemies and allies for normalizing (averaging).
+                int numEnemies = 0;
+                int numAllies = 0;
+
                 // Iterate nearby bots, calculating the gradient by which this bot should move.
                 for (int i = 0; i < robots.length; ++i) {
-                    if (robots[i].getTeam() == enemy) {
+                    if (robots[i].getTeam() == enemy
+                            // Ignore scouts, they fly over friendlies and cause friendly fire.
+                            && robots[i].type != RobotType.SCOUT) {
                         // Use the same doughnut function for all enemies, for now.
                         // Add the gradient from this bot.
-                        SjxMath.elementwiseSum(
-                                enemyGradient,
-                                SjxMath.doughnutDerivative(myLocation, robots[i].location,
-                                        2, -10,
-                                        7, 2, true),
-                                false
-                        );
+                        enemyGradient = SjxMath.elementwiseSum(
+                                            enemyGradient,
+                                            SjxMath.doughnutDerivative(myLocation, robots[i].location,
+                                            6, 10,
+                                            10, 2, true),
+                                            false
+                                        );
+                        numEnemies++;
+
+                        // Update the closest enemy.
+                        if (closestEnemy == null) {
+                            closestEnemy = robots[i];
+                        }
+                        else if (robots[i].location.distanceSquaredTo(myLocation)
+                                < closestEnemy.location.distanceSquaredTo(myLocation)) {
+                            closestEnemy = robots[i];
+                        }
                     }
                     else {
                         // Only school with other military units.
@@ -69,38 +79,51 @@ public strictfp class soldier extends RobotPlayer{
                             case SOLDIER:
                             case TANK:
                                 // Use a standard gaussian curve for friendlies.
-                                SjxMath.elementwiseSum(
-                                        friendlyGradient,
-                                        SjxMath.gaussianDerivative(myLocation, robots[i].location,
-                                                7, 1.5),
-                                        false
-                                );
+                                friendlyGradient = SjxMath.elementwiseSum(
+                                                        friendlyGradient,
+                                                        SjxMath.gaussianDerivative(myLocation, robots[i].location,
+                                                                7, 1),
+                                                        false
+                                                );
+                                numAllies++;
                                 break;
                         }
                     }
                 }
 
-                // Add the enemy archon location to the gradient. Use a wide gaussian.
-                MapLocation enemyArchonLocation = getEnemyArchonLocation();
-                if (enemyArchonLocation != null) {
-                    SjxMath.elementwiseSum(
-                            enemyGradient,
-                            SjxMath.gaussianDerivative(myLocation, getEnemyArchonLocation(),
-                                    50, 6),
-                            false
-                    );
+                // Normalize so each macro element of micro sets (sets of enemies, friendlies) is weighted correctly
+                //  against other macro elements (archon loc).
+                if (numAllies > 0) {
+                    friendlyGradient[0] /= numAllies;
+                    friendlyGradient[1] /= numAllies;
+                }
+                if (numEnemies > 0) {
+                    enemyGradient[0] /= numEnemies;
+                    enemyGradient[1] /= numEnemies;
                 }
 
+                // Add the enemy archon location to the gradient. Use a wide gaussian.
+                enemyGradient = SjxMath.elementwiseSum(
+                        enemyGradient,
+                        SjxMath.gaussianDerivative(myLocation, findClosestArchon(),
+                                50, 10),
+                        false
+                );
 
-                // TODO Verify that the enemy gradient opposes the friendly gradient by at least 45 degrees.
-                // TODO  Fire toward the gradient if so.
 
+                // Verify that the enemy gradient opposes the friendly gradient by at least 45 degrees.
+                //  This *should* prevent friendly fire?
+                // Note, the dot product is 0 when orthogonal (perpendicular), and 1 when parallel.
+                double dp = SjxMath.dotProduct(friendlyGradient, enemyGradient);
+                if (dp < .5 && rc.canFireSingleShot() && closestEnemy != null) {
+                    rc.fireSingleShot(rc.getLocation().directionTo(closestEnemy.location));
+                }
 
                 // Move in the direction of the gradient.
 
                 // Convert and scale.
                 double[] gradient = SjxMath.elementwiseSum(enemyGradient, friendlyGradient, false);
-                double s = .3;
+                double s = .1;
                 float x = (float) (gradient[0] * s);
                 float y = (float) (gradient[1] * s);
 

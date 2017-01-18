@@ -6,6 +6,17 @@ import battlecode.common.*;
  */
 public strictfp class SjxMath {
 
+    public static double dotProduct(double[] x1, double[] x2) {
+
+        double sum = 0;
+
+        for (int i = 0; i < x1.length; ++i) {
+            sum += x1[i] * x2[i];
+        }
+
+        return sum;
+    }
+
     public static double[] elementwiseSum(double[] x1, double[] x2, boolean negate) {
 
         double[] sumVector = new double[x1.length];
@@ -40,7 +51,15 @@ public strictfp class SjxMath {
 
         double esd = euclideanSquaredDistance(x, mean);
 
-        return scale * Math.exp(-esd/2*Math.pow(standardDeviation, 2.));
+        double variance = Math.pow(standardDeviation, 2.);
+
+        double exponent = -esd/(2*variance);
+
+        double unscaled = Math.exp(exponent);
+
+        double gauss = scale * unscaled;
+
+        return gauss;
     }
 
     public static double[] gaussianDerivative(double[] x, double[] mean, double standardDeviation, double scale) {

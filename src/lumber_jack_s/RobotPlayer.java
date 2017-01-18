@@ -143,20 +143,6 @@ public strictfp class RobotPlayer {
         }
     }
 
-    public static MapLocation getEnemyArchonLocation() throws GameActionException {
-
-        // TODO make huntEnemyArchon use this so we only have the broadcast addresses in one place.
-        int enemyArchonX = rc.readBroadcast(10);
-        int enemyArchonY = rc.readBroadcast(11);
-
-        if (enemyArchonX != 0 && enemyArchonY != 0) {
-            return new MapLocation((float)enemyArchonX, (float)enemyArchonY);
-        }
-        else {
-            return null;
-        }
-    }
-
     public static Direction huntEnemyArchon() throws GameActionException{
         MapLocation myLoc = rc.getLocation();
 

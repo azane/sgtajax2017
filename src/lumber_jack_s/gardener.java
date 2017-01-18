@@ -13,7 +13,7 @@ public strictfp class gardener extends RobotPlayer{
     
     static int GARDENER_BUILD_LIMIT = 10;
     static int SCOUT_BUILD_LIMIT = 10;
-    static int SOLDIER_BUILD_LIMIT = 40;
+    static int SOLDIER_BUILD_LIMIT = 20;
     static int LUMBERJACK_BUILD_LIMIT = 75;
     static int TANK_BUILD_LIMIT = 75;
     
@@ -91,7 +91,12 @@ public strictfp class gardener extends RobotPlayer{
 	                	// Count the trees around us to make sure we don't have too many clogging up the area
 	                	if (myTrees.length < 4 && allTrees.length < 6) {
 		                    rc.plantTree(buildDir);
-	                	} 
+	                	}
+	                	// TODO remove after testing.
+	                	else if (rc.canBuildRobot(RobotType.SOLDIER, buildDir) && underBuildLimit(RobotType.SOLDIER)) {
+	                		rc.buildRobot(RobotType.SOLDIER, buildDir);
+	                		addOneRobotBuilt(RobotType.SOLDIER);
+						}
 	                	// If we have too many trees, try and build a lumberjack
 	                	else if (rc.canBuildRobot(RobotType.LUMBERJACK, buildDir) && underBuildLimit(RobotType.LUMBERJACK)){
 	                		System.out.println("Number of units built: "+getNumberRobotsBuilt(RobotType.LUMBERJACK)+"Build Limit: "+getBuildLimit(RobotType.LUMBERJACK));
@@ -102,7 +107,8 @@ public strictfp class gardener extends RobotPlayer{
 	                } 
 	                // This is the robot building code
 	                else {
-	                	RobotType[] robotTypeList = {RobotType.LUMBERJACK, RobotType.TANK};  // Get a list of the robot types
+						// Get a list of the robot types
+	                	RobotType[] robotTypeList = {RobotType.LUMBERJACK, RobotType.TANK};
 	                	for (RobotType robotType : robotTypeList) {
 		            		int numRobots = getNumberRobotsBuilt(robotType);
 		                	if (rc.canBuildRobot(robotType, buildDir) && underBuildLimit(robotType)) {

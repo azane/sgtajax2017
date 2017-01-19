@@ -1,5 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import sjxbin.SjxMath;
 
 public strictfp class soldier extends RobotPlayer{
     static RobotController rc;
@@ -31,7 +32,7 @@ public strictfp class soldier extends RobotPlayer{
 
                 // TODO figure out if this takes up too much bytecode, if it does, take a random sample of nearby bots.
                 //          over a few turns, the collective result will effectively be an average over all bots.
-                // TODO softcode all the curve parameters.
+                // TODO softcode all the curve parameters. optimize them?
 
                 // Sense all nearby robots.
                 RobotInfo[] robots = rc.senseNearbyRobots();
@@ -74,6 +75,8 @@ public strictfp class soldier extends RobotPlayer{
                         }
                     }
                     else {
+                        double standardDeviation = 7;
+                        double scale = 1;
                         // Only school with other military units.
                         switch (rc.getType()) {
                             // TODO Use a doughnut shape for soldiers and tanks.
@@ -83,11 +86,11 @@ public strictfp class soldier extends RobotPlayer{
                             case LUMBERJACK:
                                 // Use a standard gaussian curve for friendlies.
                                 friendlyGradient = SjxMath.elementwiseSum(
-                                                        friendlyGradient,
-                                                        SjxMath.gaussianDerivative(myLocation, robots[i].location,
-                                                                7, 1),
-                                                        false
-                                                );
+                                        friendlyGradient,
+                                        SjxMath.gaussianDerivative(myLocation, robots[i].location,
+                                                standardDeviation, scale),
+                                        false
+                                );
                                 numAllies++;
                                 break;
                         }

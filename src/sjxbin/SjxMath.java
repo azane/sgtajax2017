@@ -1,4 +1,4 @@
-package lumber_jack_s;
+package sjxbin;
 import battlecode.common.*;
 
 /**

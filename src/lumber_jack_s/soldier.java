@@ -1,6 +1,7 @@
 package lumber_jack_s;
 import battlecode.common.*;
 import sjxbin.SjxMath;
+import sjxbin.SjxMicrogradients;
 
 public strictfp class soldier extends RobotPlayer{
     static RobotController rc;
@@ -75,8 +76,8 @@ public strictfp class soldier extends RobotPlayer{
                         }
                     }
                     else {
-                        double standardDeviation = 7;
-                        double scale = 1;
+                        double standardDeviation = 9;
+                        double scale = .6;
                         // Only school with other military units.
                         switch (rc.getType()) {
                             // TODO Use a doughnut shape for soldiers and tanks.
@@ -120,7 +121,6 @@ public strictfp class soldier extends RobotPlayer{
                     );
                 }
 
-
                 // Verify that the enemy gradient opposes the friendly gradient by at least 45 degrees.
                 //  This *should* prevent friendly fire?
                 // Note, the dot product is 0 when orthogonal (perpendicular), and 1 when parallel.
@@ -129,10 +129,14 @@ public strictfp class soldier extends RobotPlayer{
                     rc.fireSingleShot(rc.getLocation().directionTo(closestEnemy.location));
                 }
 
+                // Get tree gradient.
+                double[] treeGradient = SjxMicrogradients.treeGradient(myLocation, rc);
+
                 // Move in the direction of the gradient.
 
-                // Convert and scale.
+                // Convert and apply universal scale.
                 double[] gradient = SjxMath.elementwiseSum(enemyGradient, friendlyGradient, false);
+                gradient = SjxMath.elementwiseSum(gradient, treeGradient, false);
                 double s = .1;
                 float x = (float) (gradient[0] * s);
                 float y = (float) (gradient[1] * s);

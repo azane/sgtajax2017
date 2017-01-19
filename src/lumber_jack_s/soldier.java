@@ -76,8 +76,11 @@ public strictfp class soldier extends RobotPlayer{
                     else {
                         // Only school with other military units.
                         switch (rc.getType()) {
+                            // TODO Use a doughnut shape for soldiers and tanks.
+                            //  The effect will be to circle enemies instead of heavy clustering.
                             case SOLDIER:
                             case TANK:
+                            case LUMBERJACK:
                                 // Use a standard gaussian curve for friendlies.
                                 friendlyGradient = SjxMath.elementwiseSum(
                                                         friendlyGradient,
@@ -103,12 +106,16 @@ public strictfp class soldier extends RobotPlayer{
                 }
 
                 // Add the enemy archon location to the gradient. Use a wide gaussian.
-                enemyGradient = SjxMath.elementwiseSum(
-                        enemyGradient,
-                        SjxMath.gaussianDerivative(myLocation, findClosestArchon(),
-                                50, 10),
-                        false
-                );
+                MapLocation archonLoc = findClosestArchon();
+                if (archonLoc != null)
+                {
+                    enemyGradient = SjxMath.elementwiseSum(
+                            enemyGradient,
+                            SjxMath.gaussianDerivative(myLocation, findClosestArchon(),
+                                    50, 10),
+                            false
+                    );
+                }
 
 
                 // Verify that the enemy gradient opposes the friendly gradient by at least 45 degrees.

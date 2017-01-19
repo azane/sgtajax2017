@@ -78,8 +78,8 @@ public strictfp class gardener extends RobotPlayer{
     void phaseOneGardener(RobotController rc) throws GameActionException{
     	// Build limits for each phase
         SCOUT_BUILD_LIMIT = 2;
-        SOLDIER_BUILD_LIMIT = 0;
-        LUMBERJACK_BUILD_LIMIT = 20;
+        SOLDIER_BUILD_LIMIT = 4;
+        LUMBERJACK_BUILD_LIMIT = 10;
         TANK_BUILD_LIMIT = 0;
         FRIENDLY_TREE_RADIUS = RobotType.GARDENER.sensorRadius/2;
 

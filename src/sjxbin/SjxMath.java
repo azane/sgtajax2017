@@ -6,6 +6,13 @@ import battlecode.common.*;
  */
 public strictfp class SjxMath {
 
+    public static double sigmoid(double x) {
+        return 1/(1+Math.exp(-x));
+    }
+    public static double sigmoidDerivative(double x) {
+        return Math.exp(x)/Math.pow(Math.exp(x) + 1, 2);
+    }
+
     public static double dotProduct(double[] x1, double[] x2) {
 
         double sum = 0;
@@ -60,6 +67,16 @@ public strictfp class SjxMath {
         double gauss = scale * unscaled;
 
         return gauss;
+    }
+
+    // Default to normalization if no scale is passed.
+    public static double gaussian(double[] x, double[] mean, double standardDeviation) {
+        return gaussian(x, mean, standardDeviation, gaussianNormConstant(standardDeviation, x.length));
+    }
+
+    // Returns the normalizing constant for a gaussian.
+    public static double gaussianNormConstant(double standardDeviation, int dims) {
+        return 1/(Math.pow(2*Math.PI, dims/2)*standardDeviation);
     }
 
     public static double[] gaussianDerivative(double[] x, double[] mean, double standardDeviation, double scale) {

@@ -3,6 +3,15 @@ import battlecode.common.*;
 
 public strictfp class RobotPlayer {
     static RobotController rc;
+    static int ARCHON_SEARCH_OFFSET = 20; //Other stuff is hardcoded into this :(
+    
+    // Unit building offsets
+    static int GARDENER_BASE_OFFSET = 900;
+    static int GARDENERS_BUILT_OFFSET = 0;
+    static int LUMBERJACKS_BUILT_OFFSET = 1;
+    static int SOLDIERS_BUILT_OFFSET = 2;
+    static int SCOUTS_BUILT_OFFSET = 3;
+    static int TANKS_BUILT_OFFSET = 4;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -15,181 +24,30 @@ public strictfp class RobotPlayer {
         // and to get information on its current status.
         RobotPlayer.rc = rc;
 
-        // Here, we've separated the controls into a different method for each RobotType.
+		// Here, we've separated the controls into a different method for each RobotType.
         // You can add the missing ones or rewrite this into your own control structure.
         switch (rc.getType()) {
             case ARCHON:
-                runArchon();
+                archon.runArchon(rc);
                 break;
             case GARDENER:
-                runGardener();
+                gardener gardObject = new gardener();
+                gardObject.runGardener(rc);
                 break;
             case SOLDIER:
-                runSoldier();
+                soldier.runSoldier(rc);
+                break;
+            case TANK:
+                tank.runTank(rc);
+                break;
+            case SCOUT:
+            	scout.runScout(rc);
                 break;
             case LUMBERJACK:
-                runLumberjack();
+                lumberJack.runLumberjack(rc);
                 break;
         }
 	}
-
-    static void runArchon() throws GameActionException {
-        System.out.println("I'm an archon!");
-
-        // The code you want your robot to perform every round should be in this loop
-        while (true) {
-
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
-            try {
-
-                // Generate a random direction
-                Direction dir = randomDirection();
-
-                // Randomly attempt to build a gardener in this direction
-                if (rc.canHireGardener(dir) && Math.random() < .10) {
-                    rc.hireGardener(dir);
-                }
-
-                // Move randomly
-                tryMove(randomDirection());
-
-                // Broadcast archon's location for other robots on the team to know
-                MapLocation myLocation = rc.getLocation();
-                rc.broadcast(0,(int)myLocation.x);
-                rc.broadcast(1,(int)myLocation.y);
-
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
-
-            } catch (Exception e) {
-                System.out.println("Archon Exception");
-                e.printStackTrace();
-            }
-        }
-    }
-
-	static void runGardener() throws GameActionException {
-        System.out.println("I'm a gardener!");
-
-        // The code you want your robot to perform every round should be in this loop
-        while (true) {
-
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
-            try {
-
-                // Listen for home archon's location
-                int xPos = rc.readBroadcast(0);
-                int yPos = rc.readBroadcast(1);
-                MapLocation archonLoc = new MapLocation(xPos,yPos);
-
-                // Generate a random direction
-                Direction dir = randomDirection();
-
-                // Randomly attempt to build a soldier or lumberjack in this direction
-                if (rc.canBuildRobot(RobotType.SOLDIER, dir) && Math.random() < .01 && rc.isBuildReady()) {
-                    rc.buildRobot(RobotType.SOLDIER, dir);
-                } else if (rc.canBuildRobot(RobotType.LUMBERJACK, dir) && Math.random() < .01 && rc.isBuildReady()) {
-                    rc.buildRobot(RobotType.LUMBERJACK, dir);
-                } else if (rc.canPlantTree(dir) && Math.random() < .01 && rc.hasTreeBuildRequirements() && rc.isBuildReady()) {
-                    rc.plantTree(dir);
-                }
-
-                // Move randomly
-                tryMove(randomDirection());
-
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
-
-            } catch (Exception e) {
-                System.out.println("Gardener Exception");
-                e.printStackTrace();
-            }
-        }
-    }
-
-    static void runSoldier() throws GameActionException {
-        System.out.println("I'm an soldier!");
-        Team enemy = rc.getTeam().opponent();
-
-        // The code you want your robot to perform every round should be in this loop
-        while (true) {
-
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
-            try {
-                MapLocation myLocation = rc.getLocation();
-
-                // See if there are any nearby enemy robots
-                RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
-
-                // If there are some...
-                if (robots.length > 0) {
-                    // And we have enough bullets, and haven't attacked yet this turn...
-                    if (rc.canFireSingleShot()) {
-                        // ...Then fire a bullet in the direction of the enemy.
-                        rc.fireSingleShot(rc.getLocation().directionTo(robots[0].location));
-                    }
-                }
-
-                // Move randomly
-                tryMove(randomDirection());
-
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
-
-            } catch (Exception e) {
-                System.out.println("Soldier Exception");
-                e.printStackTrace();
-            }
-        }
-    }
-
-    static void runLumberjack() throws GameActionException {
-        System.out.println("I'm a lumberjack!");
-        Team myTeam = rc.getTeam();
-        Team enemy = rc.getTeam().opponent();
-
-        // The code you want your robot to perform every round should be in this loop
-        while (true) {
-
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
-            try {
-
-                // See if there are any trees within striking range (distance 1 from lumberjack's radius)
-                TreeInfo[] trees = rc.senseNearbyTrees();
-                if(trees.length > 0) {
-	                for (TreeInfo tree : trees){
-	                    MapLocation treeLocation = tree.getLocation();
-	                    if(!rc.hasAttacked() && rc.canStrike() && tree.getTeam() != myTeam) {
-	                        // Use chop() to chop the tree!
-	                        rc.strike();
-	                        Clock.yield();
-	                    }
-	                }
-	                
-	                // If there is a tree that is not on my team, move to it
-                	for (TreeInfo tree : trees){
-                        MapLocation treeLocation = tree.getLocation();
-                        if(tree.getTeam() != myTeam) {
-                            // Use chop() to chop the tree!
-                            MapLocation myLocation = rc.getLocation();
-                        	Direction toTree = myLocation.directionTo(treeLocation);
-                            tryMove(toTree);
-                            Clock.yield();
-                        }
-                	}
-                }
-                // Move Randomly
-                tryMove(randomDirection());
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
-
-            } catch (Exception e) {
-                System.out.println("Lumberjack Exception");
-                e.printStackTrace();
-            }
-        }
-    }
-
     /**
      * Returns a random Direction
      * @return a random Direction
@@ -206,7 +64,7 @@ public strictfp class RobotPlayer {
      * @throws GameActionException
      */
     static boolean tryMove(Direction dir) throws GameActionException {
-        return tryMove(dir,20,3);
+        return tryMove(dir,25,3);
     }
 
     /**
@@ -281,4 +139,188 @@ public strictfp class RobotPlayer {
 
         return (perpendicularDist <= rc.getType().bodyRadius);
     }
+
+    public static void donateBullets() throws GameActionException{
+        // Donate bullets on last round
+        // This needs spread to all robots eventually
+        int total_rounds = rc.getRoundLimit();
+        int current_round = rc.getRoundNum();
+
+        if (((total_rounds - current_round) < 2) || (rc.getTeamBullets() >= 10000)){
+            float team_bullets = rc.getTeamBullets();
+                rc.donate(team_bullets);
+        }
+    }
+
+    public static Direction huntEnemyArchon() throws GameActionException{
+        MapLocation myLoc = rc.getLocation();
+
+//    	// First, look if there is an archon in range --- this is useless
+//    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots();
+//    	for (RobotInfo enemyRobot : nearbyEnemies){
+//        	if (enemyRobot.getType() == RobotType.ARCHON){
+//            	MapLocation enemyArchonLocation = enemyRobot.getLocation();
+//            	return myLoc.directionTo(enemyArchonLocation);
+//        	}
+//    	}
+
+        // If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
+        int enemyArchonX = rc.readBroadcast(10);
+        int enemyArchonY = rc.readBroadcast(11);
+        if (enemyArchonX != 0 && enemyArchonY != 0) {
+            MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+            return myLoc.directionTo(enemyArchonLocation);
+        }
+
+        // return a random direction if we don't know where the archon is -- this point should never be reached
+        return randomDirection();
+    }
+    
+    public static boolean foundEnemyArchon() throws GameActionException{
+        // Return true if archon is sensed or robot is within 20 units of the archon location, else return false
+
+    	// First, look if there is an archon in range
+    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
+    	for (RobotInfo enemyRobot : nearbyEnemies){
+        	if (enemyRobot.getType() == RobotType.ARCHON){
+        		return true;
+        	}
+    	}
+    	    	
+    	// If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
+        int enemyArchonX = rc.readBroadcast(10);
+        int enemyArchonY = rc.readBroadcast(11);
+        if (enemyArchonX != 0 && enemyArchonY != 0) {
+        	MapLocation enemyArchonLocation = new MapLocation((float)enemyArchonX, (float)enemyArchonY);
+        	if (enemyArchonLocation.distanceTo(rc.getLocation()) < 20){
+        		return true;
+        	}
+        }
+        return false;
+    }
+
+
+    public static MapLocation searchForArchon() throws GameActionException{
+//        int bytesUsed = Clock.getBytecodeNum();
+//        System.out.println(bytesUsed);
+
+    	// If an archon is in range, broadcast archon's ID and coordinates
+    	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
+    	for (RobotInfo enemyRobot : nearbyEnemies){
+        	if (enemyRobot.getType() == RobotType.ARCHON){
+            	MapLocation enemyArchonLocation = enemyRobot.getLocation();
+            	int enemyArchonID = enemyRobot.getID();
+            	int archonSearch = ARCHON_SEARCH_OFFSET;
+            	while (rc.readBroadcast(archonSearch) != 0 && rc.readBroadcast(archonSearch) != enemyArchonID) {
+            	    archonSearch = archonSearch + 3;
+                }
+                // If archon is about to die (<= 10 health) coordinates are called as zero to mark archon as dead
+                if (enemyRobot.getHealth() <= 10) {
+                    rc.broadcast(archonSearch, enemyArchonID);
+                    rc.broadcast(archonSearch + 1, 0);
+                    rc.broadcast(archonSearch + 2, 0);
+                    return enemyArchonLocation;
+                } else {
+                    rc.broadcast(archonSearch, enemyArchonID);
+                    rc.broadcast(archonSearch + 1, (int)enemyArchonLocation.x);
+                    rc.broadcast(archonSearch + 2, (int)enemyArchonLocation.y);
+                    return enemyArchonLocation;
+                }
+
+        	}
+    	}
+        return null;
+//        int bytesUsedNew = Clock.getBytecodeNum();
+//        System.out.println(bytesUsedNew);
+    }
+    public static MapLocation findClosestArchon() throws GameActionException{
+
+        // Need to add something to tell it where to go when all archons are dead
+
+
+        // Read enemy archon's coordinates, return closest
+        // Needs updated to account for dead archons
+        MapLocation myLoc = rc.getLocation();
+        int archonSearchX = ARCHON_SEARCH_OFFSET + 1;
+        int archonSearchY = ARCHON_SEARCH_OFFSET + 2;
+
+        while (rc.readBroadcast(archonSearchX) == 0){
+            archonSearchX = archonSearchX + 3;
+            archonSearchY = archonSearchY + 3;
+        }
+        MapLocation closestArchon = new MapLocation((float)rc.readBroadcast(archonSearchX), (float)rc.readBroadcast(archonSearchY));
+
+        while(archonSearchX < ARCHON_SEARCH_OFFSET + 8) {
+            float distToArchon = myLoc.distanceTo(closestArchon);
+            archonSearchX = archonSearchX + 3;
+            archonSearchY = archonSearchY + 3;
+            MapLocation nextArchon = new MapLocation((float)rc.readBroadcast(archonSearchX), (float)rc.readBroadcast(archonSearchY));
+            if (rc.readBroadcast(archonSearchX) != 0 && myLoc.distanceTo(nextArchon) < distToArchon) {
+                closestArchon = nextArchon;
+            }
+        }
+        if (closestArchon.x != 0) {
+            return closestArchon;
+        } else {
+            return null;
+        }
+
+    }
+    static int getNumberRobotsBuilt(RobotType type) throws GameActionException{
+    	int channel = 0;
+//    	System.out.println("In getNumberRobotsBuilt for type: "+type.toString());
+    	switch (type) {
+    		case GARDENER:
+    			channel = GARDENER_BASE_OFFSET + GARDENERS_BUILT_OFFSET;
+    			break;
+    		case SCOUT:
+    			channel = GARDENER_BASE_OFFSET + SCOUTS_BUILT_OFFSET;
+    			break;
+    		case SOLDIER:
+    			channel = GARDENER_BASE_OFFSET + SOLDIERS_BUILT_OFFSET;
+    			break;
+    		case LUMBERJACK:
+    			channel = GARDENER_BASE_OFFSET + LUMBERJACKS_BUILT_OFFSET;
+    			break;
+    		case TANK:
+    			channel = GARDENER_BASE_OFFSET + TANKS_BUILT_OFFSET;
+    			break;
+    		case ARCHON:
+    			return rc.getInitialArchonLocations(RobotPlayer.rc.getTeam()).length;
+    	}
+    	int numBuilt = RobotPlayer.rc.readBroadcast(channel);
+//    	System.out.println("Number of "+type+" built: "+numBuilt);
+    	return numBuilt;
+    }
+
+    static void setNumberRobotsBuilt(RobotType type, int value) throws GameActionException{
+    	int channel = 0;
+//    	System.out.println("In setNumberRobotsBuilt");
+    	switch (type) {
+    		case GARDENER:
+    			channel = GARDENER_BASE_OFFSET + GARDENERS_BUILT_OFFSET;
+    			break;
+    		case SCOUT:
+    			channel = GARDENER_BASE_OFFSET + SCOUTS_BUILT_OFFSET;
+    			break;
+    		case SOLDIER:
+    			channel = GARDENER_BASE_OFFSET + SOLDIERS_BUILT_OFFSET;
+    			break;
+    		case LUMBERJACK:
+    			channel = GARDENER_BASE_OFFSET + LUMBERJACKS_BUILT_OFFSET;
+    			break;
+    		case TANK:
+    			channel = GARDENER_BASE_OFFSET + TANKS_BUILT_OFFSET;
+    			break;
+    	}
+    	RobotPlayer.rc.broadcast(channel, value);
+    }
+
+    static void addOneRobotBuilt(RobotType type) throws GameActionException{
+//    	System.out.println("In addOneRobotBuilt");
+    	int num_bots = getNumberRobotsBuilt(type);
+    	num_bots++;
+    	setNumberRobotsBuilt(type, num_bots);
+    }
 }
+

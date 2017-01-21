@@ -1,5 +1,7 @@
 package sjxbin;
 
+import scala.Tuple2;
+
 import java.util.ArrayList;
 
 /**
@@ -67,7 +69,17 @@ public strictfp class SjxANN {
         return summedLayerLikelihood/matrixArrayList.size();
     }
 
-    public void train(Matrix inputs, Matrix outputs) throws RuntimeException {
+    public Matrix runBatchOutOnly(Matrix inputs) {
+        // Just get the outputs, then sigmoid.
+        return runBatch(inputs).get(shape[shape.length-1]).sigmoid();
+    }
+    public double meanSquaredError(Matrix inputs, Matrix outputs) {
+        return runBatchOutOnly(inputs).minus(outputs).powInPlace(2)
+                .timesInPlace(.5*(1/inputs.numRows())).sumOver('M').sumOver('N').getData()[0][0];
+    }
+
+    // Returns the average gradient of the weights. This will be 0 if assess is false.
+    public double train(Matrix inputs, Matrix outputs, double scale, boolean assess) throws RuntimeException {
         // both inputs and outputs should be [number of samples]x[dimension of data point]
         if (inputs.numRows() != outputs.numRows()) {
             throw new RuntimeException("inputs must match outputs 1:1.");
@@ -77,6 +89,8 @@ public strictfp class SjxANN {
         // N: number of neurons.
         // Nin: number of input neurons.
         // Nout: number of output neurons.
+
+        double averageGradient = 0;
 
         ArrayList<Matrix> layerPreActivations = runBatch(inputs);  // [L,S,N]
         int numLayers = layerPreActivations.size();
@@ -97,21 +111,75 @@ public strictfp class SjxANN {
             //  vector times the output gradient vector.
             // Batch expand and sum. This adds up all the gradients for each sample,
             //  then applies negatively to the weight (descending the error function).
-            weights.get(i) // [Nin, Nout]
-                    .minus(
-                            layerPreActivations.get(i).sigmoid() // [S, Nin]
+            Matrix weightGradient = layerPreActivations.get(i).sigmoid() // [S, Nin]
                                     // ~~~ [S, Nout] = [Nin, Nout]
                                     .batchExpandWithVectorAndSumRowByRow(activationErrorGradient)
-                    );
+                                    .timesInPlace(scale);
+            weights.get(i).minus(weightGradient); // [Nin, Nout]
+
+            if (assess) {
+                averageGradient += weightGradient.sumOver('M').sumOver('N')
+                                    .getData()[0][0]/numWeights;
+            }
 
             // Transpose the weights, backprop the error gradient, elementwise multiply by the sigmoid
             //  derivative of the preactivation of the layer below.
-            // TODO not sure if this needs to be transposed.
             // Note that weights.get(i) retrieves the weight matrix going out of the layer at index i,
             //  and into the layer at i + 1 (which is the layer of the last activationErrorGradient).
             activationErrorGradient = weights.get(i) // [Nin, Nout]
                     .timesByRowVectors(activationErrorGradient) // * [S, Nout] = [S, Nin]
                     .hadamardProduct(layerPreActivations.get(i).sigmoidDerivative()); // [S, Nin] h [S, Nin]
         }
+
+        return averageGradient;
+    }
+
+    public void TestSjxANN() {
+
+        // This test has a network approximate a simple sin function.
+
+        int[] shape = new int[] {2, 5, 3, 1};
+        SjxANN ann = new SjxANN(shape);
+
+        int sampleSize = 50;
+        // Gen some data.
+        ArrayList<double[][]> data = generateData(shape, sampleSize);
+        Matrix minput = new Matrix(data.get(0));
+        Matrix moutput = new Matrix(data.get(1));
+
+        int trainingIterations = 1000;
+        for (int i = 0; i < trainingIterations; i++) {
+            System.out.println("SjxANN average gradient: " + ann.train(minput, moutput, 1, true));
+
+            // Generate some assessment data.
+            ArrayList<double[][]> tdata = generateData(shape, 25);
+            Matrix tminput = new Matrix(tdata.get(0));
+            Matrix tmoutput = new Matrix(tdata.get(1));
+            System.out.println("SjxANN MSQ:" + ann.meanSquaredError(tminput, tmoutput));
+
+            System.out.println();
+        }
+    }
+
+    private ArrayList<double[][]> generateData(int[] shape, int sampleSize) {
+        // Generate some data.
+        double[][] input = new double[sampleSize][shape[0]];
+        double[][] output = new double[sampleSize][shape[shape.length-1]];
+
+        for (int i = 0; i < input.length; i++) {
+            for (int j = 0; j < shape[0]; j++) {
+                input[i][j] = Math.random()*10 - 5;
+            }
+            output[i] = testFunction(input[i]);
+        }
+
+        ArrayList<double[][]> data = new ArrayList<double[][]>();
+        data.add(input);
+        data.add(output);
+        return data;
+    }
+
+    private double[] testFunction(double[] x) {
+        return new double[] {Math.sin(x[0])*Math.sin(x[1])};
     }
 }

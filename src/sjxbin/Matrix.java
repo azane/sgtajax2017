@@ -73,6 +73,10 @@ final public class Matrix {
         return N;
     }
 
+    public double[][] getData() {
+        return data.clone();
+    }
+
     public Matrix sumOver(char axis) throws RuntimeException{
         Matrix A = null;
         switch (axis) {
@@ -343,6 +347,5 @@ final public class Matrix {
             x.data[j][0] = (b.data[j][0] - t) / A.data[j][j];
         }
         return x;
-
     }
 }

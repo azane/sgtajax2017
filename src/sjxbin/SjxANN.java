@@ -3,6 +3,7 @@ package sjxbin;
 import scala.Tuple2;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Created by azane on 1/19/17.
@@ -18,7 +19,7 @@ import java.util.ArrayList;
  */
 public strictfp class SjxANN {
 
-    private ArrayList<Matrix> weights;
+    private ArrayList<Matrix> weights = new ArrayList<Matrix>();
     private int[] shape;
     private int numWeights = 0;
     private double ABS_WEIGHT_LIMIT = 5;
@@ -45,8 +46,8 @@ public strictfp class SjxANN {
         for (Matrix weight : weights) {
             // Sigmoid the last layer activations, multiply by the weight matrix, then transpose back
             //  to a [samples]x[layer size] matrix.
-            layerPreActivations.add(layerPreActivations.get(layerPreActivations.size()).sigmoid()
-                    .times(weight).transpose());
+            layerPreActivations.add(layerPreActivations.get(layerPreActivations.size()-1).sigmoid()
+                    .times(weight));
         }
 
         // This will be a layer by layer list of [number of samples]x[layer size]
@@ -71,11 +72,15 @@ public strictfp class SjxANN {
 
     public Matrix runBatchOutOnly(Matrix inputs) {
         // Just get the outputs, then sigmoid.
-        return runBatch(inputs).get(shape[shape.length-1]).sigmoid();
+        return runBatch(inputs).get(shape.length-1).sigmoid();
     }
     public double meanSquaredError(Matrix inputs, Matrix outputs) {
-        return runBatchOutOnly(inputs).minus(outputs).powInPlace(2)
-                .timesInPlace(.5*(1/inputs.numRows())).sumOver('M').sumOver('N').getData()[0][0];
+
+        Matrix actualOutput = runBatchOutOnly(inputs);
+        double normalizingConstant = .5*(1./inputs.numRows());
+        Matrix difference = actualOutput.minus(outputs);
+        return difference.powInPlace(2)
+                .timesInPlace(normalizingConstant).sumOver('M').sumOver('N').getData()[0][0];
     }
 
     // Returns the average gradient of the weights. This will be 0 if assess is false.
@@ -115,7 +120,7 @@ public strictfp class SjxANN {
                                     // ~~~ [S, Nout] = [Nin, Nout]
                                     .batchExpandWithVectorAndSumRowByRow(activationErrorGradient)
                                     .timesInPlace(scale);
-            weights.get(i).minus(weightGradient); // [Nin, Nout]
+            weights.set(i, weights.get(i).minus(weightGradient)); // [Nin, Nout]
 
             if (assess) {
                 averageGradient += weightGradient.sumOver('M').sumOver('N')
@@ -134,34 +139,55 @@ public strictfp class SjxANN {
         return averageGradient;
     }
 
-    public void TestSjxANN() {
+    public static void TestSjxANN() {
 
-        // This test has a network approximate a simple sin function.
+        String endCSV = "";
+        try {
+            // This test has the network approximate a simple sin function.
 
-        int[] shape = new int[] {2, 5, 3, 1};
-        SjxANN ann = new SjxANN(shape);
+            int[] shape = new int[]{1, 10, 1};
+            SjxANN ann = new SjxANN(shape);
 
-        int sampleSize = 50;
-        // Gen some data.
-        ArrayList<double[][]> data = generateData(shape, sampleSize);
-        Matrix minput = new Matrix(data.get(0));
-        Matrix moutput = new Matrix(data.get(1));
+            int sampleSize = 50;
+            // Gen some data.
+            ArrayList<double[][]> data = generateData(shape, sampleSize);
+            Matrix minput = new Matrix(data.get(0));
+            Matrix moutput = new Matrix(data.get(1));
 
-        int trainingIterations = 1000;
-        for (int i = 0; i < trainingIterations; i++) {
-            System.out.println("SjxANN average gradient: " + ann.train(minput, moutput, 1, true));
+            int trainingIterations = 100;
+            for (int i = 0; i < trainingIterations; i++) {
+                System.out.println("SjxANN average gradient: " + ann.train(minput, moutput, .1, true));
 
-            // Generate some assessment data.
-            ArrayList<double[][]> tdata = generateData(shape, 25);
-            Matrix tminput = new Matrix(tdata.get(0));
-            Matrix tmoutput = new Matrix(tdata.get(1));
-            System.out.println("SjxANN MSQ:" + ann.meanSquaredError(tminput, tmoutput));
+                // Generate some assessment data.
+                ArrayList<double[][]> tdata = generateData(shape, 25);
+                Matrix tminput = new Matrix(tdata.get(0));
+                Matrix tmoutput = new Matrix(tdata.get(1));
+                System.out.println("SjxANN Test MSQ:" + ann.meanSquaredError(tminput, tmoutput));
+                System.out.println("SjxANN Train MSQ:" + ann.meanSquaredError(minput, moutput));
 
-            System.out.println();
+                // Swap in data.
+                data = generateData(shape, sampleSize);
+                minput = new Matrix(data.get(0));
+                moutput = new Matrix(data.get(1));
+
+                System.out.println();
+
+                if (i == trainingIterations - 1) {
+                    endCSV += Arrays.toString(minput.flatten());
+                    endCSV += '\n';
+                    endCSV += Arrays.toString(ann.runBatchOutOnly(minput).flatten());
+                    System.out.println();
+                }
+            }
         }
+        catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+        System.out.println(endCSV);
     }
 
-    private ArrayList<double[][]> generateData(int[] shape, int sampleSize) {
+    private static ArrayList<double[][]> generateData(int[] shape, int sampleSize) {
         // Generate some data.
         double[][] input = new double[sampleSize][shape[0]];
         double[][] output = new double[sampleSize][shape[shape.length-1]];
@@ -179,7 +205,7 @@ public strictfp class SjxANN {
         return data;
     }
 
-    private double[] testFunction(double[] x) {
-        return new double[] {Math.sin(x[0])*Math.sin(x[1])};
+    private static double[] testFunction(double[] x) {
+        return new double[] {SjxMath.sigmoid(Math.sin(x[0]))};
     }
 }

@@ -4,8 +4,6 @@ package sjxbin;
 // Copyright © 2000–2011, Robert Sedgewick and Kevin Wayne.
 // Last updated: Tue Aug 30 09:58:33 EDT 2016.
 
-import scala.tools.nsc.Global;
-
 /******************************************************************************
  *  Compilation:  javac Matrix.java
  *  Execution:    java Matrix
@@ -84,13 +82,13 @@ final public class Matrix {
                 A = new Matrix(1,N);
                 for (int i = 0; i < M; i++)
                     for (int j = 0; j < N; j++)
-                        A.data[1][j] += data[i][j];
+                        A.data[0][j] += data[i][j];
                 break;
             case 'N':
                 A = new Matrix(M, 1);
                 for (int i = 0; i < M; i++)
                     for (int j = 0; j < N; j++)
-                        A.data[i][1] += data[i][j];
+                        A.data[i][0] += data[i][j];
                 break;
             default:
                 throw new RuntimeException("Axis must be either 'M' or 'N'.");
@@ -99,6 +97,10 @@ final public class Matrix {
     }
 
     public Matrix elementwiseTimes(Matrix B) {
+
+        if (B.M != M || B.N != N)
+            throw new RuntimeException("Illegal matrix dimensions.");
+
         Matrix A = new Matrix(M, N);
         for (int i = 0; i < M; i++)
             for (int j = 0; j < N; j++)
@@ -155,9 +157,10 @@ final public class Matrix {
 
     public double[] flatten() {
         double[] flattened = new double[M*N];
+        int index = 0;
         for (int i = 0; i < M; i++)
             for (int j = 0; j < N; j++)
-                flattened[i*j] = data[i][j];
+                flattened[index++] = data[i][j];
         return flattened;
     }
 
@@ -169,7 +172,8 @@ final public class Matrix {
         Matrix C = new Matrix(B.M, N);
         for (int i = 0; i < B.M; i++)
             for (int j = 0; j < N; j++)
-                C.data[i][j] = data[1][j] * B.data[i][1];
+                C.data[i][j] = data[0][j] * B.data[i][0];
+
 
         return C;
     }
@@ -188,7 +192,7 @@ final public class Matrix {
     }
 
     // This batch version expands each row/column of "this" and "B", and adds them to the expanded matrix.
-    // Note that while the inputs are rowxrow, the output will be [this.N]x[B.N], or columnxcolumn.
+    // Note that while the inputs are rowxrow, the output will be [B.N]x[this.N], or columnxcolumn.
     public Matrix batchExpandWithVectorAndSumRowByRow(Matrix B) throws RuntimeException {
         // NOTE B needs to be transposed first if you want normal row/column expansion. Otherwise it's
         //  rowxrow.
@@ -201,7 +205,7 @@ final public class Matrix {
         for (int i = 0; i < M; i++)  {
             Matrix Avec = this.getRowasRow(i);
             Matrix Bvec = B.getRowasRow(i).transpose();
-            C.plus(Avec.expandWithVector(Bvec));
+            C = C.plus(Avec.expandWithVector(Bvec).transpose());
         }
 
         return C;
@@ -213,7 +217,7 @@ final public class Matrix {
         }
 
         for (int j = 0; j < N; j++)
-            data[index][j] = B.data[1][j];
+            data[index][j] = B.data[0][j];
 
         return this;
     }
@@ -231,8 +235,10 @@ final public class Matrix {
 
         // Iterate rows of B.
         for (int i = 0; i < B.M; i++)
-            // Pull out a row vector from B, multiply this matrix by it, and assign it to C.
-            C.assignRowInPlace(this.times(B.getRowasRow(i)), i);
+            // Pull out a row vector from B, multiply this matrix by it,
+            //  and assign it to C. Note we need to transpose the row to a column vector, and then to
+            //  a row vector after the multiplication.
+            C.assignRowInPlace(this.times(B.getRowasRow(i).transpose()).transpose(), i);
 
         return C;
     }
@@ -258,7 +264,8 @@ final public class Matrix {
     // return C = A + B
     public Matrix plus(Matrix B) {
         Matrix A = this;
-        if (B.M != A.M || B.N != A.N) throw new RuntimeException("Illegal matrix dimensions.");
+        if (B.M != A.M || B.N != A.N)
+            throw new RuntimeException("Illegal matrix dimensions.");
         Matrix C = new Matrix(M, N);
         for (int i = 0; i < M; i++)
             for (int j = 0; j < N; j++)
@@ -270,7 +277,8 @@ final public class Matrix {
     // return C = A - B
     public Matrix minus(Matrix B) {
         Matrix A = this;
-        if (B.M != A.M || B.N != A.N) throw new RuntimeException("Illegal matrix dimensions.");
+        if (B.M != A.M || B.N != A.N)
+            throw new RuntimeException("Illegal matrix dimensions.");
         Matrix C = new Matrix(M, N);
         for (int i = 0; i < M; i++)
             for (int j = 0; j < N; j++)
@@ -291,7 +299,8 @@ final public class Matrix {
     // return C = A * B
     public Matrix times(Matrix B) {
         Matrix A = this;
-        if (A.N != B.M) throw new RuntimeException("Illegal matrix dimensions.");
+        if (A.N != B.M)
+            throw new RuntimeException("Illegal matrix dimensions.");
         Matrix C = new Matrix(A.M, B.N);
         for (int i = 0; i < C.M; i++)
             for (int j = 0; j < C.N; j++)

@@ -7,10 +7,10 @@ import battlecode.common.*;
 public strictfp class SjxMath {
 
     public static double sigmoid(double x) {
-        return 1/(1+Math.exp(-x));
+        return 1./(1. + Math.exp(-x));
     }
     public static double sigmoidDerivative(double x) {
-        return Math.exp(x)/Math.pow(Math.exp(x) + 1, 2);
+        return Math.exp(x)/Math.pow(Math.exp(x) + 1., 2);
     }
 
     public static double dotProduct(double[] x1, double[] x2) {

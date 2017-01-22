@@ -277,10 +277,11 @@ public strictfp class SjxANN {
         String averageGradient = "";
         String testData = "";
         String priorCurve = "";
+        String desiredOutput = "";
         try {
             // This test has the network approximate a simple sin function.
 
-            int[] shape = new int[]{1, 2, 2, 2, 1};
+            int[] shape = new int[]{7, 4, 2, 1};
             SjxANN ann = new SjxANN(shape, true);
 
             int sampleSize = 10;
@@ -298,13 +299,19 @@ public strictfp class SjxANN {
             priorCurve += trimEnds(Arrays.toString(pcurvey.flatten()));
 
             int trainingIterations = 50;
-            double samplerDeviation = ABS_WEIGHT_LIMIT/50.;
+            double samplerDeviation = ABS_WEIGHT_LIMIT/150.;
             for (int i = 0; i < trainingIterations; i++) {
-                averageGradient += ann.trainBackprop(minput, moutput, 1.5, true, 10) + ",";
-//                double acceptanceRateD = ann.trainMetropolisHastings(minput, moutput, samplerDeviation, 1);
-//                if (acceptanceRateD > 0.5) samplerDeviation += ABS_WEIGHT_LIMIT/300.;
-//                else if (acceptanceRateD < 0.5) samplerDeviation -= ABS_WEIGHT_LIMIT/300.;
-//                acceptanceRate += acceptanceRateD + ",";
+
+
+                if (false) {
+                    double acceptanceRateD = ann.trainMetropolisHastings(minput, moutput, samplerDeviation, 1);
+                    if (acceptanceRateD > 0.5) samplerDeviation += ABS_WEIGHT_LIMIT/300.;
+                    else if (acceptanceRateD < 0.5) samplerDeviation -= ABS_WEIGHT_LIMIT/300.;
+                    acceptanceRate += acceptanceRateD + ",";
+                }
+                else {
+                    averageGradient += ann.trainBackprop(minput, moutput, 1., true, 10) + ",";
+                }
 
                 String thisTrace = Arrays.toString(ann.weights.get(1).flatten());
                 trace += trimEnds(thisTrace) + '\n';
@@ -328,6 +335,7 @@ public strictfp class SjxANN {
                     networkOutput += trimEnds(Arrays.toString(minput.flatten()));
                     networkOutput += '\n';
                     networkOutput += trimEnds(Arrays.toString(ann.runBatchOutOnly(minput).flatten()));
+                    desiredOutput += trimEnds(Arrays.toString(moutput.flatten()));
 //                    testData += trimEnds(Arrays.toString(tminput.flatten()));
 //                    testData += '\n';
 //                    testData += trimEnds(Arrays.toString(tmoutput.flatten()));
@@ -362,7 +370,7 @@ public strictfp class SjxANN {
     private static double[] testFunctions(double[] x, int functionIndex) {
         switch (functionIndex) {
             case 0:
-                return new double[] {SjxMath.sigmoid(Math.sin(1.5*x[0]))};
+                return new double[] {SjxMath.sigmoid(Math.sin(1.5*x[0]) + Math.cos(x[1]*x[2]))};
             case 1:
                 return new double[] {weightPrior(x)};
             default:

@@ -132,6 +132,13 @@ final public class Matrix {
         return this;
     }
 
+    public Matrix expInPlace() {
+        for (int i = 0; i < M; i++)
+            for (int j = 0; j < N; j++)
+                data[i][j] = Math.exp(data[i][j]);
+        return this;
+    }
+
     public Matrix sigmoidInPlace() {
         for (int i = 0; i < M; i++)
             for (int j = 0; j < N; j++)
@@ -241,6 +248,23 @@ final public class Matrix {
             C.assignRowInPlace(this.times(B.getRowasRow(i).transpose()).transpose(), i);
 
         return C;
+    }
+
+    public double getData(int i, int j) {
+        return data[i][j];
+    }
+
+    public Matrix appendColumn(double value) {
+
+        double[][] B = new double[M][N+1];
+
+        for (int i = 0; i < M; i++) {
+            for (int j = 0; j < N; j++)
+                B[i][j] = data[i][j];
+            B[i][B[i].length-1] = value;
+        }
+
+        return new Matrix(B);
     }
 
     // End Stuff added by Andy.

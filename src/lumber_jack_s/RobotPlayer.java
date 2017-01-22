@@ -1,5 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import sjxbin.SjxANN;
 
 public strictfp class RobotPlayer {
     static RobotController rc;
@@ -19,6 +20,8 @@ public strictfp class RobotPlayer {
     **/
     @SuppressWarnings("unused")
     public static void run(RobotController rc) throws GameActionException {
+
+        SjxANN.TestSjxANN();
 
         // This is the RobotController object. You use it to perform actions from this robot,
         // and to get information on its current status.

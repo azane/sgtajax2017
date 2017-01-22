@@ -1,10 +1,18 @@
 package sjxbin;
 import battlecode.common.*;
+import java.util.Random;
 
 /**
  * A set of mathematical functions for use in the SgtAjax battlecode bot.
  */
 public strictfp class SjxMath {
+
+    public static double sigmoid(double x) {
+        return 1./(1. + Math.exp(-x));
+    }
+    public static double sigmoidDerivative(double x) {
+        return Math.exp(x)/Math.pow(Math.exp(x) + 1., 2);
+    }
 
     public static double dotProduct(double[] x1, double[] x2) {
 
@@ -53,13 +61,29 @@ public strictfp class SjxMath {
 
         double variance = Math.pow(standardDeviation, 2.);
 
-        double exponent = -esd/(2*variance);
+        double exponent = -esd/(2.*variance);
 
         double unscaled = Math.exp(exponent);
 
         double gauss = scale * unscaled;
 
         return gauss;
+    }
+
+    public static double sampleGaussian(Random r, double mean, double standardDeviation) {
+        double mySample = r.nextGaussian()*standardDeviation+mean;
+
+        return mySample;
+    }
+
+    // Default to normalization if no scale is passed.
+    public static double gaussian(double[] x, double[] mean, double standardDeviation) {
+        return gaussian(x, mean, standardDeviation, gaussianNormConstant(standardDeviation, x.length));
+    }
+
+    // Returns the normalizing constant for a gaussian.
+    public static double gaussianNormConstant(double standardDeviation, int dims) {
+        return 1./(Math.pow(2.*Math.PI, dims/2)*standardDeviation);
     }
 
     public static double[] gaussianDerivative(double[] x, double[] mean, double standardDeviation, double scale) {

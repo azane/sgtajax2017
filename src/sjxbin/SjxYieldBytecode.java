@@ -10,6 +10,9 @@ public class SjxYieldBytecode {
 
     public static void yield(RobotPlayer rp) {
 
+        // Get this info to check overflow after tasks complete.
+        int startBytecodesLeft = Clock.getBytecodesLeft();
+
         int[] bytecodeAllotments = calculateBytecodeAllotments(rp);
 
         for (int i = 0; i < bytecodeAllotments.length; i++) {
@@ -30,16 +33,30 @@ public class SjxYieldBytecode {
             }
         }
 
-        System.out.println("[Bytecodes left after tasks]" +
-                "\n(if this is large, the tasks probably bubbled into the next turn): " +
-                "\n" + Clock.getBytecodesLeft() +
-                "\n");
+        // If there are fewer bytecodes left than there were at the start, we probably didn't run over,
+        //  so yield the turn to avoid the bot restarting its loop.
+        int endBytecodesLeft = Clock.getBytecodesLeft();
+        String message = "SjxYieldBytecode.yield() completed with " + endBytecodesLeft + " bytecodes remaining." +
+                "\nOverrun very ";
+        if (endBytecodesLeft < startBytecodesLeft) {
+            System.out.println(message + "unlikely.");
+            Clock.yield();
+        }
+        // Otherwise, bytecodes left is larger,  we probably did run over.
+        // Don't yield as the bot needs to do its turn.
+        else {
+            System.out.println(message + "likely.");
+        }
+
     }
 
     private static void sampleTask(int bytecodeAllotment) {
 
-        // Get the bytecode amount that this task should stop before reaching.
+        // Get the bytecode amount that this task should not exceed, in absolute terms.
         // starting bytecode + allotment.
+        // ALWAYS check starting bytecode in the task, not outside, as other tasks may have run over the limit.
+        // Failing to check the starting bytecode in the task might result in a task "lapping" and taking an
+        //  entire turn.
         int endingBytecode = Clock.getBytecodeNum() + bytecodeAllotment;
 
         // Do stuff until reaching the ending bytecode.
@@ -47,9 +64,10 @@ public class SjxYieldBytecode {
             // If there is a lot in here, the task could exceed its bytecode allotment.
             // This is more or less fine, because if the tasks exceed the bytecode limit, the bot will
             //  resume on its next turn, complete the small amount that remains of the tasks, and then
-            //  continue its turn.
-            // That said, tasks should still take care not to use more than the bytecode allotment.
-            // Two methods might help with this.
+            //  continue its turn. In fact, slight overrun might actually be BETTER, because no bytecode
+            //  will have been wasted. All that's required is that the bot has enough bytecode between
+            //  the last turn's overrun and the turn limit, so it can do its turn, and then trigger tasks again.
+            // To minimize overrun, these methods might be helpful:
             // 1. Keep an int that tracks how long each loop is taking, and don't enter another loop
             //      unless there is enough bytecode remaining to complete the loop and stay under
             //      the bytecode allotment.

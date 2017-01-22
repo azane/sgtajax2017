@@ -4,6 +4,8 @@ package sjxbin;
 // Copyright © 2000–2011, Robert Sedgewick and Kevin Wayne.
 // Last updated: Tue Aug 30 09:58:33 EDT 2016.
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 /******************************************************************************
  *  Compilation:  javac Matrix.java
  *  Execution:    java Matrix
@@ -265,6 +267,21 @@ final public class Matrix {
         }
 
         return new Matrix(B);
+    }
+
+    public Matrix dropoutMinus(Matrix B) {
+        throw new NotImplementedException();
+        // TODO receive some parameters for a function that decides which indices to actually minus.
+        //  This can be used for "dropout" where only a select set of parameters have their gradient
+        //  applied.
+//        Matrix A = this;
+//        if (B.M != A.M || B.N != A.N)
+//            throw new RuntimeException("Illegal matrix dimensions.");
+//        Matrix C = new Matrix(M, N);
+//        for (int i = 0; i < M; i++)
+//            for (int j = 0; j < N; j++)
+//                C.data[i][j] = A.data[i][j] - B.data[i][j];
+//        return C;
     }
 
     // End Stuff added by Andy.

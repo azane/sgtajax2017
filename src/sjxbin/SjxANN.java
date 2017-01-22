@@ -21,9 +21,9 @@ public strictfp class SjxANN {
     private ArrayList<Matrix> weights = new ArrayList<Matrix>();
     private int[] shape;
     private int numWeights = 0;
-    private final static double ABS_WEIGHT_LIMIT = 1.;
+    private final static double WEIGHT_STANDARD_DEVIATION = 1.;
     private boolean addBias = true;
-    private double bias = 1;
+    private double bias = 1.;
 
     // shape should have ints denoting the number of neurons on each layer.
     public SjxANN(int[] shape, boolean addBias) {
@@ -39,7 +39,8 @@ public strictfp class SjxANN {
             // Increment the number of weights.
             numWeights += this.shape[i]*this.shape[i+1];
             // Init to random between -1 and 1.
-            weights.add(Matrix.random(this.shape[i], this.shape[i+1]).timesInPlace(2.*ABS_WEIGHT_LIMIT).plusInPlace(-ABS_WEIGHT_LIMIT/2.));
+            weights.add(Matrix.random(this.shape[i], this.shape[i+1])
+                    .timesInPlace(2.* WEIGHT_STANDARD_DEVIATION).plusInPlace(-WEIGHT_STANDARD_DEVIATION /2.));
         }
     }
 
@@ -81,7 +82,7 @@ public strictfp class SjxANN {
         //  to the place where the sigmoid is practically zero.
         double[] mean = new double[flatWeightArray.length];
         // Doesn't have to be normalized, as we're using this for sampling.
-        double likelihood = SjxMath.gaussian(flatWeightArray, mean, ABS_WEIGHT_LIMIT, 10);
+        double likelihood = SjxMath.gaussian(flatWeightArray, mean, WEIGHT_STANDARD_DEVIATION, 10);
         return likelihood;
     }
 
@@ -279,9 +280,8 @@ public strictfp class SjxANN {
         String priorCurve = "";
         String desiredOutput = "";
         try {
-            // This test has the network approximate a simple sin function.
 
-            int[] shape = new int[]{7, 4, 2, 1};
+            int[] shape = new int[]{10, 8, 4, 2};
             SjxANN ann = new SjxANN(shape, true);
 
             int sampleSize = 10;
@@ -299,14 +299,14 @@ public strictfp class SjxANN {
             priorCurve += trimEnds(Arrays.toString(pcurvey.flatten()));
 
             int trainingIterations = 50;
-            double samplerDeviation = ABS_WEIGHT_LIMIT/150.;
+            double samplerDeviation = WEIGHT_STANDARD_DEVIATION /150.;
             for (int i = 0; i < trainingIterations; i++) {
 
 
                 if (false) {
                     double acceptanceRateD = ann.trainMetropolisHastings(minput, moutput, samplerDeviation, 1);
-                    if (acceptanceRateD > 0.5) samplerDeviation += ABS_WEIGHT_LIMIT/300.;
-                    else if (acceptanceRateD < 0.5) samplerDeviation -= ABS_WEIGHT_LIMIT/300.;
+                    if (acceptanceRateD > 0.5) samplerDeviation += WEIGHT_STANDARD_DEVIATION /300.;
+                    else if (acceptanceRateD < 0.5) samplerDeviation -= WEIGHT_STANDARD_DEVIATION /300.;
                     acceptanceRate += acceptanceRateD + ",";
                 }
                 else {

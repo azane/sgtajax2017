@@ -1,5 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import sjxbin.SjxYieldBytecode;
 
 public strictfp class gardener extends RobotPlayer{
     static RobotController rc;
@@ -64,9 +65,9 @@ public strictfp class gardener extends RobotPlayer{
             		//Run late-game code
             		phaseFiveGardener(rc);
             	}
-            	
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
+
+                // .yield() yields the remainder of this bot's turn to army level tasks.
+                SjxYieldBytecode.yield();
 
             } catch (Exception e) {
                 System.out.println("Gardener Exception");

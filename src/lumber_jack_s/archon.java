@@ -1,5 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import sjxbin.SjxYieldBytecode;
 
 public strictfp class archon extends RobotPlayer{
     static RobotController rc;
@@ -60,8 +61,8 @@ public strictfp class archon extends RobotPlayer{
                 rc.broadcast(0,(int)myLocation.x);
                 rc.broadcast(1,(int)myLocation.y);
 
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
+                // .yield() yields the remainder of this bot's turn to army level tasks.
+                SjxYieldBytecode.yield();
 
             } catch (Exception e) {
                 System.out.println("Archon Exception");

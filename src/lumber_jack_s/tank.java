@@ -1,5 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import sjxbin.SjxYieldBytecode;
 
 public strictfp class tank extends RobotPlayer{
     static RobotController rc;
@@ -48,8 +49,8 @@ public strictfp class tank extends RobotPlayer{
                 }
                 tryMove(dirToMove);
 
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
+                // .yield() yields the remainder of this bot's turn to army level tasks.
+                SjxYieldBytecode.yield();
 
             } catch (Exception e) {
                 System.out.println("Soldier Exception");

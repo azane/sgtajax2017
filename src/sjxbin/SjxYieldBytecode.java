@@ -8,28 +8,27 @@ import lumber_jack_s.RobotPlayer;
  */
 public class SjxYieldBytecode {
 
-    public static void yield(RobotPlayer rp) {
+    public static void yield() {
 
         // Get this info to check overflow after tasks complete.
         int startBytecodesLeft = Clock.getBytecodesLeft();
 
-        int[] bytecodeAllotments = calculateBytecodeAllotments(rp);
+        int[] bytecodeAllotments = calculateBytecodeAllotments();
 
         for (int i = 0; i < bytecodeAllotments.length; i++) {
             switch (i) {
                 case(-1):
                     // See implementation for task example.
                     // Note that tasks don't have to be part of this class,
-                    //  they can (maybe should) be from the RobotPlayer, "rp".
+                    //  they can (maybe should) be from the RobotPlayer.
+                    // Note that tasks are responsible for adhering to their allotment,
+                    //  AND ensuring that they don't take up the entire next turn if it
+                    //  restarts.
                     sampleTask(bytecodeAllotments[i]);
                     break;
+
                 case(0):
-                    //task0(bytecodeAllotments[i]);
-                    break;
-                case(1):
-                    //task1(bytecodeAllotments[i]);
-                    break;
-                //etc.
+                    RobotPlayer.predictiveShooter.collectDataAndTrainModel(bytecodeAllotments[i]);
             }
         }
 
@@ -54,13 +53,13 @@ public class SjxYieldBytecode {
 
         // Get the bytecode amount that this task should not exceed, in absolute terms.
         // starting bytecode + allotment.
-        // ALWAYS check starting bytecode in the task, not outside, as other tasks may have run over the limit.
-        // Failing to check the starting bytecode in the task might result in a task "lapping" and taking an
-        //  entire turn.
-        int endingBytecode = Clock.getBytecodeNum() + bytecodeAllotment;
+        int startingBytecode = Clock.getBytecodeNum();
+        int endingBytecode = startingBytecode + bytecodeAllotment;
 
-        // Do stuff until reaching the ending bytecode.
-        while (Clock.getBytecodeNum() < endingBytecode) {
+        // Do stuff until reaching the ending bytecode. OR being less than the starting bytecode.
+        // The latter check prevents the task from "lapping" itself if it goes over the bytecode limit
+        //  and restarts.
+        while (Clock.getBytecodeNum() < endingBytecode && Clock.getBytecodeNum() > startingBytecode) {
             // If there is a lot in here, the task could exceed its bytecode allotment.
             // This is more or less fine, because if the tasks exceed the bytecode limit, the bot will
             //  resume on its next turn, complete the small amount that remains of the tasks, and then
@@ -79,11 +78,11 @@ public class SjxYieldBytecode {
         }
     }
 
-    private static int[] calculateBytecodeAllotments(RobotPlayer rc) {
+    private static int[] calculateBytecodeAllotments() {
 
         int bytecodesLeft = Clock.getBytecodesLeft();
 
-        double[] taskAllotmentRatios = calculateAllotmentRatios(rc);
+        double[] taskAllotmentRatios = calculateAllotmentRatios();
         int[] taskBytecodeAllotments = new int[taskAllotmentRatios.length];
 
         double tot = (new Matrix(taskAllotmentRatios)).sumOver('N').getData(0, 0);
@@ -97,10 +96,10 @@ public class SjxYieldBytecode {
         return taskBytecodeAllotments;
     }
 
-    private static double[] calculateAllotmentRatios(RobotPlayer rc) {
+    private static double[] calculateAllotmentRatios() {
         // Just return the task allotment for now, but we can do this formulaically too.
         // The indices of the return values should correspond to the indices of the methods
         //  called from the switch statement in yield();
-        return new double[] {};
+        return new double[] {1.};
     }
 }

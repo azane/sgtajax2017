@@ -4,7 +4,6 @@ package sjxbin;
 // Copyright © 2000–2011, Robert Sedgewick and Kevin Wayne.
 // Last updated: Tue Aug 30 09:58:33 EDT 2016.
 
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /******************************************************************************
  *  Compilation:  javac Matrix.java
@@ -270,7 +269,7 @@ final public class Matrix {
     }
 
     public Matrix dropoutMinus(Matrix B) {
-        throw new NotImplementedException();
+        throw new RuntimeException("This is not implemented yet.");
         // TODO receive some parameters for a function that decides which indices to actually minus.
         //  This can be used for "dropout" where only a select set of parameters have their gradient
         //  applied.

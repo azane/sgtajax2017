@@ -1,5 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import sjxbin.SjxYieldBytecode;
 
 public strictfp class lumberJack extends RobotPlayer{
     static RobotController rc;
@@ -108,8 +109,9 @@ public strictfp class lumberJack extends RobotPlayer{
                 //--- End Move Code
                 //------------------------
 
-                
-                Clock.yield();
+
+                // .yield() yields the remainder of this bot's turn to army level tasks.
+                SjxYieldBytecode.yield();
 
 
             } catch (Exception e) {

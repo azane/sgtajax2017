@@ -1,9 +1,11 @@
 package lumber_jack_s;
 import battlecode.common.*;
-import sjxbin.SjxANN;
+import sjxbin.SjxPredictiveShooter;
 
 public strictfp class RobotPlayer {
-    static RobotController rc;
+    public static RobotController rc;
+    public static SjxPredictiveShooter predictiveShooter;
+
     static int ARCHON_SEARCH_OFFSET = 20; //Other stuff is hardcoded into this :(
     
     // Unit building offsets
@@ -24,6 +26,14 @@ public strictfp class RobotPlayer {
         // This is the RobotController object. You use it to perform actions from this robot,
         // and to get information on its current status.
         RobotPlayer.rc = rc;
+
+        try {
+            RobotPlayer.predictiveShooter = new SjxPredictiveShooter(false, true);
+        }
+        catch (Exception e) {
+            return;
+        }
+
 
 		// Here, we've separated the controls into a different method for each RobotType.
         // You can add the missing ones or rewrite this into your own control structure.

@@ -24,6 +24,7 @@ public class SjxPredictiveShooter {
     //  been initialized.
     // TODO make an integer a flag int for bools.
     static int networkInitializedChannel = 99;
+    static int networkProcessingIDChannel = 98;
 
     int trainingIters = 0;
 
@@ -58,28 +59,31 @@ public class SjxPredictiveShooter {
         // Only train if we've got a full set of data.
         if (dataPointsStored >= DATA_STORE_LENGTH) {
 
-            // FIXME if a bot's turn gets suspended between the read and write, they'll overwrite someone elses.
-//            try{
-//                if (RobotPlayer.rc.readBroadcast(networkInitializedChannel) == 1)
-//                    ann.readBroadcastWeights(startingChannel, weightBits);
-//            }
-//            catch (GameActionException e) {
-//                System.out.println("Could not determine if predictive shooter network was initialized!");
-//            }
+            try{
+                // TODO use 'networkProcessingIDChannel' to denote that this bot is processing the network.
+                // TODO check to make sure that either this bot is processing, or that no bot is processing (-1);
+                if (RobotPlayer.rc.readBroadcast(networkInitializedChannel) == 1)
+                    ann.readBroadcastWeights(startingChannel, weightBits);
+            }
+            catch (GameActionException e) {
+                System.out.println("Could not determine if predictive shooter network was initialized!");
+            }
 
             while (!bct.isAllotmentExceeded()) {
                 ann.trainBackprop(inputs, outputs, 1., true, 1, bct);
                 ++trainingIters;
             }
-//            ann.broadcastWeights(startingChannel, weightBits);
 
-//            try {
-//                RobotPlayer.rc.broadcast(networkInitializedChannel, 1);
-//            }
-//            catch (GameActionException e) {
-//                System.out.println("Could not broadcast indication that the predictive shooter " +
-//                        "network has valid weights in it!");
-//            }
+            ann.broadcastWeights(startingChannel, weightBits);
+
+            try {
+                RobotPlayer.rc.broadcast(networkInitializedChannel, 1);
+                // TODO denote that this bot is finished processing the network by setting the id channel to -1;
+            }
+            catch (GameActionException e) {
+                System.out.println("Could not broadcast indication that the predictive shooter " +
+                        "network has valid weights in it!");
+            }
 
             bct.end();
         }

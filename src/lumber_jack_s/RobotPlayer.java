@@ -1,9 +1,13 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import sjxbin.SjxANN;
 import sjxbin.SjxPredictiveShooter;
 
 public strictfp class RobotPlayer {
     public static RobotController rc;
+    // Make this a 'singleton'.
+    public static RobotPlayer rp;
+
     public static SjxPredictiveShooter predictiveShooter;
 
     static int ARCHON_SEARCH_OFFSET = 20; //Other stuff is hardcoded into this :(
@@ -15,6 +19,11 @@ public strictfp class RobotPlayer {
     static int SOLDIERS_BUILT_OFFSET = 2;
     static int SCOUTS_BUILT_OFFSET = 3;
     static int TANKS_BUILT_OFFSET = 4;
+
+    // The instance constructor sets the static method to the single instance.
+    public RobotPlayer() {
+        rp = this;
+    }
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -28,7 +37,7 @@ public strictfp class RobotPlayer {
         RobotPlayer.rc = rc;
 
         try {
-            RobotPlayer.predictiveShooter = new SjxPredictiveShooter(false, true);
+            RobotPlayer.predictiveShooter = new SjxPredictiveShooter(true, true);
         }
         catch (Exception e) {
             return;
@@ -59,6 +68,11 @@ public strictfp class RobotPlayer {
                 break;
         }
 	}
+
+	public void mainMethod() throws GameActionException {
+        throw new RuntimeException("This method is not implemented in the parent class!");
+    }
+
     /**
      * Returns a random Direction
      * @return a random Direction

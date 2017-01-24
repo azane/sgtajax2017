@@ -12,6 +12,11 @@ public strictfp class scout extends RobotPlayer{
      * If this method returns, the robot dies!
     **/
     @SuppressWarnings("unused")
+
+    public void mainMethod() throws GameActionException {
+
+    }
+
     static void runScout(RobotController rc) throws GameActionException {
 
         // This is the RobotController object. You use it to perform actions from this robot,
@@ -29,7 +34,7 @@ public strictfp class scout extends RobotPlayer{
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
-            	
+
             	//--- Scout Search Code
             	//---------------------
                 if (rc.getRoundNum() - startRound > 15) {
@@ -67,7 +72,7 @@ public strictfp class scout extends RobotPlayer{
                 //-------------------
 */
 
-                
+
                 //--- Scout Move Code
                 //-------------------
                 MapLocation myLocation = rc.getLocation();

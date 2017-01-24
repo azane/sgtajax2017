@@ -1,5 +1,8 @@
 package sjxbin;
 
+import battlecode.common.Clock;
+
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
@@ -22,8 +25,10 @@ public strictfp class SjxANN {
     private int[] shape;
     private int numWeights = 0;
     private final static double WEIGHT_STANDARD_DEVIATION = 1.;
-    private boolean addBias = true;
-    private double bias = 1.;
+    private final boolean addBias;
+    public final double bias = 1.;
+
+    public String trace = "";
 
     // shape should have ints denoting the number of neurons on each layer.
     public SjxANN(int[] shape, boolean addBias) {
@@ -40,12 +45,73 @@ public strictfp class SjxANN {
             numWeights += this.shape[i]*this.shape[i+1];
             // Init to random between -1 and 1.
             weights.add(Matrix.random(this.shape[i], this.shape[i+1])
-                    .timesInPlace(2.* WEIGHT_STANDARD_DEVIATION).plusInPlace(-WEIGHT_STANDARD_DEVIATION /2.));
+                    .timesInPlace(WEIGHT_STANDARD_DEVIATION).plusInPlace(-WEIGHT_STANDARD_DEVIATION/2));
         }
     }
 
-    public ArrayList<Matrix> runBatch(Matrix input) {
+    public String traceWeights() {
+        for (Matrix weight: weights) {
+            String thisTrace = Arrays.toString(weight.flatten());
+            this.trace += trimEnds(thisTrace) + ",";
+        }
+        this.trace += '\n';
+        return this.trace;
+    }
+
+    public void broadcastWeights(int startingChannel, int bits) {
+        for (Matrix weight : weights) {
+            // Capture the returned channel, the next free channel.
+            startingChannel = weight.writeBroadcast(startingChannel,
+                    -WEIGHT_STANDARD_DEVIATION*3, -WEIGHT_STANDARD_DEVIATION*3, bits);
+        }
+    }
+    public void readBroadcastWeights(int startingChannel, int bits) {
+        for (Matrix weight : weights) {
+            // Capture the returned channel, the next free channel.
+            startingChannel = weight.readBroadcast(startingChannel,
+                    -WEIGHT_STANDARD_DEVIATION*3, -WEIGHT_STANDARD_DEVIATION*3, bits);
+        }
+    }
+    public int readBroadcastBytecodeCost(int bits) {
+        int cost = 0;
+        for (Matrix weight : weights) {
+            cost += weight.readBroadcastBytecodeCost(bits);
+        }
+        return cost;
+    }
+    public int writeBroadcastBytecodeCost(int bits) {
+        int cost = 0;
+        for (Matrix weight : weights) {
+            cost += weight.writeBroadcastBytecodeCost(bits);
+        }
+        return cost;
+    }
+
+    public ArrayList<Matrix> cloneWeights() {
+        ArrayList<Matrix> heldWieghts = new ArrayList<Matrix>();
+        for (Matrix weight: weights) {
+            heldWieghts.add(weight.copy());
+        }
+        return heldWieghts;
+    }
+
+    public Matrix runForOutput(Matrix input) {
+
+        if (addBias) {
+            input = input.appendColumn(bias);
+        }
+
+        for (Matrix weight : weights) {
+            input = input.times(weight).sigmoid();
+        }
+
+        // I know it's called input, but it's the output now.
+        return input;
+    }
+
+    public ArrayList<Matrix> runBatch(Matrix input, SjxBytecodeTracker bct) {
         // "input" should be [number of samples]x[input first layer]
+
 
         ArrayList<Matrix> layerPreActivations = new ArrayList<Matrix>();
 
@@ -59,17 +125,21 @@ public strictfp class SjxANN {
             // Sigmoid the last layer activations, multiply by the weight matrix, then transpose back
             //  to a [samples]x[layer size] matrix.
             int i = layerPreActivations.size()-1;
+
             // Don't sig the inputs.
-            if (i == 0)
+            if (i == 0) {
                 layerPreActivations.add(
                         layerPreActivations.get(i)
-                        .times(weight)
+                                .times(weight)
                 );
-            else
+            }
+            else {
                 layerPreActivations.add(
                         layerPreActivations.get(i).sigmoid()
                                 .times(weight)
                 );
+            }
+            if(bct != null) bct.yieldCheck();
         }
 
         // This will be a layer by layer list of [number of samples]x[layer size]
@@ -107,7 +177,7 @@ public strictfp class SjxANN {
 
     public Matrix runBatchOutOnly(Matrix inputs) {
         // Just get the outputs, then sigmoid.
-        return runBatch(inputs).get(shape.length-1).sigmoid();
+        return runBatch(inputs, null).get(shape.length-1).sigmoid();
     }
     public double meanSquaredError(Matrix inputs, Matrix outputs) {
 
@@ -124,9 +194,19 @@ public strictfp class SjxANN {
         }
     }
 
+    public double trainBackprop(Matrix inputs, Matrix outputs, double scale, boolean assess, int iters) {
+        return trainBackprop(inputs, outputs, scale, assess, iters, null);
+    }
+
     // Returns the average gradient of the weights. This will be 0 if assess is false.
-    public double trainBackprop(Matrix inputs, Matrix outputs, double scale, boolean assess, int iters)
+    public double trainBackprop(Matrix inputs, Matrix outputs, double scale, boolean assess, int iters,
+                                SjxBytecodeTracker bct)
             throws RuntimeException {
+
+        if (bct != null)
+            if (!bct.isRunning())
+                throw new RuntimeException("The bytecode tracker must be running when passed to" +
+                        "'trainBackprop'.");
 
         // both inputs and outputs should be [number of samples]x[dimension of data point]
         if (inputs.numRows() != outputs.numRows()) {
@@ -139,10 +219,10 @@ public strictfp class SjxANN {
         // Nout: number of output neurons.
 
         double averageGradient = 0;
-
         for (int k = 0; k < iters; k++) {
 
-            ArrayList<Matrix> layerPreActivations = runBatch(inputs);  // [L,S,N]
+            ArrayList<Matrix> layerPreActivations = runBatch(inputs, bct);  // [L,S,N]
+            if (bct != null) bct.yieldCheck();
             int numLayers = layerPreActivations.size();
 
             // Get output layer error gradient wrt output layer PreActivations.
@@ -151,6 +231,7 @@ public strictfp class SjxANN {
             Matrix activationErrorGradient = layerPreActivations.get(numLayers - 1).sigmoid()
                     .minus(outputs) // [S, Nout] - [S, Nout]
                     .hadamardProduct(layerPreActivations.get(numLayers - 1).sigmoidDerivative()); // * [S, Nout]
+            if (bct != null) bct.yieldCheck();
 
             // Backpropogate the error, applying to the weight matrix after it's gradient is calculated.
             // numLayers -2: one for index, another because we already did the output above.
@@ -166,10 +247,13 @@ public strictfp class SjxANN {
                         .batchExpandWithVectorAndSumRowByRow(activationErrorGradient)
                         .timesInPlace(scale);
                 weights.set(i, weights.get(i).minus(weightGradient)); // [Nin, Nout]
+                if (bct != null) bct.yieldCheck();
 
                 if (assess) {
                     averageGradient += weightGradient.sumOver('M').sumOver('N')
                             .getData()[0][0] / numWeights;
+                    traceWeights();
+                    if (bct != null) bct.yieldCheck();
                 }
 
                 // Transpose the weights, backprop the error gradient, elementwise multiply by the sigmoid
@@ -179,6 +263,7 @@ public strictfp class SjxANN {
                 activationErrorGradient = weights.get(i) // [Nin, Nout]
                         .timesByRowVectors(activationErrorGradient) // * [S, Nout] = [S, Nin]
                         .hadamardProduct(layerPreActivations.get(i).sigmoidDerivative()); // [S, Nin] h [S, Nin]
+                if (bct != null) bct.yieldCheck();
             }
         }
         return averageGradient;
@@ -211,7 +296,7 @@ public strictfp class SjxANN {
             for (int k = 0; k < iters; k++) {
 
                 // Declarations for loop.
-                ArrayList<Matrix> proposedWeights = new ArrayList<Matrix>();
+                ArrayList<Matrix> proposedWeights = new ArrayList<>();
                 double[][] proposedArrayWeight;
 
                 for (Matrix weight : weights) {
@@ -378,6 +463,26 @@ public strictfp class SjxANN {
         }
     }
 
+    public static boolean testBroadcast() {
+        // NOTE this could falsely fail if another bot enters the test and overwrites the last bot's
+        //       test broadcast.
+
+        SjxANN ann = new SjxANN(new int[] {11, 8, 4, 2}, false);
+
+        ArrayList<Matrix> heldWeights = ann.cloneWeights();
+
+        ann.broadcastWeights(100, 32);
+        Clock.yield(); // Yield because the broadcast doesn't post till after the turn is over.
+        ann.readBroadcastWeights(100, 32);
+
+        for (int i = 0; i < heldWeights.size(); i++) {
+            if (!(ann.weights.get(i).eq(heldWeights.get(i), 0.05)))
+                return false;
+        }
+
+        return true;
+    }
+
     public static boolean testSanity() {
 
         // This tests the function of the network
@@ -391,6 +496,7 @@ public strictfp class SjxANN {
         };
 
         SjxANN ann = new SjxANN(new int[] {1, 2, 1}, false);
+        // Override weights.
         ann.weights = new ArrayList<Matrix>();
         ann.weights.add(new Matrix(layer1));
         ann.weights.add(new Matrix(layer2));

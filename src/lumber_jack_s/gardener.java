@@ -20,7 +20,10 @@ public strictfp class gardener extends RobotPlayer{
     int TANK_BUILD_LIMIT;
     Direction buildDir;
     float FRIENDLY_TREE_RADIUS;
-    
+
+    public void mainMethod() throws GameActionException {
+
+    }
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -37,7 +40,6 @@ public strictfp class gardener extends RobotPlayer{
         System.out.println("I'm a gardener!");
         startLoc = rc.getLocation();
         myTeam = rc.getTeam();
-        
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {
@@ -150,7 +152,8 @@ public strictfp class gardener extends RobotPlayer{
 
     void phaseTwoGardener(RobotController rc) throws GameActionException{
     	// Build limits for each phase
-        SCOUT_BUILD_LIMIT = 3;
+        //SCOUT_BUILD_LIMIT = 3;
+        SCOUT_BUILD_LIMIT = 30;
         SOLDIER_BUILD_LIMIT = 10;
         LUMBERJACK_BUILD_LIMIT = 10;
         TANK_BUILD_LIMIT = 0;
@@ -225,7 +228,8 @@ public strictfp class gardener extends RobotPlayer{
 
     void phaseThreeGardener(RobotController rc) throws GameActionException{
     	// Build limits for each phase
-        SCOUT_BUILD_LIMIT = 3;
+        //SCOUT_BUILD_LIMIT = 3;
+        SCOUT_BUILD_LIMIT = 30;
         SOLDIER_BUILD_LIMIT = 15;
         LUMBERJACK_BUILD_LIMIT = 40;
         TANK_BUILD_LIMIT = 1;
@@ -296,7 +300,8 @@ public strictfp class gardener extends RobotPlayer{
 
     void phaseFourGardener(RobotController rc) throws GameActionException{
     	// Build limits for each phase
-        SCOUT_BUILD_LIMIT = 3;
+        //SCOUT_BUILD_LIMIT = 3;
+        SCOUT_BUILD_LIMIT = 30;
         SOLDIER_BUILD_LIMIT = 40;
         LUMBERJACK_BUILD_LIMIT = 45;
         TANK_BUILD_LIMIT = 15;
@@ -366,7 +371,8 @@ public strictfp class gardener extends RobotPlayer{
 
     void phaseFiveGardener(RobotController rc) throws GameActionException{
     	// Build limits for each phase
-        SCOUT_BUILD_LIMIT = 3;
+        //SCOUT_BUILD_LIMIT = 3;
+        SCOUT_BUILD_LIMIT = 30;
         SOLDIER_BUILD_LIMIT = 45;
         LUMBERJACK_BUILD_LIMIT = 45;
         TANK_BUILD_LIMIT = 30;

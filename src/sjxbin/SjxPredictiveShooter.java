@@ -13,13 +13,22 @@ import java.util.LinkedList;
  */
 public class SjxPredictiveShooter {
 
-    static int INPUT_POSITIONS = 5;
+    static int INPUT_POSITIONS = 4;
     static int OUTPUT_POSITIONS = 1;
     static int TRAIL_LENGTH = INPUT_POSITIONS + OUTPUT_POSITIONS + 1; // +1 to relativize the first input.
-    static int DATA_STORE_LENGTH = 25;
+    static int DATA_STORE_LENGTH = 1;
+
+    static final int startingChannel = 100;
+    static final int weightBits = 32;
+    // The channel on which the flag 1/0 is stored indicating if the network has
+    //  been initialized.
+    // TODO make an integer a flag int for bools.
+    static int networkInitializedChannel = 99;
+
+    int trainingIters = 0;
 
     HashMap<Integer, LinkedList<MapLocation>> botTrails = new HashMap<>();
-    int[] annShape = new int[] {INPUT_POSITIONS*2 +1, 8, 4, OUTPUT_POSITIONS*2}; // +1 on input for bias.
+    int[] annShape = new int[] {INPUT_POSITIONS*2 +1, 6, OUTPUT_POSITIONS*2}; // +1 on input for bias.
     Matrix inputs = new Matrix(DATA_STORE_LENGTH, annShape[0]);
     Matrix outputs = new Matrix(DATA_STORE_LENGTH, annShape[annShape.length-1]);
     int dataPointsStored = 0;
@@ -37,17 +46,43 @@ public class SjxPredictiveShooter {
 
     public void collectDataAndTrainModel(int bytecodeAllotment) {
 
-        int startingBytecode = Clock.getBytecodeNum();
-        int endingBytecode = startingBytecode + bytecodeAllotment;
+        SjxBytecodeTracker bct = new SjxBytecodeTracker();
+        bct.start(bytecodeAllotment);
 
-        trackUnits();
+        // TODO might want to take advantage of the bot looping nearby robots in its main turn
+        //  by calling trackUnit(RobotInfo robot) per loop. Otherwise, we loop the same array twice.
+        trackUnits(bct);
+
+        bct.yieldCheck();
 
         // Only train if we've got a full set of data.
-        // TODO enable after testing unit tracking.
-//        if (dataPointsStored >= DATA_STORE_LENGTH) {
-//            while (Clock.getBytecodeNum() < endingBytecode && Clock.getBytecodeNum() > startingBytecode)
-//                ann.trainBackprop(inputs, outputs, 1., false, 1);
-//        }
+        if (dataPointsStored >= DATA_STORE_LENGTH) {
+
+            // FIXME if a bot's turn gets suspended between the read and write, they'll overwrite someone elses.
+//            try{
+//                if (RobotPlayer.rc.readBroadcast(networkInitializedChannel) == 1)
+//                    ann.readBroadcastWeights(startingChannel, weightBits);
+//            }
+//            catch (GameActionException e) {
+//                System.out.println("Could not determine if predictive shooter network was initialized!");
+//            }
+
+            while (!bct.isAllotmentExceeded()) {
+                ann.trainBackprop(inputs, outputs, 1., true, 1, bct);
+                ++trainingIters;
+            }
+//            ann.broadcastWeights(startingChannel, weightBits);
+
+//            try {
+//                RobotPlayer.rc.broadcast(networkInitializedChannel, 1);
+//            }
+//            catch (GameActionException e) {
+//                System.out.println("Could not broadcast indication that the predictive shooter " +
+//                        "network has valid weights in it!");
+//            }
+
+            bct.end();
+        }
     }
 
     public void gleanDataFromTrail(int id, LinkedList<MapLocation> trail) {
@@ -109,16 +144,24 @@ public class SjxPredictiveShooter {
         int index;
         if (dataPointsStored >= DATA_STORE_LENGTH) {
             index = (int)Math.round(Math.random()* DATA_STORE_LENGTH);
-            dataPointsStored++;
         }
         // If not full, fill in order.
         else {
             index = dataPointsStored;
-            dataPointsStored++;
         }
 
-        inputs.assignRowInPlace(new Matrix(singleInput), index);
-        outputs.assignRowInPlace(new Matrix(singleOutput), index);
+        Matrix minput = new Matrix(singleInput);
+        Matrix moutput = new Matrix(singleOutput);
+
+        // Check to make sure this isn't a bot just holding still, as that screws us up a bit.
+        // If total of the input is the bias (1.) it's baddy.
+        if (minput.sumOver('M').sumOver('N').getData(0,0) != ann.bias) {
+            inputs.assignRowInPlace(minput, index);
+            outputs.assignRowInPlace(moutput, index);
+            dataPointsStored++;
+        }
+        else
+            trail.clear();
 
     }
 
@@ -147,15 +190,16 @@ public class SjxPredictiveShooter {
             }
         }
     }
-    public void trackUnits(RobotInfo[] robots) {
+    public void trackUnits(RobotInfo[] robots, SjxBytecodeTracker bct) {
 
         for (RobotInfo robot : robots) {
             trackUnit(robot);
+            bct.yieldCheck();
         }
     }
-    public RobotInfo[] trackUnits() {
+    public RobotInfo[] trackUnits(SjxBytecodeTracker bct) {
         RobotInfo[] rinfo = RobotPlayer.rc.senseNearbyRobots();
-        trackUnits(rinfo);
+        trackUnits(rinfo, bct);
         return rinfo;
     }
 }

@@ -10,8 +10,7 @@ public class SjxYieldBytecode {
 
     public static void yield() {
 
-        // Get this info to check overflow after tasks complete.
-        int startBytecodesLeft = Clock.getBytecodesLeft();
+        // TODO need to rethink allotment strategy given that tasks can call back to main method.
 
         int[] bytecodeAllotments = calculateBytecodeAllotments();
 
@@ -19,63 +18,40 @@ public class SjxYieldBytecode {
             switch (i) {
                 case(-1):
                     // See implementation for task example.
-                    // Note that tasks don't have to be part of this class,
-                    //  they can (maybe should) be from the RobotPlayer.
-                    // Note that tasks are responsible for adhering to their allotment,
-                    //  AND ensuring that they don't take up the entire next turn if it
-                    //  restarts.
+                    // Note that tasks don't have to be part of this class.
                     sampleTask(bytecodeAllotments[i]);
                     break;
 
                 case(0):
                     RobotPlayer.predictiveShooter.collectDataAndTrainModel(bytecodeAllotments[i]);
+                    break;
             }
         }
-
-        // If there are fewer bytecodes left than there were at the start, we probably didn't run over,
-        //  so yield the turn to avoid the bot restarting its loop.
-        int endBytecodesLeft = Clock.getBytecodesLeft();
-        String message = "SjxYieldBytecode.yield() completed with " + endBytecodesLeft + " bytecodes remaining." +
-                "\nOverrun very ";
-        if (endBytecodesLeft < startBytecodesLeft) {
-            System.out.println(message + "unlikely.");
-            Clock.yield();
-        }
-        // Otherwise, bytecodes left is larger,  we probably did run over.
-        // Don't yield as the bot needs to do its turn.
-        else {
-            System.out.println(message + "likely.");
-        }
-
     }
 
     private static void sampleTask(int bytecodeAllotment) {
 
-        // Get the bytecode amount that this task should not exceed, in absolute terms.
-        // starting bytecode + allotment.
-        int startingBytecode = Clock.getBytecodeNum();
-        int endingBytecode = startingBytecode + bytecodeAllotment;
+        // Using SjxBytecodeTracker makes this LOTS easier.
+        SjxBytecodeTracker bct = new SjxBytecodeTracker();
+        bct.start(bytecodeAllotment);
 
-        // Do stuff until reaching the ending bytecode. OR being less than the starting bytecode.
-        // The latter check prevents the task from "lapping" itself if it goes over the bytecode limit
-        //  and restarts.
-        while (Clock.getBytecodeNum() < endingBytecode && Clock.getBytecodeNum() > startingBytecode) {
-            // If there is a lot in here, the task could exceed its bytecode allotment.
-            // This is more or less fine, because if the tasks exceed the bytecode limit, the bot will
-            //  resume on its next turn, complete the small amount that remains of the tasks, and then
-            //  continue its turn. In fact, slight overrun might actually be BETTER, because no bytecode
-            //  will have been wasted. All that's required is that the bot has enough bytecode between
-            //  the last turn's overrun and the turn limit, so it can do its turn, and then trigger tasks again.
-            // To minimize overrun, these methods might be helpful:
-            // 1. Keep an int that tracks how long each loop is taking, and don't enter another loop
-            //      unless there is enough bytecode remaining to complete the loop and stay under
-            //      the bytecode allotment.
-            // 2. Make checks inside the main loop that can safely abort the task mid-loop, if the
-            //      bytecode allotment is in danger of running over.
-
+        // The BytecodeTracker tracks bytecode usage even across rounds.
+        while (!bct.isAllotmentExceeded()) {
             // Sample task activities. : )
             double four = 2. + 2.;
+
+            // Anywhere in the sampleTask, the task might exceed the bytecode allotment before it can
+            //  check it again at the top of the loop.
+            // If there is significant risk of this happening, the task should call the
+            // robot player's main execution method.
+            // When the execution method returns, the task will resume, and then exit at the top of the
+            //  loop because it doesn't receive any new bytecode allotments.
+            bct.yieldCheck();
+
+            double five = four + 1;
         }
+
+        bct.end();
     }
 
     private static int[] calculateBytecodeAllotments() {

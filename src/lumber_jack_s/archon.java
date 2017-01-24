@@ -8,6 +8,10 @@ public strictfp class archon extends RobotPlayer{
 
     static int GARDENER_BUILD_LIMIT;
 
+    public void mainMethod() throws GameActionException {
+
+    }
+
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
      * If this method returns, the robot dies!

@@ -5,6 +5,10 @@ import sjxbin.SjxYieldBytecode;
 public strictfp class lumberJack extends RobotPlayer{
     static RobotController rc;
 
+    public void mainMethod() throws GameActionException {
+
+    }
+
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
      * If this method returns, the robot dies!

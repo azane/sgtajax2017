@@ -5,6 +5,12 @@ package sjxbin;
 // Last updated: Tue Aug 30 09:58:33 EDT 2016.
 
 
+import battlecode.common.GameActionException;
+import battlecode.common.RobotController;
+import lumber_jack_s.RobotPlayer;
+
+import java.awt.*;
+
 /******************************************************************************
  *  Compilation:  javac Matrix.java
  *  Execution:    java Matrix
@@ -39,6 +45,9 @@ final public class Matrix {
     private Matrix(Matrix A) {
         this(A.data);
     }
+    public Matrix copy() {
+        return new Matrix(this);
+    }
 
     // create and return a random M-by-N matrix with values between 0 and 1
     public static Matrix random(int M, int N) {
@@ -57,9 +66,9 @@ final public class Matrix {
         return I;
     }
 
+    //region andystuff
     /**
-     * Stuff added by Andy.
-     * Divide and subtract are just variations of these in place operations.
+     * START stuff added by Andy.
      */
 
     public int numElements() {
@@ -149,9 +158,17 @@ final public class Matrix {
 
     public Matrix sigmoid() {
         Matrix A = new Matrix(M, N);
-        for (int i = 0; i < M; i++)
-            for (int j = 0; j < N; j++)
-                A.data[i][j] = SjxMath.sigmoid(data[i][j]);
+        double[][] adata = A.data;
+        double[] ai;
+        double[] thisi;
+
+        for (int i = 0; i < M; i++) {
+            ai = adata[i];
+            thisi = data[i];
+            for (int j = 0; j < N; j++) {
+                ai[j] = SjxMath.sigmoid(thisi[j]);
+            }
+        }
         return A;
     }
 
@@ -283,7 +300,78 @@ final public class Matrix {
 //        return C;
     }
 
-    // End Stuff added by Andy.
+    // These both return the channel after the last broadcast channel read.
+    // This is used so iterating functions can get the next free channel.
+    static double decimalMoveForIntBroadcast = 100000;
+    public int writeBroadcast(int startingChannel, double lowerBound, double higherBound, int bits) {
+        // TODO use lowerBound, higherBound and bits to compress data.
+
+        // Store to return the last channel read.
+        int i = 0;
+        try {
+            double[] flat = this.flatten();
+            for (i = 0; i < flat.length; i++) {
+                RobotPlayer.rc.broadcast(i+startingChannel,(int)(flat[i]*decimalMoveForIntBroadcast));
+            }
+        }
+        catch (GameActionException e){
+            System.out.println("Failed to write matrix to broadcast.");
+        }
+        return i+startingChannel+1;
+    }
+    public int readBroadcast(int startingChannel, double lowerBound, double higherBound, int bits) {
+        // TODO use lowerBound, higherBound and bits to decompress data.
+
+        // Store to return the channel after the last read.
+        int i = 0;
+        int j = 0;
+        try {
+            for (i = 0; i < M; i++) {
+                for (j = 0; j < N; j++) {
+                    data[i][j] = RobotPlayer.rc.readBroadcast(startingChannel+(i*N)+j)
+                            /decimalMoveForIntBroadcast;
+                }
+            }
+        }
+        catch (GameActionException e) {
+            System.out.println("Failed to read in matrix from broadcast.");
+        }
+        // Don't need to add j because i incremented for the last row.
+        return startingChannel+(i*N)+1;
+    }
+    public int writeBroadcastBytecodeCost(int bits) {
+        // Bytecode totalCost for one broadcast write * num elements.
+        return 10*numElements()*(bits/32);
+    }
+    public int readBroadcastBytecodeCost(int bits) {
+        // Bytecode totalCost for one broadcast read * num elements.
+        return 5*numElements()*(bits/32);
+    }
+    public int readWriteBroadcastBytecodeCost(int bits) {
+        // Bytecost for a read and write * num elements.
+        return 15*numElements()*(bits/32);
+    }
+
+    // Is A close to B?
+    public boolean eq(Matrix B, double maximumDifference) {
+
+        if (maximumDifference < 0) throw new RuntimeException("maximumDifference must be positive.");
+
+        Matrix A = this;
+        if (B.M != A.M || B.N != A.N) throw new RuntimeException("Illegal matrix dimensions.");
+
+        for (int i = 0; i < M; i++)
+            for (int j = 0; j < N; j++)
+                if (Math.abs(A.data[i][j]-B.data[i][j]) > maximumDifference) return false;
+        return true;
+    }
+
+    /**
+     * END stuff added by Andy.
+     */
+    //endregion andystuff
+
+
 
     // swap rows i and j
     private void swap(int i, int j) {
@@ -338,14 +426,36 @@ final public class Matrix {
 
     // return C = A * B
     public Matrix times(Matrix B) {
+
+        SjxBytecodeTracker bct = new SjxBytecodeTracker();
+        //bct.start();
+
         Matrix A = this;
         if (A.N != B.M)
             throw new RuntimeException("Illegal matrix dimensions.");
         Matrix C = new Matrix(A.M, B.N);
-        for (int i = 0; i < C.M; i++)
-            for (int j = 0; j < C.N; j++)
-                for (int k = 0; k < A.N; k++)
-                    C.data[i][j] += (A.data[i][k] * B.data[k][j]);
+
+        // Pre loop declarations.
+        double[][] cdata = C.data;
+        double[][] adata = A.data;
+        double[][] bdata = B.data;
+        double[] cai;
+        double[] aai;
+
+        int cm = C.M;
+        int cn = C.N;
+        int an = A.N;
+
+        for (int i = 0; i < cm; i++) {
+            cai = cdata[i];
+            aai = adata[i];
+            for (int j = 0; j < cn; j++) {
+                for (int k = 0; k < an; k++) {
+                    cai[j] += (aai[k] * bdata[k][j]);
+                }
+            }
+        }
+        //bct.end();
         return C;
     }
 

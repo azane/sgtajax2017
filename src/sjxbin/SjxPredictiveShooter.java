@@ -16,20 +16,20 @@ public class SjxPredictiveShooter {
     static int INPUT_POSITIONS = 4;
     static int OUTPUT_POSITIONS = 1;
     static int TRAIL_LENGTH = INPUT_POSITIONS + OUTPUT_POSITIONS + 1; // +1 to relativize the first input.
-    static int DATA_STORE_LENGTH = 1;
+    static int DATA_STORE_LENGTH = 5;
 
-    static final int startingChannel = 100;
+    static final int startingChannel = 102;
     static final int weightBits = 32;
     // The channel on which the flag 1/0 is stored indicating if the network has
     //  been initialized.
     // TODO make an integer a flag int for bools.
-    static int networkInitializedChannel = 99;
-    static int networkProcessingIDChannel = 98;
+    static int networkInitializedChannel = 101;
+    static int networkProcessingIDChannel = 100;
 
     int trainingIters = 0;
 
     HashMap<Integer, LinkedList<MapLocation>> botTrails = new HashMap<>();
-    int[] annShape = new int[] {INPUT_POSITIONS*2 +1, 6, OUTPUT_POSITIONS*2}; // +1 on input for bias.
+    int[] annShape = new int[] {INPUT_POSITIONS*2 +1, 6, 4, OUTPUT_POSITIONS*2}; // +1 on input for bias.
     Matrix inputs = new Matrix(DATA_STORE_LENGTH, annShape[0]);
     Matrix outputs = new Matrix(DATA_STORE_LENGTH, annShape[annShape.length-1]);
     int dataPointsStored = 0;
@@ -45,9 +45,10 @@ public class SjxPredictiveShooter {
         this.trackEnemies = trackEnemies;
     }
 
+    // Pre-store to avoid garbage collection.
+    private SjxBytecodeTracker bct = new SjxBytecodeTracker();
     public void collectDataAndTrainModel(int bytecodeAllotment) {
 
-        SjxBytecodeTracker bct = new SjxBytecodeTracker();
         bct.start(bytecodeAllotment);
 
         // TODO might want to take advantage of the bot looping nearby robots in its main turn
@@ -71,7 +72,8 @@ public class SjxPredictiveShooter {
 
             while (!bct.isAllotmentExceeded()) {
                 try {
-                    ann.trainBackprop(inputs, outputs, 1., false, 1, bct);
+                    //if (RobotPlayer.rc.getType() == RobotType.SCOUT)
+                    ann.trainBackprop(inputs, outputs, 1., true, 1, bct);
                 }
                 catch (Exception e) {
                     System.out.println("The backprop method crashed!");
@@ -89,18 +91,43 @@ public class SjxPredictiveShooter {
                 System.out.println("Could not broadcast indication that the predictive shooter " +
                         "network has valid weights in it!");
             }
-
-            bct.end();
         }
+
+        // Debug
+        if (trainingIters > 200) {
+            bct.poll();
+        }
+
+        bct.end();
     }
 
+    private boolean stationaryOrNonSequential(double[] trail, boolean hasBias,
+                                              boolean checkStationarity) throws Exception{
+
+        if (ann.bias > 1.)
+            throw new Exception("The network bias must be within normalization range.");
+
+        boolean allZero = checkStationarity; // If true, normal. If false, we assume there is a non zero.
+        for (int j = 0; j < trail.length; j++) {
+            if (allZero && 0 != trail[j]
+                    && hasBias && j != trail.length-1) { // Don't check last one, that's the bias.
+                allZero = false;
+            }
+            // If the change in position is too large.
+            if (Math.abs(trail[j]) > 1.) {
+                return true;
+            }
+        }
+        return allZero;
+    }
+
+    // Pre declaration to keep memory location.
+    double[] singleInput = new double[annShape[0]];
+    double[] singleOutput = new double[annShape[annShape.length-1]];
     public void gleanDataFromTrail(int id, LinkedList<MapLocation> trail) {
 
         if (trail.size() != TRAIL_LENGTH)
             throw new RuntimeException("'trail' is not the correct size for the network.");
-
-        double[] singleInput = new double[annShape[0]]; // +1 for bias.
-        double[] singleOutput = new double[annShape[annShape.length-1]];
 
         // Fill the data vectors with the trail data.
 
@@ -152,29 +179,34 @@ public class SjxPredictiveShooter {
         // If the datasets are full, replace a random value in the array with the new data point.
         int index;
         if (dataPointsStored >= DATA_STORE_LENGTH) {
-            index = (int)Math.round(Math.random()* DATA_STORE_LENGTH);
+            index = (int)Math.floor(Math.random()* DATA_STORE_LENGTH);
         }
         // If not full, fill in order.
         else {
             index = dataPointsStored;
         }
 
-        Matrix minput = new Matrix(singleInput);
-        Matrix moutput = new Matrix(singleOutput);
-
-        // Check to make sure this isn't a bot just holding still, as that screws us up a bit.
-        // If total of the input is the bias (1.) it's baddy.
-        if (minput.sumOver('M').sumOver('N').getData(0,0) != ann.bias) {
-            inputs.assignRowInPlace(minput, index);
-            outputs.assignRowInPlace(moutput, index);
-            dataPointsStored++;
+        try {
+            // Check to make sure the bot isn't stationary and that we don't have a coverage gap in the trail.
+            // If total of the input is the bias (1.) it's baddy.
+            if (stationaryOrNonSequential(singleInput, true, true)
+                    || stationaryOrNonSequential(singleOutput, false, false)) {
+                System.out.println("The targets trail has a coverage gap or is stationary.");
+                trail.clear();
+            } else {
+                inputs.assignRowInPlace(singleInput, index);
+                outputs.assignRowInPlace(singleOutput, index);
+                dataPointsStored++;
+            }
         }
-        else
-            trail.clear();
+        catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
 
     }
 
-    public void trackUnit(RobotInfo robot) {
+    private void trackUnit(RobotInfo robot) {
 
         if ((robot.getTeam() == RobotPlayer.rc.getTeam()) && !trackAllies)
             return;
@@ -199,6 +231,7 @@ public class SjxPredictiveShooter {
             }
         }
     }
+
     public void trackUnits(RobotInfo[] robots, SjxBytecodeTracker bct) {
 
         for (RobotInfo robot : robots) {
@@ -206,9 +239,17 @@ public class SjxPredictiveShooter {
             bct.yieldCheck();
         }
     }
-    public RobotInfo[] trackUnits(SjxBytecodeTracker bct) {
+
+    // Only track robots once per round.
+    private int lastRound;
+    private int thisRound = RobotPlayer.rc.getRoundNum();
+    public void trackUnits(SjxBytecodeTracker bct) {
+
+        lastRound = thisRound;
+        thisRound = RobotPlayer.rc.getRoundNum();
+        if (lastRound == thisRound) return;
+
         RobotInfo[] rinfo = RobotPlayer.rc.senseNearbyRobots();
         trackUnits(rinfo, bct);
-        return rinfo;
     }
 }

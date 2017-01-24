@@ -22,7 +22,13 @@ public strictfp class gardener extends RobotPlayer{
 
     public void mainMethod() throws GameActionException {
 
+
         int roundNum = rc.getRoundNum();
+
+        // Debug
+        if (roundNum > 100)
+            System.out.println("mainMethod being yielded to!");
+
         if (roundNum < rc.getRoundLimit()*.10){
             //Run early game code
             phaseOneGardener(rc);

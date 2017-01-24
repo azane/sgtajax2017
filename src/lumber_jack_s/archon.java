@@ -9,6 +9,12 @@ public strictfp class archon extends RobotPlayer{
     static int GARDENER_BUILD_LIMIT;
 
     public void mainMethod() throws GameActionException {
+
+        // Debug
+        if (rc.getRoundNum() > 100)
+            System.out.println("mainMethod being yielded to!");
+
+
         // Donate bullets on last round
         donateBullets();
 

@@ -9,6 +9,8 @@ import lumber_jack_s.RobotPlayer;
  */
 public class SjxBytecodeTracker {
 
+    static int numTrackers;
+
     private int turnLimit;
 
     private int start;
@@ -39,6 +41,8 @@ public class SjxBytecodeTracker {
         totalCost = -1;
         costSinceLastPoll = -1;
         bytecodeAllotment = 0;
+
+        numTrackers++;
     }
 
     public void start(int bytecodeAllotment) {
@@ -72,6 +76,7 @@ public class SjxBytecodeTracker {
     public int end() {
         int cost = poll();
         running = false;
+        numTrackers--;
         return cost;
     }
 

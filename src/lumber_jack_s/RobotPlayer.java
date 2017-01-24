@@ -50,7 +50,7 @@ public strictfp class RobotPlayer {
             RobotPlayer.predictiveShooter = new SjxPredictiveShooter(true, true);
         }
         catch (Exception e) {
-            return;
+            System.out.println("Predictive shooter failed to initialize!");
         }
 
 

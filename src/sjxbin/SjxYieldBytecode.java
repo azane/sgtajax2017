@@ -1,6 +1,7 @@
 package sjxbin;
 
 import battlecode.common.Clock;
+import battlecode.common.RobotType;
 import lumber_jack_s.RobotPlayer;
 
 /**

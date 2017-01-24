@@ -26,7 +26,7 @@ public strictfp class SjxANN {
     private int numWeights = 0;
     private final static double WEIGHT_STANDARD_DEVIATION = 1.;
     private final boolean addBias;
-    public final double bias = 1.;
+    public final double bias = 1.; // No touchy.
 
     public String trace = "";
 

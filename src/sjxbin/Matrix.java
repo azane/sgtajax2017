@@ -237,12 +237,24 @@ final public class Matrix {
     }
 
     public Matrix assignRowInPlace(Matrix B, int index) throws RuntimeException {
-        if (B.M != 1) {
+        if (B.M != 1 || B.N != N) {
             throw new RuntimeException("assignRow requires a single row vector matrix of 1xN.");
         }
 
         for (int j = 0; j < N; j++)
             data[index][j] = B.data[0][j];
+
+        return this;
+    }
+
+    public Matrix assignRowInPlace(double[] B, int index) throws RuntimeException {
+
+        if (N != B.length)
+            throw new RuntimeException("assignRowInPlace requires a single row array" +
+                    " with length equal to N.");
+
+        for (int j = 0; j < B.length; j++)
+            data[index][j] = B[j];
 
         return this;
     }
@@ -427,7 +439,7 @@ final public class Matrix {
     // return C = A * B
     public Matrix times(Matrix B) {
 
-        SjxBytecodeTracker bct = new SjxBytecodeTracker();
+        //SjxBytecodeTracker bct = new SjxBytecodeTracker();
         //bct.start();
 
         Matrix A = this;

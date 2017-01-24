@@ -64,11 +64,13 @@ public strictfp class scout extends RobotPlayer{
         MapLocation myLocation = rc.getLocation();
         Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
 
-        // Move towards the enemy archon or perpendicular to it
-        if (foundEnemyArchon){
-            tryMove(towardsEnemyArchon.rotateLeftDegrees(90));
-        } else {
-            tryMove(towardsEnemyArchon);
+        if (towardsEnemyArchon != null) {
+            // Move towards the enemy archon or perpendicular to it
+            if (foundEnemyArchon){
+                tryMove(towardsEnemyArchon.rotateLeftDegrees(90));
+            } else {
+                tryMove(towardsEnemyArchon);
+            }
         }
         //--- End Move Code
         //-----------------

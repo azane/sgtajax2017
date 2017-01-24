@@ -4,12 +4,14 @@ import sjxbin.SjxYieldBytecode;
 
 
 public strictfp class scout extends RobotPlayer{
-    static RobotController rc;
+    static RobotController rc = RobotPlayer.rc;
 
     int startRound = rc.getRoundNum();
 
     MapLocation enemyArchonLocation = pickInitialArchon();
     boolean foundEnemyArchon = false;
+
+
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.

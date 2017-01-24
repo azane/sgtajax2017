@@ -3,7 +3,7 @@ import battlecode.common.*;
 import sjxbin.SjxYieldBytecode;
 
 public strictfp class archon extends RobotPlayer{
-    static RobotController rc;
+    static RobotController rc = RobotPlayer.rc;
     
 
     static int GARDENER_BUILD_LIMIT;

@@ -3,7 +3,7 @@ import battlecode.common.*;
 import sjxbin.SjxYieldBytecode;
 
 public strictfp class gardener extends RobotPlayer{
-    static RobotController rc;
+    static RobotController rc = RobotPlayer.rc;
     
     static int GARDENER_HOME_RANGE = 40;
     
@@ -444,6 +444,10 @@ public strictfp class gardener extends RobotPlayer{
     	buildDir = randomDirection();
     	float degreeOffset = 20;
     	int checksPerSide = 3;
+
+    	if (!rc.isBuildReady()) {
+    	    return false;
+        }
     	
     	
     	for (RobotType robotType : robotTypeList) {
@@ -461,13 +465,15 @@ public strictfp class gardener extends RobotPlayer{
 
 		        while(currentCheck<=checksPerSide) {
 		            // Try the offset of the left side
-		            if(rc.canMove(buildDir.rotateLeftDegrees(degreeOffset*currentCheck))) {
+		            if(rc.canMove(buildDir.rotateLeftDegrees(degreeOffset*currentCheck))
+                            && rc.canBuildRobot(robotType, buildDir)) {
 		            	rc.buildRobot(robotType, buildDir);
 		            	addOneRobotBuilt(robotType);
 		                return true;
 		            }
 		            // Try the offset on the right side
-		            if(rc.canMove(buildDir.rotateRightDegrees(degreeOffset*currentCheck))) {
+		            if(rc.canMove(buildDir.rotateRightDegrees(degreeOffset*currentCheck))
+                            && rc.canBuildRobot(robotType, buildDir)) {
 		            	rc.buildRobot(robotType, buildDir);
 	            		addOneRobotBuilt(robotType);
 		                return true;

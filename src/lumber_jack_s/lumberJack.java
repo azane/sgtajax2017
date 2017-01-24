@@ -3,8 +3,10 @@ import battlecode.common.*;
 import battlecode.world.TeamInfo;
 import sjxbin.SjxYieldBytecode;
 
+import java.awt.*;
+
 public strictfp class lumberJack extends RobotPlayer{
-    static RobotController rc;
+    static RobotController rc = RobotPlayer.rc;
 
     public void mainMethod() throws GameActionException {
         // Get my location

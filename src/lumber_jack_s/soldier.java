@@ -5,7 +5,7 @@ import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
 
 public strictfp class soldier extends RobotPlayer{
-    static RobotController rc;
+    static RobotController rc = RobotPlayer.rc;
 
     public void mainMethod() throws GameActionException {
         // Donate bullets on last round

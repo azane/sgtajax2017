@@ -27,7 +27,12 @@ public strictfp class RobotPlayer {
     // If children override their constructor, they must either do this or call
     //  this base constructor, as per usual.
     public RobotPlayer() {
-        rp = this;
+        try {
+            rp = this;
+        }
+        catch (Exception e) {
+            System.out.println("Crashed on setting the instance to the static field.");
+        }
     }
 
     /**
@@ -71,7 +76,12 @@ public strictfp class RobotPlayer {
                 tank.runTank(rc);
                 break;
             case SCOUT:
-                new scout();
+                try {
+                    new scout();
+                }
+                catch (Exception e) {
+                    System.out.println("Scout DEAD!");
+                }
             	scout.runScout(rc);
                 break;
             case LUMBERJACK:
@@ -114,6 +124,10 @@ public strictfp class RobotPlayer {
      * @throws GameActionException
      */
     static boolean tryMove(Direction dir, float degreeOffset, int checksPerSide) throws GameActionException {
+
+        if (rc.hasMoved()) {
+            return false;
+        }
 
         // First, try intended direction
         if (rc.canMove(dir)) {

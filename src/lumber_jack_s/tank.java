@@ -3,7 +3,7 @@ import battlecode.common.*;
 import sjxbin.SjxYieldBytecode;
 
 public strictfp class tank extends RobotPlayer{
-    static RobotController rc;
+    static RobotController rc = RobotPlayer.rc;
 
     public void mainMethod() throws GameActionException {
         // Donate bullets on last round

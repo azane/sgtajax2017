@@ -10,7 +10,6 @@ public strictfp class gardener extends RobotPlayer{
     static float MAX_PRODUCTION = GameConstants.BULLET_TREE_BULLET_PRODUCTION_RATE * GameConstants.BULLET_TREE_MAX_HEALTH;
     
     static MapLocation startLoc;
-    static Team myTeam;
     static int treeRoundLimit;
     static RobotType[] robotTypeList = {RobotType.SCOUT, RobotType.LUMBERJACK, RobotType.SOLDIER, RobotType.TANK};
 
@@ -23,6 +22,27 @@ public strictfp class gardener extends RobotPlayer{
 
     public void mainMethod() throws GameActionException {
 
+        int roundNum = rc.getRoundNum();
+        if (roundNum < rc.getRoundLimit()*.10){
+            //Run early game code
+            phaseOneGardener(rc);
+        }
+        else if (roundNum < rc.getRoundLimit()*.25){
+            //Run mid-early game code
+            phaseTwoGardener(rc);
+        }
+        else if (roundNum < rc.getRoundLimit()*.50){
+            //Run mid-game code
+            phaseThreeGardener(rc);
+        }
+        else if (roundNum < rc.getRoundLimit()*.75){
+            //Run mid-late game code
+            phaseFourGardener(rc);
+        }
+        else {
+            //Run late-game code
+            phaseFiveGardener(rc);
+        }
     }
 
     /**
@@ -39,42 +59,22 @@ public strictfp class gardener extends RobotPlayer{
         
         System.out.println("I'm a gardener!");
         startLoc = rc.getLocation();
-        myTeam = rc.getTeam();
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
-            	int roundNum = rc.getRoundNum();
-            	if (roundNum < rc.getRoundLimit()*.10){
-            		//Run early game code
-            		phaseOneGardener(rc);
-            	} 
-            	else if (roundNum < rc.getRoundLimit()*.25){
-            		//Run mid-early game code
-            		phaseTwoGardener(rc);
-            	} 
-            	else if (roundNum < rc.getRoundLimit()*.50){
-            		//Run mid-game code
-            		phaseThreeGardener(rc);
-            	} 
-            	else if (roundNum < rc.getRoundLimit()*.75){
-            		//Run mid-late game code
-            		phaseFourGardener(rc);
-            	} 
-            	else {
-            		//Run late-game code
-            		phaseFiveGardener(rc);
-            	}
 
-                // .yield() yields the remainder of this bot's turn to army level tasks.
-                SjxYieldBytecode.yield();
+                RobotPlayer.rp.mainMethod();
 
             } catch (Exception e) {
                 System.out.println("Gardener Exception");
                 e.printStackTrace();
             }
+
+            // .yield() yields the remainder of this bot's turn to army level tasks.
+            SjxYieldBytecode.yield();
         }
     }
 

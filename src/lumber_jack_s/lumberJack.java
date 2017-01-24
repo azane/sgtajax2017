@@ -1,12 +1,90 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import battlecode.world.TeamInfo;
 import sjxbin.SjxYieldBytecode;
 
 public strictfp class lumberJack extends RobotPlayer{
     static RobotController rc;
 
     public void mainMethod() throws GameActionException {
+        // Get my location
+        MapLocation myLoc = rc.getLocation();
 
+        // Donate bullets on last round
+        donateBullets();
+
+        // Search for enemy archons
+        searchForArchon();
+
+        System.out.println(rc.readBroadcast(21));
+
+
+        //--- Lumberjack Chop/Shake Code
+        //------------------------
+        // Sense trees, get robots, get bullets, chop down
+        TreeInfo[] trees = rc.senseNearbyTrees(GameConstants.LUMBERJACK_STRIKE_RADIUS);
+        if (trees.length > 0 ) {
+            for (TreeInfo tree : trees) {
+                if (tree.getTeam() != myTeam){
+                    MapLocation treeLocation = tree.getLocation();
+                    // Chop down robot trees
+                    if (tree.getContainedRobot() != null && !rc.hasAttacked()) {
+                        rc.chop(treeLocation);
+                        break;
+                        // Shake bullet trees
+                    } else if (tree.getContainedBullets() > 0 && rc.canShake(treeLocation)) {
+                        rc.shake(treeLocation);
+                        break;
+                        // Chop down non friendly trees
+                    } else if (!rc.hasAttacked()) {
+                        rc.chop(treeLocation);
+                        break;
+                    }
+                }
+            }
+        }
+        if (!rc.hasAttacked()) {
+            RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.LUMBERJACK_STRIKE_RADIUS, enemy);
+            if(robots.length > 0) {
+                rc.strike();
+            }
+        }
+        //--- End Chop/Shake Code
+        //------------------------
+
+
+        //--- Lumberjack Move Code
+        //------------------------
+        if (!rc.hasAttacked()){
+            trees = rc.senseNearbyTrees();
+
+            Direction dirToMove = randomDirection();
+            // Store closest archon's location. Trees and enemies will take priority over the archon.
+            MapLocation closestArchon = findClosestArchon();
+            if (closestArchon != null) {
+                dirToMove = myLoc.directionTo(closestArchon);
+            }
+
+            // Move toward first tree, if sensed
+            if (trees.length > 0) {
+                for (TreeInfo tree : trees){
+                    if (tree.getTeam() != myTeam){
+                        MapLocation treeLocation = tree.getLocation();
+                        dirToMove = myLoc.directionTo(treeLocation);
+                        break;
+                    }
+                }
+            } else {
+                RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
+                if (robots.length > 0) {
+                    MapLocation robotLocation = robots[0].getLocation();
+                    dirToMove = myLoc.directionTo(robotLocation);
+                }
+            }
+            tryMove(dirToMove);
+        }
+        //--- End Move Code
+        //------------------------
     }
 
     /**
@@ -21,8 +99,6 @@ public strictfp class lumberJack extends RobotPlayer{
         lumberJack.rc = rc;
         
         System.out.println("I'm a lumberjack!");
-        Team myTeam = rc.getTeam();
-        Team enemy = rc.getTeam().opponent();
         boolean archonNotFound = true;
         int enemyArchonX = rc.readBroadcast(10);
         int enemyArchonY = rc.readBroadcast(11);
@@ -34,94 +110,16 @@ public strictfp class lumberJack extends RobotPlayer{
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
-                // Get my location
-                MapLocation myLoc = rc.getLocation();
 
-                // Donate bullets on last round
-                donateBullets();
-
-                // Search for enemy archons
-                searchForArchon();
-
-                System.out.println(rc.readBroadcast(21));
-
-
-                //--- Lumberjack Chop/Shake Code
-                //------------------------
-                // Sense trees, get robots, get bullets, chop down
-                TreeInfo[] trees = rc.senseNearbyTrees(GameConstants.LUMBERJACK_STRIKE_RADIUS);
-                if (trees.length > 0 ) {
-                    for (TreeInfo tree : trees) {
-                    	if (tree.getTeam() != myTeam){
-	                        MapLocation treeLocation = tree.getLocation();
-	                        // Chop down robot trees
-	                        if (tree.getContainedRobot() != null && !rc.hasAttacked()) {
-	                            rc.chop(treeLocation);
-	                            break;
-	                            // Shake bullet trees
-	                        } else if (tree.getContainedBullets() > 0 && rc.canShake(treeLocation)) {
-	                            rc.shake(treeLocation);
-	                            break;
-	                            // Chop down non friendly trees
-	                        } else if (!rc.hasAttacked()) {
-	                            rc.chop(treeLocation);
-	                            break;
-	                        }
-                        }
-                    }
-                }
-                if (!rc.hasAttacked()) {
-                    RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.LUMBERJACK_STRIKE_RADIUS, enemy);
-                    if(robots.length > 0) {
-                        rc.strike();
-                    }
-                }
-                //--- End Chop/Shake Code
-                //------------------------
-
-                
-                //--- Lumberjack Move Code
-                //------------------------
-                if (!rc.hasAttacked()){
-	                trees = rc.senseNearbyTrees();
-
-                    Direction dirToMove = randomDirection();
-	                // Store closest archon's location. Trees and enemies will take priority over the archon.
-                    MapLocation closestArchon = findClosestArchon();
-                    if (closestArchon != null) {
-                        dirToMove = myLoc.directionTo(closestArchon);
-                    }
-	                
-	                // Move toward first tree, if sensed
-	                if (trees.length > 0) {
-	                    for (TreeInfo tree : trees){
-	                    	if (tree.getTeam() != myTeam){
-	                    		MapLocation treeLocation = tree.getLocation();
-	                            dirToMove = myLoc.directionTo(treeLocation);
-	                            break;
-	                    		}
-	                    	}
-                    } else {
-                        RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
-                        if (robots.length > 0) {
-                            MapLocation robotLocation = robots[0].getLocation();
-                            dirToMove = myLoc.directionTo(robotLocation);
-                        }
-                    }
-	                tryMove(dirToMove);
-                }
-                //--- End Move Code
-                //------------------------
-
-
-                // .yield() yields the remainder of this bot's turn to army level tasks.
-                SjxYieldBytecode.yield();
-
+                RobotPlayer.rp.mainMethod();
 
             } catch (Exception e) {
                 System.out.println("Lumberjack Exception");
                 e.printStackTrace();
             }
+
+            // .yield() yields the remainder of this bot's turn to army level tasks.
+            SjxYieldBytecode.yield();
         }
     }
 }

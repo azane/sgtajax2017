@@ -20,7 +20,12 @@ public strictfp class RobotPlayer {
     static int SCOUTS_BUILT_OFFSET = 3;
     static int TANKS_BUILT_OFFSET = 4;
 
+    protected Team myTeam = rc.getTeam();
+    protected Team enemy = myTeam.opponent();
+
     // The instance constructor sets the static method to the single instance.
+    // If children override their constructor, they must either do this or call
+    //  this base constructor, as per usual.
     public RobotPlayer() {
         rp = this;
     }
@@ -48,6 +53,9 @@ public strictfp class RobotPlayer {
         // You can add the missing ones or rewrite this into your own control structure.
         switch (rc.getType()) {
             case ARCHON:
+                // Note that the constructor for RobotPlayer sets RobotPlayer.rp.
+                //  As long as children call the base constructor, we be fine.
+                new archon();
                 archon.runArchon(rc);
                 break;
             case GARDENER:
@@ -55,15 +63,19 @@ public strictfp class RobotPlayer {
                 gardObject.runGardener(rc);
                 break;
             case SOLDIER:
+                new soldier();
                 soldier.runSoldier(rc);
                 break;
             case TANK:
+                new tank();
                 tank.runTank(rc);
                 break;
             case SCOUT:
+                new scout();
             	scout.runScout(rc);
                 break;
             case LUMBERJACK:
+                new lumberJack();
                 lumberJack.runLumberjack(rc);
                 break;
         }

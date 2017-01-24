@@ -6,7 +6,29 @@ public strictfp class tank extends RobotPlayer{
     static RobotController rc;
 
     public void mainMethod() throws GameActionException {
+        // Donate bullets on last round
+        donateBullets();
 
+        MapLocation myLocation = rc.getLocation();
+
+        // See if there are any nearby enemy robots
+        RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
+
+        // If there are some...
+        if (robots.length > 0) {
+            // And we have enough bullets, and haven't attacked yet this turn...
+            if (rc.canFireSingleShot()) {
+                // ...Then fire a bullet in the direction of the enemy.
+                rc.fireSingleShot(rc.getLocation().directionTo(robots[0].location));
+            }
+        }
+
+        // If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
+        Direction dirToMove = randomDirection();
+        if (!RobotPlayer.foundEnemyArchon()) {
+            dirToMove = RobotPlayer.huntEnemyArchon();
+        }
+        tryMove(dirToMove);
     }
 
     /**
@@ -29,37 +51,15 @@ public strictfp class tank extends RobotPlayer{
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
 
-                // Donate bullets on last round
-                donateBullets();
-
-                MapLocation myLocation = rc.getLocation();
-
-                // See if there are any nearby enemy robots
-                RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
-
-                // If there are some...
-                if (robots.length > 0) {
-                    // And we have enough bullets, and haven't attacked yet this turn...
-                    if (rc.canFireSingleShot()) {
-                        // ...Then fire a bullet in the direction of the enemy.
-                        rc.fireSingleShot(rc.getLocation().directionTo(robots[0].location));
-                    }
-                }
-
-                // If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
-            	Direction dirToMove = randomDirection();
-                if (!RobotPlayer.foundEnemyArchon()) {
-                	dirToMove = RobotPlayer.huntEnemyArchon();
-                }
-                tryMove(dirToMove);
-
-                // .yield() yields the remainder of this bot's turn to army level tasks.
-                SjxYieldBytecode.yield();
+                RobotPlayer.rp.mainMethod();
 
             } catch (Exception e) {
                 System.out.println("Soldier Exception");
                 e.printStackTrace();
             }
+
+            // .yield() yields the remainder of this bot's turn to army level tasks.
+            SjxYieldBytecode.yield();
         }
     }
 }

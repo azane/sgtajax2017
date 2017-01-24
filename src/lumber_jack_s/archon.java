@@ -9,7 +9,25 @@ public strictfp class archon extends RobotPlayer{
     static int GARDENER_BUILD_LIMIT;
 
     public void mainMethod() throws GameActionException {
+        // Donate bullets on last round
+        donateBullets();
 
+        // Generate a random direction
+        Direction dir = randomDirection();
+
+        // Randomly attempt to build a gardener in this direction
+        if (rc.canHireGardener(dir) && Math.random() < .50 && getNumberRobotsBuilt(RobotType.GARDENER) < GARDENER_BUILD_LIMIT) {
+            rc.hireGardener(dir);
+            gardener.addOneRobotBuilt(RobotType.GARDENER);
+        }
+
+        // Move randomly
+        tryMove(randomDirection());
+
+        // Broadcast archon's location for other robots on the team to know
+        MapLocation myLocation = rc.getLocation();
+        rc.broadcast(0,(int)myLocation.x);
+        rc.broadcast(1,(int)myLocation.y);
     }
 
     /**
@@ -45,33 +63,15 @@ public strictfp class archon extends RobotPlayer{
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
 
-                // Donate bullets on last round
-                donateBullets();
-
-                // Generate a random direction
-                Direction dir = randomDirection();
-
-                // Randomly attempt to build a gardener in this direction
-                if (rc.canHireGardener(dir) && Math.random() < .50 && getNumberRobotsBuilt(RobotType.GARDENER) < GARDENER_BUILD_LIMIT) {
-                    rc.hireGardener(dir);
-                    gardener.addOneRobotBuilt(RobotType.GARDENER);
-                }
-
-                // Move randomly
-                tryMove(randomDirection());
-
-                // Broadcast archon's location for other robots on the team to know
-                MapLocation myLocation = rc.getLocation();
-                rc.broadcast(0,(int)myLocation.x);
-                rc.broadcast(1,(int)myLocation.y);
-
-                // .yield() yields the remainder of this bot's turn to army level tasks.
-                SjxYieldBytecode.yield();
+                RobotPlayer.rp.mainMethod();
 
             } catch (Exception e) {
                 System.out.println("Archon Exception");
                 e.printStackTrace();
             }
+
+            // .yield() yields the remainder of this bot's turn to army level tasks.
+            SjxYieldBytecode.yield();
         }
     }
 }

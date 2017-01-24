@@ -49,6 +49,8 @@ public class SjxBytecodeTracker {
 
         costSinceLastPoll = 0;
 
+        this.bytecodeAllotment = bytecodeAllotment;
+
         start = Clock.getBytecodeNum();
     }
 
@@ -81,7 +83,7 @@ public class SjxBytecodeTracker {
         poll();
         try {
             // Check change in cost, assuming same allotment.
-            if (costSinceLastPoll > bytecodeAllotment)
+            if (totalCost > bytecodeAllotment)// && costSinceLastPoll > bytecodeAllotment)
                 RobotPlayer.rp.mainMethod();
         }
         catch(GameActionException e) {

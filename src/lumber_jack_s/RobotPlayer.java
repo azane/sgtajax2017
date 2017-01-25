@@ -47,7 +47,7 @@ public strictfp class RobotPlayer {
         RobotPlayer.rc = rc;
 
         try {
-            RobotPlayer.predictiveShooter = new SjxPredictiveShooter(true, true);
+            RobotPlayer.predictiveShooter = new SjxPredictiveShooter(false, true);
         }
         catch (Exception e) {
             System.out.println("Predictive shooter failed to initialize!");
@@ -203,7 +203,7 @@ public strictfp class RobotPlayer {
         }
     }
 
-    public static Direction huntEnemyArchon() throws GameActionException{
+/*    public static Direction huntEnemyArchon() throws GameActionException{
         MapLocation myLoc = rc.getLocation();
 
 //    	// First, look if there is an archon in range --- this is useless
@@ -248,12 +248,10 @@ public strictfp class RobotPlayer {
         	}
         }
         return false;
-    }
+    }*/
 
 
     public static MapLocation searchForArchon() throws GameActionException{
-//        int bytesUsed = Clock.getBytecodeNum();
-//        System.out.println(bytesUsed);
 
     	// If an archon is in range, broadcast archon's ID and coordinates
     	RobotInfo[] nearbyEnemies = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
@@ -277,12 +275,17 @@ public strictfp class RobotPlayer {
                     rc.broadcast(archonSearch + 2, (int)enemyArchonLocation.y);
                     return enemyArchonLocation;
                 }
-
         	}
     	}
+    	if (rc.readBroadcast(ARCHON_SEARCH_OFFSET + 1) == 0 && rc.readBroadcast(ARCHON_SEARCH_OFFSET + 4) == 0 && rc.readBroadcast(ARCHON_SEARCH_OFFSET + 7) == 0){
+    	    for (RobotInfo enemyRobot : nearbyEnemies) {
+    	        MapLocation enemyLocation = enemyRobot.getLocation();
+    	        rc.broadcast(ARCHON_SEARCH_OFFSET + 1, (int)enemyLocation.x);
+                rc.broadcast(ARCHON_SEARCH_OFFSET + 2, (int)enemyLocation.y);
+                return enemyLocation;
+            }
+        }
         return null;
-//        int bytesUsedNew = Clock.getBytecodeNum();
-//        System.out.println(bytesUsedNew);
     }
     public static MapLocation findClosestArchon() throws GameActionException{
 

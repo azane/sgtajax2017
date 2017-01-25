@@ -24,11 +24,11 @@ public strictfp class tank extends RobotPlayer{
         }
 
         // If enemy archon is being broadcasted, go to that location -- 10 == x_value, 11 == y_value
-        Direction dirToMove = randomDirection();
-        if (!RobotPlayer.foundEnemyArchon()) {
-            dirToMove = RobotPlayer.huntEnemyArchon();
-        }
-        tryMove(dirToMove);
+//        Direction dirToMove = randomDirection();
+//        if (!RobotPlayer.foundEnemyArchon()) {
+//            dirToMove = RobotPlayer.huntEnemyArchon();
+//        }
+//        tryMove(dirToMove);
     }
 
     /**

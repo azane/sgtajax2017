@@ -24,7 +24,8 @@ public class SjxYieldBytecode {
                     break;
 
                 case(0):
-                    RobotPlayer.predictiveShooter.collectDataAndTrainModel(bytecodeAllotments[i]);
+                    //RobotPlayer.predictiveShooter.collectDataAndTrainModel(bytecodeAllotments[i]);
+                    Clock.yield();
                     break;
             }
         }

@@ -8,6 +8,7 @@ package sjxbin;
 import battlecode.common.GameActionException;
 import battlecode.common.RobotController;
 import lumber_jack_s.RobotPlayer;
+import java.util.Random;
 
 import java.awt.*;
 
@@ -297,19 +298,30 @@ final public class Matrix {
         return new Matrix(B);
     }
 
-    public Matrix dropoutMinus(Matrix B) {
-        throw new RuntimeException("This is not implemented yet.");
-        // TODO receive some parameters for a function that decides which indices to actually minus.
+
+    public Matrix dropoutMinus(Matrix B, Random random, double rate) {
+
+        if (rate < 0 || rate > 1)
+            throw new RuntimeException("Rate must be between 0 and 1");
+
+        // For this to be consistent, random should be seeded the same every time it's passed.
+
         //  This can be used for "dropout" where only a select set of parameters have their gradient
         //  applied.
-//        Matrix A = this;
-//        if (B.M != A.M || B.N != A.N)
-//            throw new RuntimeException("Illegal matrix dimensions.");
-//        Matrix C = new Matrix(M, N);
-//        for (int i = 0; i < M; i++)
-//            for (int j = 0; j < N; j++)
-//                C.data[i][j] = A.data[i][j] - B.data[i][j];
-//        return C;
+
+        Matrix A = this;
+        if (B.M != A.M || B.N != A.N)
+            throw new RuntimeException("Illegal matrix dimensions.");
+        Matrix C = new Matrix(M, N);
+        for (int i = 0; i < M; i++)
+            for (int j = 0; j < N; j++) {
+                double r = random.nextDouble();
+                if (r < rate)
+                    C.data[i][j] = A.data[i][j] - B.data[i][j];
+                else
+                    C.data[i][j] = A.data[i][j];
+            }
+        return C;
     }
 
     // These both return the channel after the last broadcast channel read.

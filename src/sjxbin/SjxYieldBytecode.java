@@ -24,6 +24,7 @@ public class SjxYieldBytecode {
                     break;
 
                 case(0):
+                    // TODO renable.
                     //RobotPlayer.predictiveShooter.collectDataAndTrainModel(bytecodeAllotments[i]);
                     Clock.yield();
                     break;

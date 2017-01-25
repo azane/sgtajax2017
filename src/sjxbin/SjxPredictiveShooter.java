@@ -4,8 +4,10 @@ import battlecode.common.*;
 
 import lumber_jack_s.RobotPlayer;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.ArrayList;
 
 
 /**
@@ -13,23 +15,23 @@ import java.util.LinkedList;
  */
 public class SjxPredictiveShooter {
 
-    static int INPUT_POSITIONS = 4;
+    static int INPUT_POSITIONS = 3;
     static int OUTPUT_POSITIONS = 1;
     static int TRAIL_LENGTH = INPUT_POSITIONS + OUTPUT_POSITIONS + 1; // +1 to relativize the first input.
-    static int DATA_STORE_LENGTH = 5;
+    static int DATA_STORE_LENGTH = 2;
 
-    static final int startingChannel = 102;
-    static final int weightBits = 32;
+    private static final int startingChannel = 102;
+    private static final int weightBits = 32;
     // The channel on which the flag 1/0 is stored indicating if the network has
     //  been initialized.
     // TODO make an integer a flag int for bools.
-    static int networkInitializedChannel = 101;
-    static int networkProcessingIDChannel = 100;
+    private static final int networkInitializedChannel = 101;
+    private static final int networkProcessingIDChannel = 100;
 
     int trainingIters = 0;
 
     HashMap<Integer, LinkedList<MapLocation>> botTrails = new HashMap<>();
-    int[] annShape = new int[] {INPUT_POSITIONS*2 +1, 6, 4, OUTPUT_POSITIONS*2}; // +1 on input for bias.
+    int[] annShape = new int[] {INPUT_POSITIONS*2 +1, 4, OUTPUT_POSITIONS*2}; // +1 on input for bias.
     Matrix inputs = new Matrix(DATA_STORE_LENGTH, annShape[0]);
     Matrix outputs = new Matrix(DATA_STORE_LENGTH, annShape[annShape.length-1]);
     int dataPointsStored = 0;
@@ -57,14 +59,34 @@ public class SjxPredictiveShooter {
 
         bct.yieldCheck();
 
+        try {
+            // If the network has valid weights, retrieve them before starting training.
+            if (RobotPlayer.rc.readBroadcast(networkInitializedChannel) == 1)
+                ann.readBroadcastWeights(startingChannel, weightBits);
+        }
+        catch (GameActionException e) {
+            System.out.println("Couldn't read the network weighthhttssss!");
+        }
+
         // Only train if we've got a full set of data.
         if (dataPointsStored >= DATA_STORE_LENGTH) {
 
             try{
-                // TODO use 'networkProcessingIDChannel' to denote that this bot is processing the network.
-                // TODO check to make sure that either this bot is processing, or that no bot is processing (-1);
-                if (RobotPlayer.rc.readBroadcast(networkInitializedChannel) == 1)
-                    ann.readBroadcastWeights(startingChannel, weightBits);
+
+                // TODO allow everyone to train, but instead of overwriting gradients, pull them down and add.
+
+                int botIDCurrentlyProcessing = RobotPlayer.rc.readBroadcast(networkProcessingIDChannel);
+                // If anyone else is training the model with their data, let them.
+                if (botIDCurrentlyProcessing != 0 && botIDCurrentlyProcessing != RobotPlayer.rc.getID()) {
+                    bct.end();
+                    return;
+                }
+                // If it's in the clear, or you are processing, claim the channel and begin processing.
+                else {
+                    // Because this turn will finish synchrounously before another bot starts,
+                    //  we don't need to Clock.yield() here or anything to guarantee posting.
+                    RobotPlayer.rc.broadcast(networkProcessingIDChannel, RobotPlayer.rc.getID());
+                }
             }
             catch (GameActionException e) {
                 System.out.println("Could not determine if predictive shooter network was initialized!");
@@ -72,8 +94,7 @@ public class SjxPredictiveShooter {
 
             while (!bct.isAllotmentExceeded()) {
                 try {
-                    //if (RobotPlayer.rc.getType() == RobotType.SCOUT)
-                    ann.trainBackprop(inputs, outputs, 1., true, 1, bct);
+                    ann.trainBackprop(inputs, outputs, .1, true, 5, 0.3, bct);
                 }
                 catch (Exception e) {
                     System.out.println("The backprop method crashed!");
@@ -84,18 +105,31 @@ public class SjxPredictiveShooter {
             ann.broadcastWeights(startingChannel, weightBits);
 
             try {
+                // Broadcast that the network now has valid weights.
                 RobotPlayer.rc.broadcast(networkInitializedChannel, 1);
-                // TODO denote that this bot is finished processing the network by setting the id channel to -1;
+                // Broadcast a 0 to the id channel to indicate that you're done training
+                //  (clearing your bot id).
+                RobotPlayer.rc.broadcast(networkProcessingIDChannel, 0);
             }
             catch (GameActionException e) {
                 System.out.println("Could not broadcast indication that the predictive shooter " +
                         "network has valid weights in it!");
             }
+
+            // We have to yield here, or we step on ourselves by reading in same weights
+            //  we broadcasted last turn.
+            bct.yieldForBroadcast();
         }
 
         // Debug
-        if (trainingIters > 200) {
+        if ((RobotPlayer.rc.getRoundNum() > 500 && testPointsStored >= TEST_DATA_LENGTH)) {
             bct.poll();
+            try {
+                testNetwork();
+            }
+            catch (Exception e) {
+                bct.poll();
+            }
         }
 
         bct.end();
@@ -175,16 +209,22 @@ public class SjxPredictiveShooter {
         }
 
         // </Output Vector>
+    }
 
+    private int getStorageIndex(int pointsStored, int storeLength) {
         // If the datasets are full, replace a random value in the array with the new data point.
         int index;
-        if (dataPointsStored >= DATA_STORE_LENGTH) {
-            index = (int)Math.floor(Math.random()* DATA_STORE_LENGTH);
+        if (pointsStored >= storeLength) {
+            index = (int)Math.floor(Math.random()* storeLength);
         }
         // If not full, fill in order.
         else {
-            index = dataPointsStored;
+            index = pointsStored;
         }
+        return index;
+    }
+
+    private void storeData() {
 
         try {
             // Check to make sure the bot isn't stationary and that we don't have a coverage gap in the trail.
@@ -194,16 +234,25 @@ public class SjxPredictiveShooter {
                 System.out.println("The targets trail has a coverage gap or is stationary.");
                 trail.clear();
             } else {
-                inputs.assignRowInPlace(singleInput, index);
-                outputs.assignRowInPlace(singleOutput, index);
-                dataPointsStored++;
+
+                // Put 1/3d of the points into the test set.
+                if (Math.random() > .3) {
+                    int index = getStorageIndex(dataPointsStored, DATA_STORE_LENGTH);
+                    inputs.assignRowInPlace(singleInput, index);
+                    outputs.assignRowInPlace(singleOutput, index);
+                    dataPointsStored++;
+                }
+                else {
+                    int index = getStorageIndex(testPointsStored, TEST_DATA_LENGTH);
+                    testInput.assignRowInPlace(singleInput, index);
+                    testOutput.assignRowInPlace(singleOutput, index);
+                    testPointsStored++;
+                }
             }
         }
         catch (Exception e) {
             System.out.println(e.getMessage());
         }
-
-
     }
 
     private void trackUnit(RobotInfo robot) {
@@ -228,6 +277,7 @@ public class SjxPredictiveShooter {
             if (Math.random() < 1./TRAIL_LENGTH) {
 
                 gleanDataFromTrail(id, trail);
+                storeData();
             }
         }
     }
@@ -251,5 +301,35 @@ public class SjxPredictiveShooter {
 
         RobotInfo[] rinfo = RobotPlayer.rc.senseNearbyRobots();
         trackUnits(rinfo, bct);
+    }
+
+    private RobotInfo target;
+    private ArrayList<MapLocation> trail;
+    public MapLocation predictNext(RobotInfo _target) {
+
+        // temp.
+        ann.isInsane();
+
+        // TODO
+
+        return null;
+    }
+
+    private final int TEST_DATA_LENGTH = 10;
+    private int testPointsStored = 0;
+    private Matrix testInput = new Matrix(TEST_DATA_LENGTH, inputs.numColumns());
+    private Matrix testOutput = new Matrix(TEST_DATA_LENGTH, outputs.numColumns());
+    private void testNetwork() throws Exception {
+        if (SjxANN.isInsane())
+            throw new Exception("The network is insane!");
+        if (testPointsStored < TEST_DATA_LENGTH)
+            throw new Exception("Not enough test points stored.");
+
+        Matrix actualOutput = ann.runForOutput(testInput);
+
+        String actual = SjxMath.csvFrom2dArray(actualOutput.getData());
+        String test = SjxMath.csvFrom2dArray(testOutput.getData());
+
+        return;
     }
 }

@@ -1,5 +1,7 @@
 package sjxbin;
 import battlecode.common.*;
+
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -7,11 +9,20 @@ import java.util.Random;
  */
 public strictfp class SjxMath {
 
+    public static String csvFrom2dArray(double[][] array) {
+        String csv = "";
+        for (double[] row : array) {
+            csv += SjxANN.trimEnds(Arrays.toString(row)) + '\n';
+        }
+        return csv;
+    }
+
+    // With max slope at origin, y bound in (-1,1)
     public static double sigmoid(double x) {
-        return 1./(1. + Math.exp(-x));
+        return 2./(1. + Math.exp(-x)) -1.;
     }
     public static double sigmoidDerivative(double x) {
-        return Math.exp(x)/Math.pow(Math.exp(x) + 1., 2);
+        return 2.*(Math.exp(x)/Math.pow(Math.exp(x) + 1., 2));
     }
 
     public static double dotProduct(double[] x1, double[] x2) {

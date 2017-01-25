@@ -1,8 +1,8 @@
 package sjxbin;
 
 import battlecode.common.Clock;
+import lumber_jack_s.RobotPlayer;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
@@ -28,12 +28,38 @@ public strictfp class SjxANN {
     private final boolean addBias;
     public final double bias = 1.; // No touchy.
 
+    // This seed should be passed to the randomizer before every gradient application.
+    private final static int numDropoutGroups = 3;
+    private static long[] dropoutSeedList = null;
+    private int dropoutGroup;
+    private final Random dropoutRandomizer = new Random();
+
     public String trace = "";
 
     // shape should have ints denoting the number of neurons on each layer.
     public SjxANN(int[] shape, boolean addBias) {
         this.shape = shape.clone();
         this.addBias = addBias;
+
+        // Create the dropout groups if necessary.
+        // The goal here is to have a group of robots have the same dropout seed, and differ with
+        //  other groups.
+        // But the VM nature means all the random numbers are the same for all bots, so we have to
+        //  seed with something unique. it's id.
+        // In short, we want all bots to share the same set of dropout group seeds,
+        //  but be in different dropout groups.
+        if (dropoutSeedList == null) {
+            Random seedRandomizer = new Random();
+            seedRandomizer.setSeed((long)1822301982); // the same for everybody.
+            dropoutSeedList = new long[numDropoutGroups];
+            for (int i = 0; i < dropoutSeedList.length; i++) {
+                dropoutSeedList[i] = seedRandomizer.nextLong();
+            }
+            Random groupRandomizer = new Random();
+            groupRandomizer.setSeed(RobotPlayer.rc.getID()); // Guaranteed different for each bot.
+            dropoutGroup = groupRandomizer.nextInt(dropoutSeedList.length);
+        }
+
 
         if (this.addBias)
             // Add a bias input that will always = the same nonzero thing.
@@ -43,9 +69,15 @@ public strictfp class SjxANN {
         for (int i = 0; i < (this.shape.length - 1); i++) {
             // Increment the number of weights.
             numWeights += this.shape[i]*this.shape[i+1];
-            // Init to random between -1 and 1.
+
+            // TODO this means the weights won't follow the standard deviation above. mostly.
+            //  but they have to fit a sigmoid, and they'll probably stay within it.
+            // Initialize to +/- (sqrt(1/d)) where d is the number of weights going into the
+            //  target neuron, i.e. the size of the source layer.
+
+            double weightDeviation = (1./Math.sqrt(this.shape[i]));
             weights.add(Matrix.random(this.shape[i], this.shape[i+1])
-                    .timesInPlace(WEIGHT_STANDARD_DEVIATION).plusInPlace(-WEIGHT_STANDARD_DEVIATION/2));
+                    .timesInPlace(weightDeviation).plusInPlace(-weightDeviation/2));
         }
     }
 
@@ -195,12 +227,12 @@ public strictfp class SjxANN {
     }
 
     public double trainBackprop(Matrix inputs, Matrix outputs, double scale, boolean assess, int iters) {
-        return trainBackprop(inputs, outputs, scale, assess, iters, null);
+        return trainBackprop(inputs, outputs, scale, assess, iters, 0.4, null);
     }
 
     // Returns the average gradient of the weights. This will be 0 if assess is false.
     public double trainBackprop(Matrix inputs, Matrix outputs, double scale, boolean assess, int iters,
-                                SjxBytecodeTracker bct)
+                                double dropoutRate, SjxBytecodeTracker bct)
             throws RuntimeException {
 
         if (bct != null)
@@ -246,15 +278,7 @@ public strictfp class SjxANN {
                         // ~~~ [S, Nout] = [Nin, Nout]
                         .batchExpandWithVectorAndSumRowByRow(activationErrorGradient)
                         .timesInPlace(scale);
-                weights.set(i, weights.get(i).minus(weightGradient)); // [Nin, Nout]
                 if (bct != null) bct.yieldCheck();
-
-                if (assess) {
-                    averageGradient += weightGradient.sumOver('M').sumOver('N')
-                            .getData()[0][0] / numWeights;
-                    traceWeights();
-                    if (bct != null) bct.yieldCheck();
-                }
 
                 // Transpose the weights, backprop the error gradient, elementwise multiply by the sigmoid
                 //  derivative of the preactivation of the layer below.
@@ -264,6 +288,20 @@ public strictfp class SjxANN {
                         .timesByRowVectors(activationErrorGradient) // * [S, Nout] = [S, Nin]
                         .hadamardProduct(layerPreActivations.get(i).sigmoidDerivative()); // [S, Nin] h [S, Nin]
                 if (bct != null) bct.yieldCheck();
+
+
+                // Seed dropout randomizer. This will result in the same dropout for this network each time.
+                dropoutRandomizer.setSeed(dropoutSeedList[dropoutGroup]);
+                Matrix weightsWithGradientApplied = weights.get(i).dropoutMinus(weightGradient, dropoutRandomizer, dropoutRate);
+                weights.set(i, weightsWithGradientApplied); // [Nin, Nout]
+                if (bct != null) bct.yieldCheck();
+
+                if (assess) {
+                    averageGradient += weightGradient.sumOver('M').sumOver('N')
+                            .getData()[0][0] / numWeights;
+                    traceWeights();
+                    if (bct != null) bct.yieldCheck();
+                }
             }
         }
         return averageGradient;
@@ -347,13 +385,13 @@ public strictfp class SjxANN {
         }
     }
 
-    private static String trimEnds(String s) {
+    public static String trimEnds(String s) {
         return s.substring(1, s.length()-1);
     }
 
     public static void TestSjxANN() {
 
-        testSanity();
+        isInsane();
 
         String networkOutput = "";
         String acceptanceRate = "";
@@ -483,7 +521,7 @@ public strictfp class SjxANN {
         return true;
     }
 
-    public static boolean testSanity() {
+    public static boolean isInsane() {
 
         // This tests the function of the network
 
@@ -511,6 +549,7 @@ public strictfp class SjxANN {
         };
 
         Matrix actualOut = ann.runBatchOutOnly(new Matrix(inputs));
+        Matrix fastOut = ann.runForOutput(new Matrix(inputs));
 
         boolean insane = false;
         for (int i = 0; i < inputs.length; i++) {
@@ -519,6 +558,9 @@ public strictfp class SjxANN {
                 SjxMath.sigmoid(inputs[i][0] * layer1[0][1]) * layer2[1][0]
             );
             if (out != actualOut.getData()[i][0]) {
+                insane = true;
+            }
+            if (out != fastOut.getData()[i][0]) {
                 insane = true;
             }
         }

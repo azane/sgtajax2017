@@ -1,13 +1,53 @@
 package sjxbin;
 
 import battlecode.common.*;
-
-import java.awt.*;
+import scala.Tuple3;
 
 /**
  * Created by azane on 1/18/17.
  */
 public strictfp class SjxMicrogradients {
+
+    public static double[] macroGradient(MapLocation myLocation, RobotType myType) {
+        // TODO read target broadcast channels
+        // TODO convert coords to location
+        // TODO calculate the attraction/repulsion of each macro target given type
+    }
+
+    public static boolean willShootFriends(
+            Tuple3<double[], double[], double[]> friendlyMilitaryDonut, MapLocation myLocation) {
+        // TODO
+        return false;
+    }
+
+    // Returns <inside, outside, outside-inside>
+    public static Tuple3<double[], double[], double[]> friendlyMilitaryDonutGradient(
+            MapLocation myLocation, RobotInfo robot) {
+
+        // TODO
+        return null;
+    }
+
+    public static double[] friendlyRaiderGradient(MapLocation myLocation, RobotInfo robot) {
+
+        if (robot.type != RobotType.SCOUT && robot.type != RobotType.LUMBERJACK) {
+            return new double[2];
+        }
+
+        // TODO
+        return null;
+    }
+
+    public static double[] enemyKitingDonutGradient(MapLocation myLocation, RobotInfo robot) {
+        // TODO
+        return null;
+    }
+
+    public static double[] fleeEnemyGradient(MapLocation myLocation, RobotInfo robot) {
+        // TODO overload that takes a RobotInfo to excessive looping.
+        // TODO
+        return null;
+    }
 
     // Overload for treeGradient, defaulting to avoiding tree, i.e. negating the derivative.
     public static double[] treeGradient(MapLocation myLocation, RobotController rc) {
@@ -39,7 +79,6 @@ public strictfp class SjxMicrogradients {
                             false
             );
             numTrees++;
-
         }
 
         // Normalize gradient over all nearby trees.

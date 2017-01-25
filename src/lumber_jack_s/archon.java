@@ -17,14 +17,31 @@ public strictfp class archon extends RobotPlayer{
 
         // Donate bullets on last round
         donateBullets();
+        
+        // Count the number of robots nearby.  Make sure there's at least one gardener
+        RobotInfo[] nearbyBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadius/3);
+        boolean buildThisTurn = false;
+        int gardenerCount = 0;
+	    for (RobotInfo bot : nearbyBots){
+	        if (bot.type == RobotType.GARDENER){
+	        	gardenerCount++;
+	        }
+        }
+        if (nearbyBots.length > 3 && gardenerCount < 1){
+        	buildThisTurn = true;
+        } else if (nearbyBots.length < 5 && gardenerCount < 2){
+        	buildThisTurn = true;
+        }
 
         // Generate a random direction
-        Direction dir = randomDirection();
+	    Direction dir = randomDirection();
 
-        // Randomly attempt to build a gardener in this direction
-        if (rc.canHireGardener(dir) && Math.random() < .50 && getNumberRobotsBuilt(RobotType.GARDENER) < GARDENER_BUILD_LIMIT) {
-            rc.hireGardener(dir);
-            gardener.addOneRobotBuilt(RobotType.GARDENER);
+	    if (buildThisTurn){
+	        // Randomly attempt to build a gardener in this direction
+	        if (rc.canHireGardener(dir) && Math.random() < .50 && getNumberRobotsBuilt(RobotType.GARDENER) < GARDENER_BUILD_LIMIT) {
+	            rc.hireGardener(dir);
+	            addOneRobotBuilt(RobotType.GARDENER);
+	        }
         }
 
         // Move randomly

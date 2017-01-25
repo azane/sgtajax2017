@@ -94,7 +94,7 @@ public class SjxPredictiveShooter {
 
             while (!bct.isAllotmentExceeded()) {
                 try {
-                    ann.trainBackprop(inputs, outputs, .1, true, 5, 0.3, bct);
+                    ann.trainBackprop(inputs, outputs, 1., true, 5, 0.3, bct);
                 }
                 catch (Exception e) {
                     System.out.println("The backprop method crashed!");

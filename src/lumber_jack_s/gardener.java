@@ -125,10 +125,15 @@ void fortGardenerLoop() throws GameActionException{
 		//Build a soldier
     	System.out.println("Phase Five");
     	buildSoldier();
-	} else {
+	} else if (myTrees.length < 4){
 		//Build a soldier
     	System.out.println("Phase Six");
+    	buildTree();
+	} else {
+		//Build a soldier
+    	System.out.println("Phase Seven");
     	buildRobotInOrder();
+		
 	}
 }
 
@@ -157,7 +162,7 @@ void unitGardenerLoop() throws GameActionException{
     	System.out.println("Phase Three");
     	buildScout();
 	} 
-	else if (myTrees.length < treeBuildDirs.length){
+	else if (myTrees.length < 3){
 		//Build the rest of the trees
     	System.out.println("Phase Four");
     	buildTree();
@@ -181,21 +186,6 @@ void trapGardenerLoop() throws GameActionException{
 	if (!foundSpot){
 		System.out.println("Phase One");
 		findEmptySpot();
-	}
-	else if (myTrees.length < 1){
-		//Build the first tree
-    	System.out.println("Phase Two");
-    	buildTree();
-	} 
-	else if (myTrees.length == 1 && !builtScout){
-		//Build the initial scout
-    	System.out.println("Phase Three");
-    	buildScout();
-	} 
-	else if (myTrees.length < treeBuildDirs.length){
-		//Build the rest of the trees
-    	System.out.println("Phase Four");
-    	buildTree();
 	} else {
 		//Start building random units
     	System.out.println("Phase Five");

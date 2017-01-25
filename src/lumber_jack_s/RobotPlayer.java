@@ -47,7 +47,7 @@ public strictfp class RobotPlayer {
         RobotPlayer.rc = rc;
 
         try {
-            RobotPlayer.predictiveShooter = new SjxPredictiveShooter(true, true);
+            RobotPlayer.predictiveShooter = new SjxPredictiveShooter(false, true);
         }
         catch (Exception e) {
             System.out.println("Predictive shooter failed to initialize!");

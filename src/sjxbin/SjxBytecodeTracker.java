@@ -85,15 +85,32 @@ public class SjxBytecodeTracker {
         //      abilities could refresh.
         // ?? If we go off of cost since last poll, we risk running over their turn if they need more time.
         //      Also, the longer the task, the more time it gets.
+
         poll();
+
+        // Check change in cost, assuming same allotment.
+        if (totalCost > bytecodeAllotment)// && costSinceLastPoll > bytecodeAllotment)
+            yieldToMain();
+    }
+
+    public void yieldToMain() {
+
         try {
-            // Check change in cost, assuming same allotment.
-            if (totalCost > bytecodeAllotment)// && costSinceLastPoll > bytecodeAllotment)
-                RobotPlayer.rp.mainMethod();
+            RobotPlayer.rp.mainMethod();
         }
-        catch(GameActionException e) {
-            System.out.println("Task could not return to RobotPlayer's main method.");
+        catch (GameActionException e) {
+            System.out.println("RobotPlayer's main method failed to complete.");
         }
+    }
+
+    public void yieldForBroadcast() {
+        try {
+            RobotPlayer.rp.mainMethod();
+        }
+        catch (GameActionException e) {
+            System.out.println("RobotPlayer's main method failed to complete.");
+        }
+        Clock.yield();
     }
 
     public boolean isAllotmentExceeded() {

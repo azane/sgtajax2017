@@ -23,6 +23,20 @@ public strictfp class scout extends RobotPlayer{
 
         //--- Scout Search Code
         //---------------------
+
+        TreeInfo[] trees = rc.senseNearbyTrees();
+        for (TreeInfo tree : trees) {
+            if (tree.getContainedBullets() != 0) {
+                if (rc.canShake(tree.getLocation())){
+                    rc.shake(tree.getLocation());
+                    break;
+                } else {
+                    tryMove(rc.getLocation().directionTo(tree.getLocation()));
+                }
+            }
+        }
+
+
         if (rc.getRoundNum() - startRound > 15) {
             if (searchForArchon() != null) {
                 enemyArchonLocation = searchForArchon();
@@ -31,40 +45,33 @@ public strictfp class scout extends RobotPlayer{
                 foundEnemyArchon = false;
             }
         }
-
-/*                RobotInfo[] nearbyEnemyRobots = rc.senseNearbyRobots(-1, enemy);
-                for (RobotInfo enemyRobot : nearbyEnemyRobots){
-                	if (enemyRobot.getType() == RobotType.ARCHON){
-                		foundEnemyArchon = true;
-                		enemyArchonLocation = enemyRobot.getLocation();
-                		rc.broadcast(10, (int)enemyArchonLocation.x);
-                		rc.broadcast(11, (int)enemyArchonLocation.y);
-                	}
-                }*/
         //--- End Search Code
         //-------------------
 
-/*                //--- Scout Attack Code   // Attack is expensive and not effective
-                //---------------------
 
-                // If enemy archon is found, fire at it, don't fire too early or scout will run into his own bullets
-                MapLocation myLocation = rc.getLocation();
-                Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
-
-                if (foundEnemyArchon && rc.canFireSingleShot()) {
-                    rc.fireSingleShot(towardsEnemyArchon);
+        //--- Scout Attack Code   // Move toward gardener before trying to shoot them
+        //---------------------
+        MapLocation myLocation = rc.getLocation();
+        RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
+        if (robots.length > 0) {
+            for (RobotInfo robot : robots) {
+                if (robot.getType() == RobotType.GARDENER && rc.canFireSingleShot()) {
+                    Direction towardGardener = myLocation.directionTo(robot.getLocation());
+                    tryMove(towardGardener);
+                    rc.fireSingleShot(towardGardener);
+                    break;
                 }
-                //--- End Attack Code
-                //-------------------
-*/
+            }
+        }
+        //--- End Attack Code
+        //-------------------
 
 
         //--- Scout Move Code
         //-------------------
-        MapLocation myLocation = rc.getLocation();
-        Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
-
-        if (towardsEnemyArchon != null) {
+//                MapLocation myLocation = rc.getLocation();
+        if (rc.hasAttacked() == false) {
+            Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
             // Move towards the enemy archon or perpendicular to it
             if (foundEnemyArchon){
                 tryMove(towardsEnemyArchon.rotateLeftDegrees(90));

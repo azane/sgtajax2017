@@ -196,10 +196,10 @@ public strictfp class RobotPlayer {
         // This needs spread to all robots eventually
         int total_rounds = rc.getRoundLimit();
         int current_round = rc.getRoundNum();
+        double bulletsNeededToWin = 1000*(7.5+(12.5*current_round/3000));
 
-        if (((total_rounds - current_round) < 2) || (rc.getTeamBullets() >= 10000)){
-            float team_bullets = rc.getTeamBullets();
-                rc.donate(team_bullets);
+        if (((total_rounds - current_round) < 2) || (rc.getTeamBullets() >= bulletsNeededToWin)){
+            rc.donate(rc.getTeamBullets());
         }
     }
 

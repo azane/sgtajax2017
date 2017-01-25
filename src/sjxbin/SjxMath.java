@@ -45,9 +45,24 @@ public strictfp class SjxMath {
             sign *= -1.;
         }
 
-        for (int i = 0; i < x1.length; ++i) {
+        for (int i = 0; i < x1.length; i++) {
             sumVector[i] = x1[i] + x2[i]*sign;
         }
+
+        return sumVector;
+    }
+
+    public static double[][] elementwiseSum(double[][] x1, double[][] x2, boolean negate) {
+        double[][] sumVector = new double[x1.length][x1[0].length];
+
+        double sign = 1.;
+        if (negate) {
+            sign *= -1.;
+        }
+
+        for (int i = 0; i < x1.length; i++)
+            for (int j = 0; j < x1[0].length; j++)
+                sumVector[i][j] = x1[i][j] + x2[i][j]*sign;
 
         return sumVector;
     }
@@ -61,6 +76,16 @@ public strictfp class SjxMath {
         }
 
         return totalDif;
+    }
+
+    public static double vectorMagnitude(double[] x1) {
+        double mag = 0;
+
+        for (int i = 0; i < x1.length; ++i) {
+            mag += Math.pow(x1[i], 2.);
+        }
+
+        return Math.sqrt(mag);
     }
 
     /**

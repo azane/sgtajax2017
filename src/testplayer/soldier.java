@@ -130,7 +130,7 @@ public strictfp class soldier extends RobotPlayer{
                 }
 
                 // Get tree gradient.
-                double[] treeGradient = SjxMicrogradients.treeGradient(myLocation, rc);
+                double[] treeGradient = SjxMicrogradients.instance.avoidTreesGradient(myLocation);
 
                 // Move in the direction of the gradient.
 

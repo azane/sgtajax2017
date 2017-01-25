@@ -36,10 +36,13 @@ public void mainMethod() throws GameActionException {
     switch(PERSONALITY){
         case 1:
         	fortGardenerLoop();
+        	break;
         case 2:
         	unitGardenerLoop();
+        	break;
         case 3:
         	trapGardenerLoop();
+        	break;
     }
 }
 /**
@@ -63,12 +66,15 @@ void runGardener(RobotController rc) throws GameActionException {
         case 1:
         	System.out.println("I'm a fort Gardener");
         	fortGardenerPrep();
+        	break;
         case 2:
         	System.out.println("I'm a unit Gardener");
         	unitGardenerPrep();
+        	break;
         case 3:
         	System.out.println("I'm a trap Gardener");
         	trapGardenerPrep();
+        	break;
     }
 
     // The code you want your robot to perform every round should be in this loop
@@ -84,8 +90,13 @@ void runGardener(RobotController rc) throws GameActionException {
             e.printStackTrace();
         }
 
-        // .yield() yields the remainder of this bot's turn to army level tasks.
-        SjxYieldBytecode.yield();
+        try {
+			// .yield() yields the remainder of this bot's turn to army level tasks.
+			SjxYieldBytecode.yield();
+		}
+		catch (Exception e) {
+        	System.out.println(e.getMessage());
+		}
     }
 }
 

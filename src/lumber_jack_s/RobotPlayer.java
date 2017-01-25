@@ -1,6 +1,7 @@
 package lumber_jack_s;
 import battlecode.common.*;
 import sjxbin.SjxANN;
+import sjxbin.SjxMicrogradients;
 import sjxbin.SjxPredictiveShooter;
 
 public strictfp class RobotPlayer {
@@ -52,6 +53,9 @@ public strictfp class RobotPlayer {
         catch (Exception e) {
             System.out.println("Predictive shooter failed to initialize!");
         }
+
+        // Instantiate for the singleton.
+        new SjxMicrogradients();
 
 
 		// Here, we've separated the controls into a different method for each RobotType.
@@ -125,7 +129,7 @@ public strictfp class RobotPlayer {
      */
     static boolean tryMove(Direction dir, float degreeOffset, int checksPerSide) throws GameActionException {
 
-        if (rc.hasMoved()) {
+        if (rc.hasMoved() || dir == null) {
             return false;
         }
 

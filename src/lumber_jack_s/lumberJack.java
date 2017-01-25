@@ -1,6 +1,7 @@
 package lumber_jack_s;
 import battlecode.common.*;
 import battlecode.world.TeamInfo;
+import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
 
 import java.awt.*;
@@ -20,31 +21,63 @@ public strictfp class lumberJack extends RobotPlayer{
 
         System.out.println(rc.readBroadcast(21));
 
+        MapLocation myLocation = rc.getLocation();
+
+        double[] gradient;
+
+        gradient = SjxMicrogradients.instance.getMyGradient(myLocation, rc.senseNearbyRobots());
+
+        // Add scaled gradient to myLocation coordinates.
+        MapLocation gradientDestination = new MapLocation(
+                myLocation.x + (float)gradient[0],
+                myLocation.y + (float)gradient[1]
+        );
+
+        Direction d = myLocation.directionTo(gradientDestination);
+
+        MapLocation closestTree = SjxMicrogradients.instance.getTreeLocation();
+        if (closestTree != null) {
+//            double dist = closestTree.distanceTo(myLocation);
+//            boolean canDo = (dist <= GameConstants.LUMBERJACK_STRIKE_RADIUS);
+//            if (canDo)
+            if (rc.canShake(closestTree) && rc.senseTreeAtLocation(closestTree).getContainedBullets() > 0.)
+                rc.shake(closestTree);
+            else if (rc.canChop(closestTree) && !rc.hasAttacked()
+                    && rc.senseTreeAtLocation(closestTree).getTeam() != myTeam)
+                rc.chop(closestTree);
+        }
+        // Move toward the new vector.
+        if (d != null)
+            tryMove(d);
+
+
+
+
 
         //--- Lumberjack Chop/Shake Code
         //------------------------
         // Sense trees, get robots, get bullets, chop down
-        TreeInfo[] trees = rc.senseNearbyTrees(GameConstants.LUMBERJACK_STRIKE_RADIUS);
-        if (trees.length > 0 ) {
-            for (TreeInfo tree : trees) {
-                if (tree.getTeam() != myTeam){
-                    MapLocation treeLocation = tree.getLocation();
-                    // Chop down robot trees
-                    if (tree.getContainedRobot() != null && !rc.hasAttacked()) {
-                        rc.chop(treeLocation);
-                        break;
-                        // Shake bullet trees
-                    } else if (tree.getContainedBullets() > 0 && rc.canShake(treeLocation)) {
-                        rc.shake(treeLocation);
-                        break;
-                        // Chop down non friendly trees
-                    } else if (!rc.hasAttacked()) {
-                        rc.chop(treeLocation);
-                        break;
-                    }
-                }
-            }
-        }
+//        TreeInfo[] trees = rc.senseNearbyTrees(GameConstants.LUMBERJACK_STRIKE_RADIUS);
+//        if (trees.length > 0 ) {
+//            for (TreeInfo tree : trees) {
+//                if (tree.getTeam() != myTeam){
+//                    MapLocation treeLocation = tree.getLocation();
+//                    // Chop down robot trees
+//                    if (tree.getContainedRobot() != null && !rc.hasAttacked()) {
+//                        rc.chop(treeLocation);
+//                        break;
+//                        // Shake bullet trees
+//                    } else if (tree.getContainedBullets() > 0 && rc.canShake(treeLocation)) {
+//                        rc.shake(treeLocation);
+//                        break;
+//                        // Chop down non friendly trees
+//                    } else if (!rc.hasAttacked()) {
+//                        rc.chop(treeLocation);
+//                        break;
+//                    }
+//                }
+//            }
+//        }
         if (!rc.hasAttacked()) {
             RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.LUMBERJACK_STRIKE_RADIUS, enemy);
             if(robots.length > 0) {
@@ -57,34 +90,34 @@ public strictfp class lumberJack extends RobotPlayer{
 
         //--- Lumberjack Move Code
         //------------------------
-        if (!rc.hasAttacked()){
-            trees = rc.senseNearbyTrees();
-
-            Direction dirToMove = randomDirection();
-            // Store closest archon's location. Trees and enemies will take priority over the archon.
-            MapLocation closestArchon = findClosestArchon();
-            if (closestArchon != null) {
-                dirToMove = myLoc.directionTo(closestArchon);
-            }
-
-            // Move toward first tree, if sensed
-            if (trees.length > 0) {
-                for (TreeInfo tree : trees){
-                    if (tree.getTeam() != myTeam){
-                        MapLocation treeLocation = tree.getLocation();
-                        dirToMove = myLoc.directionTo(treeLocation);
-                        break;
-                    }
-                }
-            } else {
-                RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
-                if (robots.length > 0) {
-                    MapLocation robotLocation = robots[0].getLocation();
-                    dirToMove = myLoc.directionTo(robotLocation);
-                }
-            }
-            tryMove(dirToMove);
-        }
+//        if (!rc.hasAttacked()){
+//            trees = rc.senseNearbyTrees();
+//
+//            Direction dirToMove = randomDirection();
+//            // Store closest archon's location. Trees and enemies will take priority over the archon.
+//            MapLocation closestArchon = findClosestArchon();
+//            if (closestArchon != null) {
+//                dirToMove = myLoc.directionTo(closestArchon);
+//            }
+//
+//            // Move toward first tree, if sensed
+//            if (trees.length > 0) {
+//                for (TreeInfo tree : trees){
+//                    if (tree.getTeam() != myTeam){
+//                        MapLocation treeLocation = tree.getLocation();
+//                        dirToMove = myLoc.directionTo(treeLocation);
+//                        break;
+//                    }
+//                }
+//            } else {
+//                RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
+//                if (robots.length > 0) {
+//                    MapLocation robotLocation = robots[0].getLocation();
+//                    dirToMove = myLoc.directionTo(robotLocation);
+//                }
+//            }
+//            tryMove(dirToMove);
+//        }
         //--- End Move Code
         //------------------------
     }

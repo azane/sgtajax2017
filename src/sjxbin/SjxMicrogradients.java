@@ -12,6 +12,7 @@ public strictfp class SjxMicrogradients {
         // TODO read target broadcast channels
         // TODO convert coords to location
         // TODO calculate the attraction/repulsion of each macro target given type
+        return null;
     }
 
     public static boolean willShootFriends(

@@ -47,7 +47,7 @@ public strictfp class archon extends RobotPlayer{
                 Direction dir = randomDirection();
 
                 // Randomly attempt to build a gardener in this direction
-                if (rc.canHireGardener(dir) && Math.random() < .50 && getNumberRobotsBuilt(RobotType.GARDENER) < GARDENER_BUILD_LIMIT) {
+                if (rc.canHireGardener(dir) && Math.random() < .10 && getNumberRobotsBuilt(RobotType.GARDENER) < GARDENER_BUILD_LIMIT) {
                     rc.hireGardener(dir);
                     gardener.addOneRobotBuilt(RobotType.GARDENER);
                 }

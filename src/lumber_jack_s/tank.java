@@ -1,5 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
 
 public strictfp class tank extends RobotPlayer{
@@ -11,27 +12,30 @@ public strictfp class tank extends RobotPlayer{
 
         MapLocation myLocation = rc.getLocation();
 
-        // See if there are any nearby enemy robots
-        RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
+        // Sense all nearby robots.
+        //RobotInfo[] robots = rc.senseNearbyRobots();
 
-        // If there are some...
-        if (robots.length > 0) {
-            // And we have enough bullets, and haven't attacked yet this turn...
-            if (rc.canFireSingleShot()) {
-                // ...Then fire a bullet in the direction of the enemy.
-                rc.fireSingleShot(rc.getLocation().directionTo(robots[0].location));
-            }
-        }
+        double[] gradient = new double[2];
 
-        // Go toward enemy archon
-        MapLocation enemyArchon = findClosestArchon();
-        if (enemyArchon == null){
-            Direction dirToMove = randomDirection();
-            tryMove(dirToMove);
-        } else {
-            Direction dirToMove = myLocation.directionTo(enemyArchon);
-            tryMove(dirToMove);
-        }
+        // Store the closest enemy for updating.
+        //RobotInfo closestEnemy = null;
+
+        gradient = SjxMicrogradients.instance.getMyGradient(myLocation, rc.senseNearbyRobots());
+
+        // Add scaled gradient to myLocation coordinates.
+        MapLocation gradientDestination = new MapLocation(
+                myLocation.x + (float)gradient[0],
+                myLocation.y + (float)gradient[1]
+        );
+
+        Direction d = myLocation.directionTo(gradientDestination);
+        // Move toward the new vector.
+        if (d != null)
+            tryMove(d);
+
+        RobotInfo targetBot = SjxMicrogradients.instance.getShotLocation();
+
+        shootEmUp(myLocation, targetBot);
     }
 
     /**

@@ -11,6 +11,7 @@ import java.util.HashMap;
  */
 public strictfp class SjxMicrogradients {
 
+    //region inits
     // singleton
     public static SjxMicrogradients instance;
     public SjxMicrogradients() {
@@ -53,7 +54,9 @@ public strictfp class SjxMicrogradients {
                 return RobotGroup.NOGROUP;
         }
     }
+    //endregion
 
+    //region parameters
     private final double senseRToStdev = 1.;
     private final double range = myType.sensorRadius*senseRToStdev;
 
@@ -91,9 +94,10 @@ public strictfp class SjxMicrogradients {
 
         }
     }
+    //endregion
 
+    //region targeting
     private RobotInfo target = null;
-    // TODO use predictive aiming on said target.
     public RobotInfo getShotLocation() {
         if (target == null)
             return null;
@@ -104,7 +108,6 @@ public strictfp class SjxMicrogradients {
             return temp;
         }
     }
-    // TODO make this more advanced.
     private void updateTarget(MapLocation myLocation, RobotInfo robot) {
         // Pick the closest
             if (!willShootFriends(myLocation, robot.location))
@@ -133,7 +136,9 @@ public strictfp class SjxMicrogradients {
                         < closestTree.location.distanceSquaredTo(myLocation))
             closestTree = tree;
     }
+    //endregion
 
+    //region gradientprocessing
     private Matrix mavg = new Matrix(7, 2);
     private int mavgIndex = 0;
     private void insertGradient(double[] gradient) {
@@ -352,7 +357,9 @@ public strictfp class SjxMicrogradients {
         System.out.println("My total gradient is " + Arrays.toString(gradient));
         return gradient;
     }
+    //endregion
 
+    //region friendlyfire
     private double[] lastFriendlyGradient = new double[2];
     private double[] lastEnemyGradient = new double[2];
     private boolean willShootFriends(MapLocation myLocation, MapLocation targetLocation) {
@@ -399,8 +406,9 @@ public strictfp class SjxMicrogradients {
         else
             updateLastEnemyGradient(gradient);
     }
+    //endregion
 
-
+    //region gradientmethods
     public double[] friendlyDonutGradient(
             MapLocation myLocation, RobotInfo robot) {
 
@@ -582,4 +590,5 @@ public strictfp class SjxMicrogradients {
     // TODO cast a "shadow" behind nearby trees with the same covariance as the bullet.
     // TODO the shadow should be multiplied by the bullet gaussians.
     // TODO don't normalize bullets the more the deader.
+    //endregion
 }

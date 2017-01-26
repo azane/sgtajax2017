@@ -3,7 +3,6 @@ package sjxbin;
 import battlecode.common.*;
 import lumber_jack_s.RobotPlayer;
 
-import java.awt.*;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -66,7 +65,7 @@ public strictfp class SjxMicrogradients {
     // The scale at which you pursue normal duties related to the enemy military.
     private double enemyMilitaryDutyScale = 7.;
     // The scale at which you respond to danger related to enemy military.
-    private double enemyMilitaryDangerScale = 5.;
+    private double enemyMilitaryDangerScale = 6.;
     private double enemyEconomicAttractionScale = 6.;
     private double treeScale = 3.;
 
@@ -80,10 +79,10 @@ public strictfp class SjxMicrogradients {
         switch (myType) {
             case TANK:
             case SOLDIER:
-                treeScale = 0.5;
+                treeScale = 0.0;
                 break;
             case LUMBERJACK:
-                treeScale = 5.;
+                treeScale = 1.4;
                 friendlyRaiderRepulsionScale = 5.;
                 enemyMilitaryDutyScale = 8.;
                 break;
@@ -133,6 +132,22 @@ public strictfp class SjxMicrogradients {
                 tree.location.distanceSquaredTo(myLocation)
                         < closestTree.location.distanceSquaredTo(myLocation))
             closestTree = tree;
+    }
+
+    private Matrix mavg = new Matrix(7, 2);
+    private int mavgIndex = 0;
+    private void insertGradient(double[] gradient) {
+        Matrix m = new Matrix(gradient);
+        mavg.assignRowInPlace(m, mavgIndex);
+
+        mavgIndex++;
+        if (mavgIndex >= mavg.numRows())
+            mavgIndex = 0;
+    }
+    private double[] retrieveMavgGradient() {
+        Matrix m = mavg.sumOver('M');
+
+        return m.timesInPlace(1./mavg.numRows()).getData()[0];
     }
 
     public double[] getMyGradient(MapLocation myLocation, RobotInfo robot) {
@@ -261,7 +276,23 @@ public strictfp class SjxMicrogradients {
             System.out.println("Why you NaN?");
 
         // Add the macro level gradients.
-        return SjxMath.elementwiseSum(gradient, macroGradient(myLocation), false);
+        gradient = SjxMath.elementwiseSum(gradient, macroGradient(myLocation), false);
+
+        // Mavg it if haven't moved.
+        if (!me.hasMoved())
+            insertGradient(gradient);
+
+//        if (myType == RobotType.SOLDIER) {
+//            double[] mavggrad = retrieveMavgGradient();
+//            if (mavggrad[0] < 0.07 || mavggrad[1] < 0.07)
+//                if (treeScale > 0.05)
+//                    treeScale -= 0.05;
+//                else
+//                    treeScale += 0.001;
+//        }
+
+        return gradient;
+
     }
 
     public double[] macroGradient(MapLocation myLocation) {
@@ -404,7 +435,7 @@ public strictfp class SjxMicrogradients {
         HashMap<RobotType, double[]> myMap = new HashMap<RobotType, double[]>();
 
         myMap.put(RobotType.SCOUT, new double[] {range/2., myType.bodyRadius});
-        myMap.put(RobotType.LUMBERJACK, new double[] {range, RobotType.LUMBERJACK.strideRadius*2.});
+        myMap.put(RobotType.LUMBERJACK, new double[] {range, RobotType.LUMBERJACK.strideRadius*3.});
         // If you are a lumber jack, reverse kiting is in place, so the inside circle should be a
         //  couple steps out of melee range. Override for scouts.
         if (myType == RobotType.LUMBERJACK) {
@@ -413,8 +444,8 @@ public strictfp class SjxMicrogradients {
             myMap.put(RobotType.SCOUT, new double[] {range/2., RobotType.LUMBERJACK.strideRadius*2.});
         }
         else {
-            myMap.put(RobotType.SOLDIER, new double[] {range, RobotType.SOLDIER.bodyRadius*2.});
-            myMap.put(RobotType.TANK, new double[] {range, RobotType.TANK.bodyRadius*2.});
+            myMap.put(RobotType.SOLDIER, new double[] {range, RobotType.SOLDIER.bodyRadius*3.});
+            myMap.put(RobotType.TANK, new double[] {range, RobotType.TANK.bodyRadius*3.});
         }
         myMap.put(RobotType.ARCHON, new double[] {range, RobotType.ARCHON.strideRadius*1.5});
         myMap.put(RobotType.GARDENER, new double[] {range, RobotType.GARDENER.strideRadius*1.5});
@@ -540,10 +571,10 @@ public strictfp class SjxMicrogradients {
         return gradient;
     }
     public double[] avoidTreesGradient(MapLocation myLocation) {
-        return treeGradient(myLocation, -1.);
+        return treeGradient(myLocation, -treeScale);
     }
     public double[] seekTreesGradient(MapLocation myLocation) {
-        return treeGradient(myLocation, 1.);
+        return treeGradient(myLocation, treeScale);
     }
 
     // TODO bullet dodging gradients

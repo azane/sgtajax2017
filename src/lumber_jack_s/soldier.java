@@ -36,15 +36,7 @@ public strictfp class soldier extends RobotPlayer{
 
         RobotInfo targetBot = SjxMicrogradients.instance.getShotLocation();
 
-        if (targetBot != null && !rc.hasAttacked()) {
-            if (myLocation.distanceTo(targetBot.getLocation()) < targetBot.getType().bodyRadius * 2.5 && rc.canFirePentadShot())
-                rc.firePentadShot(myLocation.directionTo(targetBot.getLocation()));
-            else if (myLocation.distanceTo(targetBot.getLocation()) < targetBot.getType().bodyRadius * 4.
-                    && rc.canFireTriadShot())
-                rc.fireTriadShot(myLocation.directionTo(targetBot.getLocation()));
-            else if (rc.canFireSingleShot())
-                rc.fireSingleShot(myLocation.directionTo(targetBot.getLocation()));
-        }
+        shootEmUp(myLocation, targetBot);
 
     }
 

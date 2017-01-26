@@ -99,6 +99,21 @@ public strictfp class RobotPlayer {
         throw new RuntimeException("This method is not implemented in the parent class!");
     }
 
+    static void shootEmUp(MapLocation myLocation, RobotInfo targetBot) throws GameActionException{
+        if (targetBot != null && !rc.hasAttacked()) {
+            if (myLocation.distanceTo(targetBot.getLocation())
+                    < ((targetBot.getType().bodyRadius * 2.5) + rc.getType().bodyRadius)
+                    && rc.canFirePentadShot())
+                rc.firePentadShot(myLocation.directionTo(targetBot.getLocation()));
+            else if (myLocation.distanceTo(targetBot.getLocation())
+                    < ((targetBot.getType().bodyRadius * 3.7) + rc.getType().bodyRadius)
+                    && rc.canFireTriadShot())
+                rc.fireTriadShot(myLocation.directionTo(targetBot.getLocation()));
+            else if (rc.canFireSingleShot())
+                rc.fireSingleShot(myLocation.directionTo(targetBot.getLocation()));
+        }
+    }
+
     /**
      * Returns a random Direction
      * @return a random Direction

@@ -32,11 +32,20 @@ public strictfp class soldier extends RobotPlayer{
         Direction d = myLocation.directionTo(gradientDestination);
         // Move toward the new vector.
         if (d != null)
-        tryMove(d);
+            tryMove(d);
 
-        MapLocation target = SjxMicrogradients.instance.getShotLocation();
-        if (target != null && rc.canFireTriadShot() && !rc.hasAttacked())
-            rc.fireTriadShot(myLocation.directionTo(target));
+        RobotInfo targetBot = SjxMicrogradients.instance.getShotLocation();
+
+        if (targetBot != null && !rc.hasAttacked()) {
+            if (myLocation.distanceTo(targetBot.getLocation()) < targetBot.getType().bodyRadius * 2.5 && rc.canFirePentadShot())
+                rc.firePentadShot(myLocation.directionTo(targetBot.getLocation()));
+            else if (myLocation.distanceTo(targetBot.getLocation()) < targetBot.getType().bodyRadius * 4.
+                    && rc.canFireTriadShot())
+                rc.fireTriadShot(myLocation.directionTo(targetBot.getLocation()));
+            else if (rc.canFireSingleShot())
+                rc.fireSingleShot(myLocation.directionTo(targetBot.getLocation()));
+        }
+
     }
 
     /**

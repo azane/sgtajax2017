@@ -35,16 +35,17 @@ public strictfp class lumberJack extends RobotPlayer{
 
         Direction d = myLocation.directionTo(gradientDestination);
 
-        MapLocation closestTree = SjxMicrogradients.instance.getTreeLocation();
+        TreeInfo closestTree = SjxMicrogradients.instance.getTreeLocation();
         if (closestTree != null) {
+            MapLocation loc = closestTree.getLocation();
 //            double dist = closestTree.distanceTo(myLocation);
 //            boolean canDo = (dist <= GameConstants.LUMBERJACK_STRIKE_RADIUS);
 //            if (canDo)
-            if (rc.canShake(closestTree) && rc.senseTreeAtLocation(closestTree).getContainedBullets() > 0.)
-                rc.shake(closestTree);
-            else if (rc.canChop(closestTree) && !rc.hasAttacked()
-                    && rc.senseTreeAtLocation(closestTree).getTeam() != myTeam)
-                rc.chop(closestTree);
+            if (rc.canShake(loc) && closestTree.getContainedBullets() > 0.)
+                rc.shake(loc);
+            else if (rc.canChop(loc) && !rc.hasAttacked()
+                    && closestTree.getTeam() != myTeam)
+                rc.chop(loc);
         }
         // Move toward the new vector.
         if (d != null)

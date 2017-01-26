@@ -3,6 +3,7 @@ package sjxbin;
 import battlecode.common.*;
 import lumber_jack_s.RobotPlayer;
 
+import java.awt.*;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -94,14 +95,14 @@ public strictfp class SjxMicrogradients {
 
     private RobotInfo target = null;
     // TODO use predictive aiming on said target.
-    public MapLocation getShotLocation() {
+    public RobotInfo getShotLocation() {
         if (target == null)
             return null;
         else {
             // Release the target
-            MapLocation loc = target.location;
+            RobotInfo temp = target;
             target = null;
-            return loc;
+            return temp;
         }
     }
     // TODO make this more advanced.
@@ -116,14 +117,14 @@ public strictfp class SjxMicrogradients {
     }
 
     private TreeInfo closestTree = null;
-    public MapLocation getTreeLocation() {
+    public TreeInfo getTreeLocation() {
         if (closestTree == null)
             return null;
         else {
             // Release the target
-            MapLocation loc = closestTree.location;
+            TreeInfo temp = closestTree;
             closestTree = null;
-            return loc;
+            return temp;
         }
     }
     private void updateClosestTree(MapLocation myLocation, TreeInfo tree) {

@@ -79,7 +79,7 @@ public strictfp class SjxMicrogradients {
         switch (myType) {
             case TANK:
             case SOLDIER:
-                treeScale = 1.;
+                treeScale = 0.5;
                 break;
             case LUMBERJACK:
                 treeScale = 5.;
@@ -497,7 +497,7 @@ public strictfp class SjxMicrogradients {
         // Iterate nearby trees
         for (TreeInfo tree : trees) {
 
-            double closeStandardDeviation = tree.radius + myType.bodyRadius;
+            double closeStandardDeviation = (tree.radius + myType.bodyRadius);
 
             double _scale = scale;
 

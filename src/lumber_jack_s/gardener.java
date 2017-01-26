@@ -2,6 +2,8 @@ package lumber_jack_s;
 import battlecode.common.*;
 import sjxbin.SjxYieldBytecode;
 
+import java.util.Random;
+
 public strictfp class gardener extends RobotPlayer{static RobotController rc = RobotPlayer.rc;
 
 static int GARDENER_HOME_RANGE = 40;
@@ -384,10 +386,16 @@ int getPersonality() throws GameActionException{
 	RobotInfo [] nearbyRobots = rc.senseNearbyRobots();
 	TreeInfo [] nearbyTrees = rc.senseNearbyTrees();
 	int numUnits =  nearbyRobots.length + nearbyTrees.length;
+
+	// Have to seed the generator, or it will be same for every gardener, because
+	//  they are on seperate VMs, so they don't do random sequentially. : )
+	Random r = new Random();
+	r.setSeed((long)rc.getID());
+
 	if(numUnits < 4){
 		return 1;
 	}
-	else if (Math.random() < 0.90){
+	else if (r.nextDouble() < 0.90){
 		//If we have lots of things around us return 2 for unit gardener
 		return 2;
 	} else {

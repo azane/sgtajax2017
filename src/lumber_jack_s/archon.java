@@ -7,50 +7,61 @@ public strictfp class archon extends RobotPlayer{
     
 
     static int GARDENER_BUILD_LIMIT;
+    boolean phaseOne = false;
+    Direction east = Direction.getEast();
+    Direction[] buildDirs = new Direction[]{east, east.rotateLeftDegrees(60), east.rotateLeftDegrees(120), 
+    		east.rotateLeftDegrees(180), east.rotateLeftDegrees(240), east.rotateLeftDegrees(300)}; 
 
     public void mainMethod() throws GameActionException {
-
-        // Debug
-        if (rc.getRoundNum() > 100)
-            System.out.println("mainMethod being yielded to!");
-
-
-        // Donate bullets on last round
-        donateBullets();
-        
-        // Count the number of robots nearby.  Make sure there's at least one gardener
-        RobotInfo[] nearbyBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadius/3);
-        boolean buildThisTurn = false;
-        int gardenerCount = 0;
-	    for (RobotInfo bot : nearbyBots){
-	        if (bot.type == RobotType.GARDENER){
-	        	gardenerCount++;
+    	
+    	int initComplete = rc.readBroadcast(INIT_OFFSET);
+    	
+    	if (initComplete == 0){
+    		runInit();
+    	}
+    	else {
+	        // Debug
+	        if (rc.getRoundNum() > 100)
+	            System.out.println("mainMethod being yielded to!");
+	
+	
+	        // Donate bullets on last round
+	        donateBullets();
+	        
+	        // Count the number of robots nearby.  Make sure there's at least one gardener
+	        RobotInfo[] nearbyBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadius/3);
+	        boolean buildThisTurn = false;
+	        int gardenerCount = 0;
+		    for (RobotInfo bot : nearbyBots){
+		        if (bot.type == RobotType.GARDENER){
+		        	gardenerCount++;
+		        }
 	        }
-        }
-        if (nearbyBots.length > 3 && gardenerCount < 1){
-        	buildThisTurn = true;
-        } else if (nearbyBots.length < 5 && gardenerCount < 2){
-        	buildThisTurn = true;
-        }
-
-        // Generate a random direction
-	    Direction dir = randomDirection();
-
-	    if (buildThisTurn){
-	        // Randomly attempt to build a gardener in this direction
-	        if (rc.canHireGardener(dir) && Math.random() < .50 && getNumberRobotsBuilt(RobotType.GARDENER) < GARDENER_BUILD_LIMIT) {
-	            rc.hireGardener(dir);
-	            addOneRobotBuilt(RobotType.GARDENER);
+	        if (nearbyBots.length > 3 && gardenerCount < 1){
+	        	buildThisTurn = true;
+	        } else if (nearbyBots.length < 5 && gardenerCount < 2){
+	        	buildThisTurn = true;
 	        }
-        }
-
-        // Move randomly
-        tryMove(randomDirection());
-
-        // Broadcast archon's location for other robots on the team to know
-        MapLocation myLocation = rc.getLocation();
-        rc.broadcast(0,(int)myLocation.x);
-        rc.broadcast(1,(int)myLocation.y);
+	
+	        // Generate a random direction
+		    Direction dir = randomDirection();
+	
+		    if (buildThisTurn){
+		        // Randomly attempt to build a gardener in this direction
+		        if (rc.canHireGardener(dir) && Math.random() < .50 && getNumberRobotsBuilt(RobotType.GARDENER) < GARDENER_BUILD_LIMIT) {
+		            rc.hireGardener(dir);
+		            addOneRobotBuilt(RobotType.GARDENER);
+		        }
+	        }
+	
+	        // Move randomly
+	        tryMove(randomDirection());
+	
+	        // Broadcast archon's location for other robots on the team to know
+	        MapLocation myLocation = rc.getLocation();
+	        rc.broadcast(0,(int)myLocation.x);
+	        rc.broadcast(1,(int)myLocation.y);
+    	}
     }
 
     /**
@@ -97,4 +108,26 @@ public strictfp class archon extends RobotPlayer{
             SjxYieldBytecode.yield();
         }
     }
+
+	void runInit() throws GameActionException{
+		if (!phaseOne){
+			phaseOne = buildGardener();
+		}		
+		Direction moveDir = randomDirection();
+		tryMove(moveDir);
+	}
+	
+	boolean buildGardener() throws GameActionException{
+		for (Direction dir : buildDirs) {
+			if (rc.canHireGardener(dir) && getNumberRobotsBuilt(RobotType.GARDENER) < 1) {
+		        rc.hireGardener(dir);
+		        addOneRobotBuilt(RobotType.GARDENER);
+		        return true;
+			}
+		}
+		return false;
+	}
+		
+
+
 }

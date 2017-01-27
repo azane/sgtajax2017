@@ -11,6 +11,9 @@ public strictfp class soldier extends RobotPlayer{
         // Donate bullets on last round
         donateBullets();
 
+        // Search for enemy archons
+        searchForArchon();
+
         MapLocation myLocation = rc.getLocation();
 
         // Sense all nearby robots.

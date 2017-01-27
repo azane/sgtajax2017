@@ -27,6 +27,14 @@ public strictfp class lumberJack extends RobotPlayer{
 
         gradient = SjxMicrogradients.instance.getMyGradient(myLocation, rc.senseNearbyRobots());
 
+        // Prioritize attacking.
+        if (!rc.hasAttacked()) {
+            RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.LUMBERJACK_STRIKE_RADIUS, enemy);
+            if(robots.length > 0) {
+                rc.strike();
+            }
+        }
+
         // Add scaled gradient to myLocation coordinates.
         MapLocation gradientDestination = new MapLocation(
                 myLocation.x + (float)gradient[0],
@@ -79,12 +87,6 @@ public strictfp class lumberJack extends RobotPlayer{
 //                }
 //            }
 //        }
-        if (!rc.hasAttacked()) {
-            RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.LUMBERJACK_STRIKE_RADIUS, enemy);
-            if(robots.length > 0) {
-                rc.strike();
-            }
-        }
         //--- End Chop/Shake Code
         //------------------------
 

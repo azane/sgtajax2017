@@ -57,7 +57,7 @@ public strictfp class scout extends RobotPlayer{
             for (RobotInfo robot : robots) {
                 if (robot.getType() == RobotType.GARDENER && rc.canFireSingleShot()) {
                     Direction towardGardener = myLocation.directionTo(robot.getLocation());
-                    if (myLocation.distanceTo(robot.getLocation()) > 2.25){
+                    if (myLocation.distanceTo(robot.getLocation()) > 2.5){
                         tryMove(towardGardener);
                     }
                     rc.fireSingleShot(towardGardener);

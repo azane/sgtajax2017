@@ -10,10 +10,17 @@ static int GARDENER_HOME_RANGE = 40;
 
 static float MAX_PRODUCTION = GameConstants.BULLET_TREE_BULLET_PRODUCTION_RATE * GameConstants.BULLET_TREE_MAX_HEALTH;
 
+static RobotType SOLDIER = RobotType.SOLDIER;
+static RobotType SCOUT = RobotType.SCOUT;
+static RobotType LUMBERJACK = RobotType.LUMBERJACK;
+static RobotType TANK = RobotType.TANK;
+static RobotType ARCHON = RobotType.ARCHON;
+static RobotType GARDENER = RobotType.GARDENER;
+
 static MapLocation startLoc;
 static Team myTeam;
 static int treeRoundLimit;
-static RobotType[] robotTypeList = {RobotType.SCOUT, RobotType.LUMBERJACK, RobotType.SOLDIER, RobotType.TANK};
+static RobotType[] robotTypeList = {SCOUT, LUMBERJACK, SOLDIER, TANK};
 static int PERSONALITY;
 
 int SCOUT_BUILD_LIMIT;
@@ -22,30 +29,37 @@ int LUMBERJACK_BUILD_LIMIT;
 int TANK_BUILD_LIMIT;
 float FRIENDLY_TREE_RADIUS;
 
-static RobotType[] ROBOT_BUILD_ORDER;
+static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, LUMBERJACK, SOLDIER, SOLDIER, LUMBERJACK};
+static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, SOLDIER, SOLDIER, SOLDIER, TANK};
 
 
-Direction robotBuildDir = Direction.getEast();  //TODO Fix these to be offset locations, not directions
-Direction[] treeBuildDirs; //TODO Fix these to be offset locations, not directions
+Direction east = Direction.getEast();
+Direction[] treeBuildDirs = new Direction[]{east, east.rotateLeftDegrees(60), east.rotateLeftDegrees(120), 
+		east.rotateLeftDegrees(180), east.rotateLeftDegrees(240), east.rotateLeftDegrees(300)}; 
 
 TreeInfo[] myTrees;
-boolean builtScout = false;
-boolean builtSoldier = false;
+boolean phaseOne = false;
+boolean phaseTwo = false;
 boolean foundSpot = false;
-int buildNum;
+int buildNum = 0;
 
 public void mainMethod() throws GameActionException {
-    switch(PERSONALITY){
-        case 1:
-        	fortGardenerLoop();
-        	break;
-        case 2:
-        	unitGardenerLoop();
-        	break;
-        case 3:
-        	trapGardenerLoop();
-        	break;
-    }
+	
+	int initComplete = rc.readBroadcast(INIT_OFFSET);
+	
+	if (initComplete == 0){
+		runInit();
+	}
+	else {
+	    switch(PERSONALITY){
+	        case 1:
+	        	fortGardenerLoop();
+	        	break;
+	        case 2:
+	        	unitGardenerLoop();
+	        	break;
+	    }
+	}
 }
 /**
  * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -63,21 +77,6 @@ void runGardener(RobotController rc) throws GameActionException {
     startLoc = rc.getLocation();
     
     PERSONALITY = getPersonality();
-    
-    switch(PERSONALITY){
-        case 1:
-        	System.out.println("I'm a fort Gardener");
-        	fortGardenerPrep();
-        	break;
-        case 2:
-        	System.out.println("I'm a unit Gardener");
-        	unitGardenerPrep();
-        	break;
-        case 3:
-        	System.out.println("I'm a trap Gardener");
-        	trapGardenerPrep();
-        	break;
-    }
 
     // The code you want your robot to perform every round should be in this loop
     while (true) {
@@ -102,110 +101,55 @@ void runGardener(RobotController rc) throws GameActionException {
     }
 }
 
-
-void fortGardenerPrep() throws GameActionException{
-    treeBuildDirs = new Direction[]{robotBuildDir.rotateLeftDegrees(60), robotBuildDir.rotateLeftDegrees(120), robotBuildDir.rotateLeftDegrees(240), robotBuildDir.rotateLeftDegrees(300)};
-    ROBOT_BUILD_ORDER = new RobotType[]{RobotType.LUMBERJACK, RobotType.SOLDIER, RobotType.SOLDIER, 
-    		RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.LUMBERJACK, RobotType.LUMBERJACK, RobotType.SOLDIER, RobotType.SOLDIER, 
-    		RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.LUMBERJACK, RobotType.TANK};
-    
-    boolean builtSoldier = false;
+void runInit() throws GameActionException{
+	if (!phaseOne){
+		phaseOne = buildRobot(RobotType.SCOUT);
+	}
+	else {
+		int numTrees = rc.senseNearbyTrees().length;
+		if (numTrees < 3){
+			phaseTwo = buildTree();
+		}
+		else {
+			phaseTwo = buildRobot(RobotType.LUMBERJACK);
+		}
+	}
+	if (phaseTwo) {
+		rc.broadcast(INIT_OFFSET, 1);
+	}
+	Direction moveDir = randomDirection();
+	tryMove(moveDir);
+	
 }
 
+
 void fortGardenerLoop() throws GameActionException{
-	myTrees = rc.senseNearbyTrees(RobotType.GARDENER.bodyRadius+GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS, myTeam);
-	System.out.println("Number of trees: "+myTrees.length);
+	rc.setIndicatorDot(rc.getLocation(), 0, 255, 0);
 	if (!foundSpot){
 		//Find empty spot
 		System.out.println("Phase One");
 		findEmptySpot();
 	}
-	else if (myTrees.length < 1){
-		//Build the first tree
-    	System.out.println("Phase Two");
-    	buildTree();
-	} 
-	else if (myTrees.length == 1 && !builtScout){
-		//Build the initial scout
-    	System.out.println("Phase Three");
-    	buildScout();
-	} 
-	else if (myTrees.length < 3){
-		//Build the rest of the trees
-    	System.out.println("Phase Four");
-    	buildTree();
-	} else if (!builtSoldier){
-		//Build a soldier
-    	System.out.println("Phase Five");
-    	buildSoldier();
-	} else if (myTrees.length < 4){
-		//Build a soldier
-    	System.out.println("Phase Six");
-    	buildTree();
-	} else {
-		//Build a soldier
-    	System.out.println("Phase Seven");
-    	buildRobotInOrder();
-		
+	else {
+		buildTree();
 	}
-}
-
-
-void unitGardenerPrep() throws GameActionException{
-	treeBuildDirs = new Direction[]{robotBuildDir.rotateLeftDegrees(60), robotBuildDir.rotateLeftDegrees(240)};
-    ROBOT_BUILD_ORDER = new RobotType[]{RobotType.LUMBERJACK, RobotType.SOLDIER, RobotType.SOLDIER, 
-    		RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.LUMBERJACK, RobotType.LUMBERJACK, RobotType.SOLDIER, RobotType.SOLDIER, 
-    		RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.LUMBERJACK, RobotType.TANK};
+    //--- Gardener Water Code
+    //-----------------------
+	waterFunc();
+    //--- End Water Code
+    //------------------
+	
 }
 
 void unitGardenerLoop() throws GameActionException{
-	myTrees = rc.senseNearbyTrees(RobotType.GARDENER.bodyRadius+GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS, myTeam);
-	System.out.println("Number of trees: "+myTrees.length);
-	if (!foundSpot){
-		System.out.println("Phase One");
-		findEmptySpot();
-	}
-	else if (myTrees.length < 1){
-		//Build the first tree
-    	System.out.println("Phase Two");
-    	buildTree();
-	} 
-	else if (myTrees.length == 1 && !builtScout){
-		//Build the initial scout
-    	System.out.println("Phase Three");
-    	buildScout();
-	} 
-	else if (myTrees.length < 3){
-		//Build the rest of the trees
-    	System.out.println("Phase Four");
-    	buildTree();
-	} else {
-		//Start building random units
-    	System.out.println("Phase Five");
-    	buildRobotInOrder();
-	}
+	//Build robots and water trees if you see them.  Currently just move randomly
+	rc.setIndicatorDot(rc.getLocation(), 255, 0, 0);
+	buildRobotInOrder();
+	waterFunc();
+	Direction moveDir = randomDirection();
+	tryMove(moveDir);
+	
 }
-
-void trapGardenerPrep() throws GameActionException{
-	treeBuildDirs = new Direction[]{robotBuildDir.rotateLeftDegrees(60), robotBuildDir.rotateLeftDegrees(240)};
-    ROBOT_BUILD_ORDER = new RobotType[]{RobotType.LUMBERJACK, RobotType.SOLDIER, RobotType.SOLDIER, 
-    		RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.LUMBERJACK, RobotType.LUMBERJACK, RobotType.SOLDIER, RobotType.SOLDIER, 
-    		RobotType.SOLDIER, RobotType.LUMBERJACK, RobotType.LUMBERJACK, RobotType.TANK};
-}
-
-void trapGardenerLoop() throws GameActionException{
-	myTrees = rc.senseNearbyTrees(RobotType.GARDENER.bodyRadius+GameConstants.GENERAL_SPAWN_OFFSET, myTeam);
-	System.out.println("Number of trees: "+myTrees.length);
-	if (!foundSpot){
-		System.out.println("Phase One");
-		findEmptySpot();
-	} else {
-		//Start building random units
-    	System.out.println("Phase Five");
-    	buildRobotInOrder();
-	}
-}
-
 
 void findEmptySpot() throws GameActionException{
 	//Move code first.
@@ -214,9 +158,7 @@ void findEmptySpot() throws GameActionException{
 
 	boolean possibleSpot = true;
 	// Have we found the right spot?
-	Direction[] allDirections = {robotBuildDir, robotBuildDir.rotateLeftDegrees(60), robotBuildDir.rotateLeftDegrees(120), 
-    		robotBuildDir.rotateLeftDegrees(240), robotBuildDir.rotateLeftDegrees(300), robotBuildDir.rotateLeftDegrees(360)};
-	for (Direction buildDir : allDirections){
+	for (Direction buildDir : treeBuildDirs){
 		if (!rc.canPlantTree(buildDir)){
 			System.out.println("Cannot build tree.");
 			possibleSpot = false;
@@ -226,7 +168,7 @@ void findEmptySpot() throws GameActionException{
 }
 
 
-void buildTree() throws GameActionException{
+boolean buildTree() throws GameActionException{
 	// Build a single tree
 	
     //--- Gardener Build Code
@@ -238,98 +180,51 @@ void buildTree() throws GameActionException{
             if (rc.canPlantTree(dir)){
             	// Count the trees around us to make sure we don't have too many clogging up the area
             	rc.plantTree(dir);
-            	break;
+            	return true;
             	} 
 		}
 	}
+	return false;
     //--- End Build Code
     //------------------
 
-    //--- Gardener Water Code
-    //-----------------------
-	waterFunc();
-    //--- End Water Code
-    //------------------
 }
 
-void buildScout() throws GameActionException{
+boolean buildRobot(RobotType robot) throws GameActionException{
 	// Code to build a scout as soon as possible
-    
-    
-    //--- Gardener Build Code
-    //-----------------------
-    // Generate a random direction
 
-    // First try and build a tree, if you cannot, then try and build robots
-    if (rc.isBuildReady() && rc.canBuildRobot(RobotType.SCOUT, robotBuildDir)) {
-        	rc.buildRobot(RobotType.SCOUT, robotBuildDir);
-        	builtScout = true;
-        }
-    //--- End Build Code
-    //------------------
-
-
-    //--- Gardener Water Code
-    //-----------------------
-	waterFunc();
-    //--- End Water Code
-    //------------------
-}
-
-
-void buildSoldier() throws GameActionException{
-	// Code to build a scout as soon as possible
-    
-    
-    //--- Gardener Build Code
-    //-----------------------
-    // Generate a random direction
-
-    // First try and build a tree, if you cannot, then try and build robots
-    if (rc.isBuildReady() && rc.canBuildRobot(RobotType.SOLDIER, robotBuildDir)) {
-        	rc.buildRobot(RobotType.SOLDIER, robotBuildDir);
-        	builtSoldier = true;
-        }
-    //--- End Build Code
-    //------------------
-
-
-    //--- Gardener Water Code
-    //-----------------------
-	waterFunc();
-    //--- End Water Code
-    //------------------
+    // Try and build a scout in all directions
+	for (Direction robotBuildDir : treeBuildDirs){
+	    if (rc.isBuildReady() && rc.canBuildRobot(robot, robotBuildDir)) {
+	        	rc.buildRobot(robot, robotBuildDir);
+	        	addOneRobotBuilt(robot);
+	        	return true;
+	        }
+	}
+	return false;
 }
 
 void buildRobotInOrder() throws GameActionException{
-    SCOUT_BUILD_LIMIT = 20;
-    SOLDIER_BUILD_LIMIT = 150;
-    LUMBERJACK_BUILD_LIMIT = 200;
-    TANK_BUILD_LIMIT = 50;
+	RobotType robotToBuild;
+	if (rc.getRoundNum() < rc.getRoundLimit()/2){
+		robotToBuild = EARLY_ROBOT_BUILD_ORDER[buildNum %EARLY_ROBOT_BUILD_ORDER.length];
+	}
+	else {
+		robotToBuild = LATE_ROBOT_BUILD_ORDER[buildNum %LATE_ROBOT_BUILD_ORDER.length];
+	}
     
-    RobotType robotToBuild = ROBOT_BUILD_ORDER[buildNum %ROBOT_BUILD_ORDER.length];
-	
-	
-    //--- Gardener Build Code
-    //-----------------------
-    // Generate a random direction
-	//Code to instantly build a single tree
+    // If we can build a robot, look all directions and try and build a specific robot in that direction
 	if (rc.isBuildReady()) {
-        if (rc.canBuildRobot(robotToBuild, robotBuildDir) && underBuildLimit(robotToBuild)){
-        	rc.buildRobot(robotToBuild, robotBuildDir);
-        	++buildNum;
-        } else if (rc.canBuildRobot(robotToBuild, robotBuildDir.opposite()) && underBuildLimit(robotToBuild)){
-        	rc.buildRobot(robotToBuild, robotBuildDir.opposite());
-        	++buildNum;
-        }
+		for (Direction robotBuildDir : treeBuildDirs){
+	        if (rc.canBuildRobot(robotToBuild, robotBuildDir) && underBuildLimit(robotToBuild)){
+	        	rc.buildRobot(robotToBuild, robotBuildDir);
+	        	addOneRobotBuilt(robotToBuild);
+	        	++buildNum;
+	        	break;
+	        }
+		}
 	}
     //--- End Build Code
-    //------------------
-
-    //--- Gardener Water Code
-    //-----------------------
-	waterFunc();
-    //--- End Water Code
     //------------------
 }
 
@@ -363,12 +258,10 @@ int getBuildLimit(RobotType type) throws GameActionException{
 }
 
 void waterFunc() throws GameActionException{
+	myTrees = rc.senseNearbyTrees(RobotType.GARDENER.bodyRadius+GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS, myTeam);
     float min_health = GameConstants.BULLET_TREE_MAX_HEALTH-GameConstants.WATER_HEALTH_REGEN_RATE;
     TreeInfo tree_to_water = null;
-    MapLocation tree_loc;
     for (TreeInfo tree : myTrees){
-    	tree_loc = tree.getLocation();
-        rc.setIndicatorDot(tree_loc, 255, 0, 0);
         if (rc.canWater(tree.getLocation()) && tree.getHealth() < min_health){
         	min_health = tree.getHealth();
         	tree_to_water = tree;
@@ -383,24 +276,19 @@ void waterFunc() throws GameActionException{
 
 int getPersonality() throws GameActionException{
 	//If we have lots of space around us return 1 for fort gardener
-	RobotInfo [] nearbyRobots = rc.senseNearbyRobots();
 	TreeInfo [] nearbyTrees = rc.senseNearbyTrees();
-	int numUnits =  nearbyRobots.length + nearbyTrees.length;
 
-	// Have to seed the generator, or it will be same for every gardener, because
-	//  they are on seperate VMs, so they don't do random sequentially. : )
-	Random r = new Random();
-	r.setSeed((long)rc.getID());
-
-	if(numUnits < 4){
+	if(nearbyTrees.length < 5){
+		//Fort Gardener
 		return 1;
 	}
-	else if (r.nextDouble() < 0.90){
-		//If we have lots of things around us return 2 for unit gardener
+	else {
+		//Unit Gardener
+	    SCOUT_BUILD_LIMIT = 20;
+	    SOLDIER_BUILD_LIMIT = 150;
+	    LUMBERJACK_BUILD_LIMIT = 200;
+	    TANK_BUILD_LIMIT = 50;
 		return 2;
-	} else {
-		//Not sure when, but return 3 for trap gardener
-		return 3;
 	}
 }
 }

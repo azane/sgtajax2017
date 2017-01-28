@@ -18,6 +18,7 @@ public class SjxBroadcastQueue {
     private final int elementLength;
     public final int startingChannel;
     public final int positionIndicatorChannel;
+    public final int numberElementsChannel;
 
     private final int lastWriteableChannel;
     private final int firstWriteableChannel;
@@ -25,6 +26,33 @@ public class SjxBroadcastQueue {
     // The holder for the actual broadcast index position of the front
     //  of the queue.
     private int absoluteQueuePosition;
+
+    // The number of data elements in the queue. This won't exceed size,
+    //  but could be less than size.
+    // Increment on enqueue, decrement on pop.
+    private int numElements = 0;
+    private void incNumElements() {
+        // Don't make larger than the size.
+        // This is okay, as enqueue overwrites the oldest data if necessary.
+        if (numElements == size)
+            return;
+        else
+            numElements++;
+    }
+    private void decNumElements() {
+        // Having something call the decrementer when there is no data
+        //  is actually an error.
+        if (numElements == 0)
+            throw new RuntimeException("Can't have a negative number of elements.");
+        else
+            numElements--;
+    }
+    public int getNumElements() {
+        return numElements;
+    }
+    public boolean isEmpty() {
+        return (numElements == 0);
+    }
 
     private RobotController rc;
 
@@ -39,6 +67,7 @@ public class SjxBroadcastQueue {
 
     public SjxBroadcastQueue(String[] labels, RobotController rc,
                              int size, int startingChannel, int positionIndicatorChannel,
+                             int numberElementsChannel,
                              boolean initToGlobalQueuePosition) {
         this.size = size;
         elementLength = labels.length;
@@ -58,6 +87,15 @@ public class SjxBroadcastQueue {
             this.positionIndicatorChannel = positionIndicatorChannel;
         else
             throw new RuntimeException("Invalid positionIndicatorChannel.");
+
+        if ((numberElementsChannel < this.startingChannel
+                || numberElementsChannel >= this.startingChannel + (this.size*elementLength))
+                && numberElementsChannel >= 0
+                && numberElementsChannel < MAXBROADCASTCHANNEL
+                && numberElementsChannel != positionIndicatorChannel)
+            this.numberElementsChannel = numberElementsChannel;
+        else
+            throw new RuntimeException("Invalid numberElementsChannel.");
 
         this.labels = new HashMap<>();
         for (int i = 0; i < elementLength; i++) {
@@ -95,19 +133,20 @@ public class SjxBroadcastQueue {
 
             // If it hasn't been initialized, initialize!
             if (queuePositionQuery == 0) {
-                writeQueuePosition();
+                writeMetadata();
                 yieldForBroadcast();
             } else
                 // If it has, read it.
-                readQueuePosition();
+                readMetadata();
         }
     }
 
     private int getChannel(int index, String label) {
 
-        if (index < 0 || index >= size)
+        if (index < 0 || index >= numElements)
             throw new IndexOutOfBoundsException("Index " + index + " is either less" +
-                    " than zero or exceeds the maximum index of " + (size-1));
+                    " than zero or exceeds the last element index of " + (numElements-1) +
+                    "\nIf the last element index is -1, this queue is empty. ; )");
         if (!labels.containsKey(label))
             throw new IndexOutOfBoundsException("The label " + label + " does not exist.");
 
@@ -144,6 +183,28 @@ public class SjxBroadcastQueue {
         return data;
     }
 
+    private void write(int index, String label, int value) {
+        try {
+            rc.broadcast(getChannel(index, label), value);
+        }
+        catch (GameActionException e) {
+            throw new RuntimeException("Broadcast write failed.");
+        }
+    }
+
+    private void write(int index, HashMap<String, Integer> data) {
+        for (String label : labels.keySet()) {
+            write(index, label, data.get(label));
+        }
+    }
+
+    public void writeCurrent(String label, int value) {
+        write(currentIndex, label, value);
+    }
+    public void writeCurrent(HashMap<String, Integer> data) {
+        write(currentIndex, data);
+    }
+
     // Return the specified property of the data at the readCurrent index.
     public int readCurrent(String label) {
         return get(currentIndex, label);
@@ -154,15 +215,23 @@ public class SjxBroadcastQueue {
         return get(currentIndex);
     }
 
-    // Move to the next set of data.
-    public void next() {
+    // Move to the next set of data. Return false if there is no next data.
+    public boolean next() {
+
+        // We're going to add one to the index, make sure that doesn't
+        //  exceed our indexing (length - 1).
+        if ((currentIndex + 1) >= numElements)
+            return false;
+
         currentIndex++;
         if (currentIndex == size)
             currentIndex = 0;
+
+        return true;
     }
 
     public boolean nextExists() {
-        if (currentIndex == size - 1)
+        if (currentIndex == numElements - 1)
             return false;
         else
             return true;
@@ -172,39 +241,60 @@ public class SjxBroadcastQueue {
     public void first() {
         currentIndex = 0;
     }
+    public void prepIter() {
+        currentIndex = -1;
+    }
 
     public boolean enqueue(HashMap<String, Integer> data) {
         // Advance the front of the queue. If old memory exists here,
         //  it will be overwritten. Hence, FIFO.
+
+        advanceQueuePosition();
+        try {
+            // This knows about overwriting old data.
+            // Increment here so the indexer knows there's a place for the new data.
+            incNumElements();
+
+            // Write each piece of data to the new front of queue.
+            write(0, data);
+            return true;
+        }
+        catch (RuntimeException e) {
+            // Return the queue position to where it was originally.
+            // This will also erase partial writes if any element of the data
+            //  failed to broadcast.
+            retreatQueuePosition();
+            return false;
+        }
+    }
+
+    private void advanceQueuePosition() {
         // Wrap around to the beginning if needed.
         if (absoluteQueuePosition < lastWriteableChannel)
             absoluteQueuePosition += elementLength;
         else
             absoluteQueuePosition = firstWriteableChannel;
+    }
+    private void retreatQueuePosition() {
+        if (absoluteQueuePosition == firstWriteableChannel)
+            absoluteQueuePosition = lastWriteableChannel;
+        else
+            absoluteQueuePosition -= elementLength;
+    }
 
-        try {
-            // Write each piece of data to the correct index.
-            for (String s : labels.keySet()) {
-                rc.broadcast(getChannel(0, s), data.get(s));
-            }
-            return true;
-        }
-        catch (GameActionException e) {
-            // Return the queue position to where it was originally.
-            // This will also erase partial writes if any element of the data
-            //  failed to broadcast.
-            if (absoluteQueuePosition == firstWriteableChannel)
-                absoluteQueuePosition = lastWriteableChannel;
-            else
-                absoluteQueuePosition -= elementLength;
-            return false;
-        }
+    // This method 'pops', stack style, the most recent entry of the queue.
+    // I know it's not queue behavior, git over iiiit.
+    public void pop() {
+        // This will throw an error if there aren't any elements.
+        decNumElements();
+        retreatQueuePosition();
     }
 
     // The caller is responsible for calling this after enqueuing a bunch of stuff.
-    public boolean writeQueuePosition() {
+    public boolean writeMetadata() {
         try {
             rc.broadcast(positionIndicatorChannel, absoluteQueuePosition);
+            rc.broadcast(numberElementsChannel, numElements);
             return true;
         }
         catch (GameActionException e) {
@@ -213,9 +303,10 @@ public class SjxBroadcastQueue {
     }
 
     // The caller is responsible for calling this before processing.
-    public boolean readQueuePosition() {
+    public boolean readMetadata() {
         try {
             absoluteQueuePosition = rc.readBroadcast(positionIndicatorChannel);
+            numElements = rc.readBroadcast(numberElementsChannel);
             return true;
         }
         catch (GameActionException e) {
@@ -256,6 +347,7 @@ class TestSjxBroadcastQueue {
 
         SjxBroadcastQueue queue = new SjxBroadcastQueue(
                 labels, rc, 10, 500, 499,
+                498,
                 false);
 
         long rseed = 1986058301;
@@ -270,11 +362,11 @@ class TestSjxBroadcastQueue {
                 testerData[i].put(s, r.nextInt());
             queue.enqueue(testerData[i]);
 
-            queue.writeQueuePosition();
+            queue.writeMetadata();
 
             queue.yieldForBroadcast();
 
-            queue.readQueuePosition();
+            queue.readMetadata();
 
             // Ensure that the recent queue-age processed.
             queue.first();
@@ -286,7 +378,7 @@ class TestSjxBroadcastQueue {
 
         // Iterate through the queue to make sure it's content is accurate to the last
         //  data enqueued.
-        queue.readQueuePosition();
+        queue.readMetadata();
         queue.first();
         for (int i = max-1; i > max - queue.size - 1; i--) {
             for(String s : labels)
@@ -305,6 +397,29 @@ class TestSjxBroadcastQueue {
         catch (GameActionException e) {
             return false;
         }
+
+        // Pop the stack till the next element doesn't exist. That will be the last one.
+        while(queue.nextExists()) {
+            queue.pop();
+        }
+        if (queue.getNumElements() != 1) {
+            return false;
+        }
+        // pop the last one
+        queue.pop();
+        if (queue.getNumElements() != 0)
+            return false;
+
+        try {
+            // This should throw an error.
+            queue.pop();
+            return false;
+        }
+        catch (RuntimeException e) {
+            // Good job.
+        }
+
+
 
         // Release the test to others.
         try {

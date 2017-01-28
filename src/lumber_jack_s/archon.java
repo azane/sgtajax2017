@@ -1,5 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import sjxbin.SjxBytecodeTracker;
 import sjxbin.SjxYieldBytecode;
 
 public strictfp class archon extends RobotPlayer{
@@ -65,6 +66,25 @@ public strictfp class archon extends RobotPlayer{
 	        rc.broadcast(0,(int)myLocation.x);
 	        rc.broadcast(1,(int)myLocation.y);
     	}
+
+		// Test display for queue reading.
+		SjxBytecodeTracker bct = new SjxBytecodeTracker();
+		bct.start(0);
+		bct.poll();
+		enemyRobots.globalPrepIter();
+		while (enemyRobots.next() && enemyRobots.getCurrentIndex() < 20) {
+			MapLocation loc = enemyRobots.getLocation();
+			int age = enemyRobots.getInfoAge();
+
+			int color = 255 - age*20;
+			if (color < 0) color = 0;
+			rc.setIndicatorDot(loc, color, color, 0);
+
+			int itercost = bct.getCostSinceLastPoll();
+			bct.poll();
+		}
+
+		bct.end();
     }
 
     /**

@@ -25,7 +25,13 @@ public class SjxYieldBytecode {
 
                 case(0):
                     //RobotPlayer.predictiveShooter.collectDataAndTrainModel(bytecodeAllotments[i]);
-                    Clock.yield();
+                    //Clock.yield();
+                    break;
+                case(1):
+                    RobotPlayer.enemyRobots.enqueueBatchTask(
+                            RobotPlayer.rc.senseNearbyRobots(-1,
+                                    RobotPlayer.rc.getTeam().opponent()), bytecodeAllotments[i]);
+                    //Clock.yield();
                     break;
             }
         }
@@ -78,6 +84,6 @@ public class SjxYieldBytecode {
         // Just return the task allotment for now, but we can do this formulaically too.
         // The indices of the return values should correspond to the indices of the methods
         //  called from the switch statement in yield();
-        return new double[] {1.};
+        return new double[] {0., 1.};
     }
 }

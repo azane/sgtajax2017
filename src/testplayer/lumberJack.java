@@ -12,7 +12,7 @@ public strictfp class lumberJack extends RobotPlayer{
     static void runLumberjack(RobotController rc) throws GameActionException {
 
         // This is the RobotController object. You use it to perform actions from this robot,
-        // and to get information on its current status.
+        // and to get information on its readCurrent status.
         lumberJack.rc = rc;
         
         System.out.println("I'm a lumberjack!");

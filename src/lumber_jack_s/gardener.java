@@ -71,7 +71,7 @@ public void mainMethod() throws GameActionException {
 void runGardener(RobotController rc) throws GameActionException {
 
     // This is the RobotController object. You use it to perform actions from this robot,
-    // and to get information on its current status.
+    // and to get information on its readCurrent status.
     gardener.rc = rc;
     treeRoundLimit = rc.getRoundLimit() - (int)MAX_PRODUCTION * (int)GameConstants.BULLET_TREE_COST;
     
@@ -154,7 +154,7 @@ void unitGardenerLoop() throws GameActionException{
 }
 
 void findEmptySpot() throws GameActionException{
-	//Move code first.
+	//Move code globalFirst.
 	Direction moveDir = randomDirection();
 	tryMove(moveDir);
 

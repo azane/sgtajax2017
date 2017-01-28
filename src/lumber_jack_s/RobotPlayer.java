@@ -1,9 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
-import sjxbin.SjxANN;
-import sjxbin.SjxBroadcastQueue;
-import sjxbin.SjxMicrogradients;
-import sjxbin.SjxPredictiveShooter;
+import sjxbin.*;
 
 public strictfp class RobotPlayer {
     public static RobotController rc;
@@ -11,6 +8,8 @@ public strictfp class RobotPlayer {
     public static RobotPlayer rp;
 
     public static SjxPredictiveShooter predictiveShooter;
+
+    public static SjxRobotBroadcastQueue enemyRobots;
 
     static int ARCHON_SEARCH_OFFSET = 20; //Other stuff is hardcoded into this :(
     
@@ -46,7 +45,7 @@ public strictfp class RobotPlayer {
     public static void run(RobotController rc) throws GameActionException {
 
         // This is the RobotController object. You use it to perform actions from this robot,
-        // and to get information on its current status.
+        // and to get information on its readCurrent status.
         RobotPlayer.rc = rc;
 
         try {
@@ -55,6 +54,19 @@ public strictfp class RobotPlayer {
         catch (Exception e) {
             System.out.println("Predictive shooter failed to initialize!");
         }
+
+//        try {
+//            rc.broadcast(9999, 1);
+//            Clock.yield();
+//            if (rc.readBroadcast(9999) != 1)
+//                System.out.println("The broadcast limit changed!");
+//        }
+//        catch (GameActionException e) {
+//            System.out.println("The broadcast limit changed!");
+//        }
+
+        RobotPlayer.enemyRobots = new SjxRobotBroadcastQueue(rc,
+                999, 1001, 1000);
 
         // Instantiate for the singleton.
         new SjxMicrogradients();
@@ -181,10 +193,10 @@ public strictfp class RobotPlayer {
 
     /**
      * A slightly more complicated example function, this returns true if the given bullet is on a collision
-     * course with the current robot. Doesn't take into account objects between the bullet and this robot.
+     * course with the readCurrent robot. Doesn't take into account objects between the bullet and this robot.
      *
      * @param bullet The bullet in question
-     * @return True if the line of the bullet's path intersects with this robot's current position.
+     * @return True if the line of the bullet's path intersects with this robot's readCurrent position.
      */
     static boolean willCollideWithMe(BulletInfo bullet) {
         MapLocation myLocation = rc.getLocation();

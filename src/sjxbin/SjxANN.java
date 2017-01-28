@@ -142,7 +142,7 @@ public strictfp class SjxANN {
     }
 
     public ArrayList<Matrix> runBatch(Matrix input, SjxBytecodeTracker bct) {
-        // "input" should be [number of samples]x[input first layer]
+        // "input" should be [number of samples]x[input globalFirst layer]
 
 
         ArrayList<Matrix> layerPreActivations = new ArrayList<Matrix>();
@@ -151,7 +151,7 @@ public strictfp class SjxANN {
             input = input.appendColumn(bias);
         }
 
-        // Store the input as the first "activation".
+        // Store the input as the globalFirst "activation".
         layerPreActivations.add(input);
         for (Matrix weight : weights) {
             // Sigmoid the last layer activations, multiply by the weight matrix, then transpose back

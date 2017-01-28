@@ -15,7 +15,7 @@ public strictfp class archon extends RobotPlayer{
     static void runArchon(RobotController rc) throws GameActionException {
 
         // This is the RobotController object. You use it to perform actions from this robot,
-        // and to get information on its current status.
+        // and to get information on its readCurrent status.
         archon.rc = rc;
         System.out.println("I'm an archon!");
         MapLocation enemyArchonInitialLocation = rc.getInitialArchonLocations(rc.getTeam().opponent())[0];

@@ -88,7 +88,7 @@ public strictfp class scout extends RobotPlayer{
     static void runScout(RobotController rc) throws GameActionException {
 
         // This is the RobotController object. You use it to perform actions from this robot,
-        // and to get information on its current status.
+        // and to get information on its readCurrent status.
         scout.rc = rc;
         System.out.println("I'm an scout!");
 

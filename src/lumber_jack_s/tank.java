@@ -49,7 +49,7 @@ public strictfp class tank extends RobotPlayer{
     static void runTank(RobotController rc) throws GameActionException {
 
         // This is the RobotController object. You use it to perform actions from this robot,
-        // and to get information on its current status.
+        // and to get information on its readCurrent status.
         tank.rc = rc;
         System.out.println("I'm an tank!");
         Team enemy = rc.getTeam().opponent();

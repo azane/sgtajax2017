@@ -63,7 +63,7 @@ public class SjxBytecodeTracker {
 
         int lastTotalCost = totalCost;
         // The number of rounds passed * the bytecode turn limit
-        //  + the difference between the current bytecode position and the start.
+        //  + the difference between the readCurrent bytecode position and the start.
         // NOTE the latter may be a positive number if lapping is occurring.
         totalCost = (RobotPlayer.rc.getRoundNum()-roundStart)*turnLimit
                 + Clock.getBytecodeNum()-start;

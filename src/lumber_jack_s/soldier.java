@@ -51,7 +51,7 @@ public strictfp class soldier extends RobotPlayer{
     static void runSoldier(RobotController rc) throws GameActionException {
 
         // This is the RobotController object. You use it to perform actions from this robot,
-        // and to get information on its current status.
+        // and to get information on its readCurrent status.
         soldier.rc = rc;
         System.out.println("I'm a soldier!");
         Team enemy = rc.getTeam().opponent();

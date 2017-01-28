@@ -1,10 +1,6 @@
 package sjxbin;
 
-import battlecode.common.Clock;
-import battlecode.common.GameActionException;
-import battlecode.common.GameConstants;
-import battlecode.common.RobotController;
-import scala.Int;
+import battlecode.common.*;
 
 import java.util.HashMap;
 import java.util.Random;
@@ -12,7 +8,11 @@ import java.util.Random;
 /**
  * Created by azane on 1/27/17.
  */
+
 public class SjxBroadcastQueue {
+
+    // Because the gameconstants one is not correct.
+    private final static int MAXBROADCASTCHANNEL = 9999;
 
     public final int size;
     private final int elementLength;
@@ -45,7 +45,7 @@ public class SjxBroadcastQueue {
         if (elementLength <= 0)
             throw new RuntimeException("Invalid labels.");
 
-        if (startingChannel <= (GameConstants.BROADCAST_MAX_CHANNELS - (this.size*elementLength))
+        if (startingChannel <= (MAXBROADCASTCHANNEL - (this.size*elementLength))
                 && startingChannel >= 0)
             this.startingChannel = startingChannel;
         else
@@ -54,7 +54,7 @@ public class SjxBroadcastQueue {
         if ((positionIndicatorChannel < this.startingChannel
                     || positionIndicatorChannel >= this.startingChannel + (this.size*elementLength))
                 && positionIndicatorChannel >= 0
-                && positionIndicatorChannel < GameConstants.BROADCAST_MAX_CHANNELS)
+                && positionIndicatorChannel < MAXBROADCASTCHANNEL)
             this.positionIndicatorChannel = positionIndicatorChannel;
         else
             throw new RuntimeException("Invalid positionIndicatorChannel.");
@@ -67,7 +67,7 @@ public class SjxBroadcastQueue {
         // The last writeable channel is the starting channel, plus the number
         //  of channels occupied by a full set of data, minus 1 for index.
         lastWriteableChannel = startingChannel + (size*elementLength) - 1;
-        // The first writeable channel is the starting channel, plus the number
+        // The globalFirst writeable channel is the starting channel, plus the number
         //  of channels occupied by one piece of data, minus 1 for index of length.
         firstWriteableChannel = startingChannel + elementLength -1;
 
@@ -75,8 +75,8 @@ public class SjxBroadcastQueue {
 
 
         // Initialize the queue position to the last writeable channel, this way,
-        //  the first enqueue increment will return it to the
-        //  first writeable channel, instead of where the second data will go.
+        //  the globalFirst enqueue increment will return it to the
+        //  globalFirst writeable channel, instead of where the second data will go.
         // NOTE: we'll overwrite this if the global position has already been initialized.
         absoluteQueuePosition = lastWriteableChannel;
 
@@ -96,7 +96,7 @@ public class SjxBroadcastQueue {
             // If it hasn't been initialized, initialize!
             if (queuePositionQuery == 0) {
                 writeQueuePosition();
-                yieldToGuaranteeBroadcast();
+                yieldForBroadcast();
             } else
                 // If it has, read it.
                 readQueuePosition();
@@ -104,6 +104,13 @@ public class SjxBroadcastQueue {
     }
 
     private int getChannel(int index, String label) {
+
+        if (index < 0 || index >= size)
+            throw new IndexOutOfBoundsException("Index " + index + " is either less" +
+                    " than zero or exceeds the maximum index of " + (size-1));
+        if (!labels.containsKey(label))
+            throw new IndexOutOfBoundsException("The label " + label + " does not exist.");
+
         // The actual broadcast channel will be the queue position
         //  minus the number of elements back, times the element length.
         // Then, subtract the label index to get to the correct data.
@@ -120,7 +127,7 @@ public class SjxBroadcastQueue {
             return lastWriteableChannel - (startingChannel - nonCyclicIndex) + 1;
     }
 
-    public int get(int index, String label) {
+    private int get(int index, String label) {
         try {
             return rc.readBroadcast(getChannel(index, label));
         }
@@ -129,7 +136,7 @@ public class SjxBroadcastQueue {
         }
     }
 
-    public HashMap<String, Integer> get(int index) {
+    private HashMap<String, Integer> get(int index) {
         HashMap<String, Integer> data = new HashMap<>();
         for (String label : labels.keySet()) {
             data.put(label, get(index, label));
@@ -137,13 +144,13 @@ public class SjxBroadcastQueue {
         return data;
     }
 
-    // Return the specified property of the data at the current index.
-    public int current(String label) {
+    // Return the specified property of the data at the readCurrent index.
+    public int readCurrent(String label) {
         return get(currentIndex, label);
     }
 
-    // Return the data at the current index.
-    public HashMap<String, Integer> current() {
+    // Return the data at the readCurrent index.
+    public HashMap<String, Integer> readCurrent() {
         return get(currentIndex);
     }
 
@@ -154,17 +161,16 @@ public class SjxBroadcastQueue {
             currentIndex = 0;
     }
 
-    // Reset the iterator to the first entry (top of queue), and return the value
-    //  under the given property.
-    public int first(String label) {
-        currentIndex = 0;
-        return get(currentIndex, label);
+    public boolean nextExists() {
+        if (currentIndex == size - 1)
+            return false;
+        else
+            return true;
     }
 
-    // Reset the iterator to the first entry (top of queue), and return the data.
-    public HashMap<String, Integer> first() {
+    // Reset the iterator to the globalFirst entry (top of queue), and return the data.
+    public void first() {
         currentIndex = 0;
-        return get(currentIndex);
     }
 
     public boolean enqueue(HashMap<String, Integer> data) {
@@ -195,6 +201,7 @@ public class SjxBroadcastQueue {
         }
     }
 
+    // The caller is responsible for calling this after enqueuing a bunch of stuff.
     public boolean writeQueuePosition() {
         try {
             rc.broadcast(positionIndicatorChannel, absoluteQueuePosition);
@@ -205,6 +212,7 @@ public class SjxBroadcastQueue {
         }
     }
 
+    // The caller is responsible for calling this before processing.
     public boolean readQueuePosition() {
         try {
             absoluteQueuePosition = rc.readBroadcast(positionIndicatorChannel);
@@ -215,7 +223,8 @@ public class SjxBroadcastQueue {
         }
     }
 
-    public void yieldToGuaranteeBroadcast() {
+    // This can be used to guarantee a broadcast.
+    public void yieldForBroadcast() {
         Clock.yield();
     }
 
@@ -261,21 +270,27 @@ class TestSjxBroadcastQueue {
                 testerData[i].put(s, r.nextInt());
             queue.enqueue(testerData[i]);
 
-            queue.yieldToGuaranteeBroadcast();
+            queue.writeQueuePosition();
+
+            queue.yieldForBroadcast();
+
+            queue.readQueuePosition();
 
             // Ensure that the recent queue-age processed.
+            queue.first();
             for (String s : labels) {
-                if (queue.first(s) != testerData[i].get(s))
+                if (queue.readCurrent(s) != testerData[i].get(s))
                     return false;
             }
         }
 
         // Iterate through the queue to make sure it's content is accurate to the last
         //  data enqueued.
+        queue.readQueuePosition();
         queue.first();
         for (int i = max-1; i > max - queue.size - 1; i--) {
             for(String s : labels)
-                if (queue.current(s) != testerData[i].get(s))
+                if (queue.readCurrent(s) != testerData[i].get(s))
                     return false;
             queue.next();
         }

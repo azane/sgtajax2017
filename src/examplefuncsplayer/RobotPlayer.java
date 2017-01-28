@@ -13,7 +13,7 @@ public strictfp class RobotPlayer {
     public static void run(RobotController rc) throws GameActionException {
 
         // This is the RobotController object. You use it to perform actions from this robot,
-        // and to get information on its current status.
+        // and to get information on its readCurrent status.
         RobotPlayer.rc = rc;
 
         // Here, we've separated the controls into a different method for each RobotType.
@@ -246,10 +246,10 @@ public strictfp class RobotPlayer {
 
     /**
      * A slightly more complicated example function, this returns true if the given bullet is on a collision
-     * course with the current robot. Doesn't take into account objects between the bullet and this robot.
+     * course with the readCurrent robot. Doesn't take into account objects between the bullet and this robot.
      *
      * @param bullet The bullet in question
-     * @return True if the line of the bullet's path intersects with this robot's current position.
+     * @return True if the line of the bullet's path intersects with this robot's readCurrent position.
      */
     static boolean willCollideWithMe(BulletInfo bullet) {
         MapLocation myLocation = rc.getLocation();

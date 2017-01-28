@@ -206,7 +206,7 @@ final public class Matrix {
        return new Matrix(data[index]);
     }
     public Matrix getColumnAsRow(int index) {
-        // TODO don't transpose first.
+        // TODO don't transpose globalFirst.
         return new Matrix(this.transpose().data[index]);
     }
 
@@ -218,7 +218,7 @@ final public class Matrix {
     // This batch version expands each row/column of "this" and "B", and adds them to the expanded matrix.
     // Note that while the inputs are rowxrow, the output will be [B.N]x[this.N], or columnxcolumn.
     public Matrix batchExpandWithVectorAndSumRowByRow(Matrix B) throws RuntimeException {
-        // NOTE B needs to be transposed first if you want normal row/column expansion. Otherwise it's
+        // NOTE B needs to be transposed globalFirst if you want normal row/column expansion. Otherwise it's
         //  rowxrow.
 
         if (this.M != B.M) {

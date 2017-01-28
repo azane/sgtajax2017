@@ -15,6 +15,9 @@ public strictfp class tank extends RobotPlayer{
         // Sense all nearby robots.
         //RobotInfo[] robots = rc.senseNearbyRobots();
 
+        // Search for enemy archons
+        searchForArchon();
+
         double[] gradient = new double[2];
 
         // Store the closest enemy for updating.

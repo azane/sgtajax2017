@@ -59,6 +59,8 @@ public void mainMethod() throws GameActionException {
 	        	unitGardenerLoop();
 	        	break;
 	    }
+		// Search for enemy archons
+		searchForArchon();
 	}
 }
 /**

@@ -27,6 +27,9 @@ public strictfp class archon extends RobotPlayer{
 	
 	        // Donate bullets on last round
 	        donateBullets();
+
+			// Search for enemy archons
+			searchForArchon();
 	        
 	        // Count the number of robots nearby.  Make sure there's at least one gardener
 	        RobotInfo[] nearbyBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadius/3);

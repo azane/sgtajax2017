@@ -1,6 +1,7 @@
 package lumber_jack_s;
 import battlecode.common.*;
 import sjxbin.SjxANN;
+import sjxbin.SjxBroadcastQueue;
 import sjxbin.SjxMicrogradients;
 import sjxbin.SjxPredictiveShooter;
 

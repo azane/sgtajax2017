@@ -65,8 +65,12 @@ public strictfp class RobotPlayer {
 //            System.out.println("The broadcast limit changed!");
 //        }
 
+        //SjxBroadcastQueue.test(rc);
+        //SjxRobotBroadcastQueue.test(rc);
+
         RobotPlayer.enemyRobots = new SjxRobotBroadcastQueue(rc,
-                999, 1001, 1000);
+                998, 1002, 1000,
+                1001);
 
         // Instantiate for the singleton.
         new SjxMicrogradients();

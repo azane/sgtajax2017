@@ -15,13 +15,15 @@ public class SjxRobotBroadcastQueue {
     private final static String yLbl = "y";
     private final static String typeLbl = "type";
     private final static String turnsensedLbl = "turnsensed";
+    private final static String validdataLbl = "validdata";
 
     public final static String[] ROBOTLABELS = new String[] {
             idLbl,
             xLbl,
             yLbl,
             typeLbl,
-            turnsensedLbl
+            turnsensedLbl,
+            validdataLbl
     };
 
     private final static HashMap<RobotType, Integer> typeToCode = new HashMap<>();
@@ -41,7 +43,7 @@ public class SjxRobotBroadcastQueue {
 
         HashMap<String, Integer> dict = new HashMap<>();
 
-        dict.put(idLbl, robot.ID);
+        dict.put(idLbl, robot.getID());
 
         MapLocation loc = robot.getLocation();
         dict.put(xLbl, (int)(loc.x * locationPrecisionMultiplier));
@@ -51,6 +53,9 @@ public class SjxRobotBroadcastQueue {
 
         dict.put(turnsensedLbl, rc.getRoundNum());
 
+        // All enqueued data starts valid.
+        dict.put(validdataLbl, 1);
+
         return dict;
     }
 
@@ -58,20 +63,77 @@ public class SjxRobotBroadcastQueue {
     private final RobotController rc;
 
     public SjxRobotBroadcastQueue(RobotController rc,
-                                  int size, int startingChannel, int positionIndicatorChannel) {
+                                  int size, int startingChannel, int positionIndicatorChannel,
+                                  int numberElementsChannel) {
 
         this.rc = rc;
         queue = new SjxBroadcastQueue(ROBOTLABELS, this.rc, size,
-                startingChannel, positionIndicatorChannel, true);
+                startingChannel, positionIndicatorChannel, numberElementsChannel,
+                true);
 
     }
 
-    public void globalFirst() {
-        queue.readQueuePosition();
+    private boolean isCurrentValidAsFarAsWeKnow() {
+        // If we can sense the location, but can't sense the robot, this data is invalid.
+        // Also require that the data is reasonably old. We can use recent data for
+        //  predictive shooting.
+        // These are in order of most likely to fail, so we can avoid checking if we don't
+        //  have to.
+        if (getInfoAge() > SjxPredictiveShooter.TRAIL_LENGTH + 3
+                && rc.canSenseLocation(getLocation())
+                && !rc.canSenseRobot(getId())) {
+            // Draw a line from the invalidator to the location being invalidated.
+            rc.setIndicatorLine(rc.getLocation(), this.getLocation(), 255, 0, 0);
+            return false;
+        }
+        else
+            return true;
+    }
+
+    public void globalPrepIter() {
+        queue.readMetadata();
+        nullifyCache();
+        // first first for some popping.
         queue.first();
+
+        // Pop invalidated elements, by others or us, till we get to the bottom!
+        while(!queue.isEmpty()
+                && (!getValidity() || !isCurrentValidAsFarAsWeKnow())) {
+            // Draw a red dot on the location that's being popped.
+            rc.setIndicatorDot(getLocation(), 255, 0, 0);
+            queue.pop();
+        }
+
+        // Now call prep iter, as we're ready to iter!
+        queue.prepIter();
+        nullifyCache();
     }
-    public void next() {
-        queue.next();
+
+    public boolean next() {
+        // If there is no next, return false.
+        if (!queue.next())
+            return false;
+
+        nullifyCache();
+
+        // We can't pop elements here, because we might not be at the top of the stack.
+        // Instead, we can just update the validity of the entry.
+        // Make sure it hasn't already been invalidated.
+        if (getValidity() && !isCurrentValidAsFarAsWeKnow()) {
+            queue.writeCurrent(validdataLbl, 0);
+            cachedValidity = false;
+        }
+
+        return true;
+    }
+    private void nullifyCache() {
+        cachedLocation = null;
+        cachedX = null;
+        cachedY = null;
+        cachedType = null;
+        cachedTurnSensed = null;
+        cachedValidity = null;
+        cachedId = null;
     }
     public boolean nextExists() {
         return queue.nextExists();
@@ -79,44 +141,92 @@ public class SjxRobotBroadcastQueue {
     public int getSize() {
         return queue.size;
     }
-
-    public int getId() {
-        return queue.readCurrent(idLbl);
+    public int getCurrentIndex() {
+        return queue.getCurrentIndex();
     }
+
+    private Boolean cachedValidity = null;
+    public boolean getValidity() {
+        if (cachedValidity == null) {
+            int intbool = queue.readCurrent(validdataLbl);
+            if (intbool == 0)
+                cachedValidity = false;
+            else if (intbool == 1)
+                cachedValidity = true;
+            else
+                throw new RuntimeException("bot validity was neither 0 nor 1.");
+        }
+        return cachedValidity;
+    }
+
+    private Integer cachedId = null;
+    public int getId() {
+        if (cachedId == null)
+            cachedId = queue.readCurrent(idLbl);
+        return cachedId;
+    }
+
+    private MapLocation cachedLocation = null;
+    private Float cachedX = null;
+    private Float cachedY = null;
     public MapLocation getLocation() {
-        return new MapLocation(getX(), getY());
+        if (cachedLocation == null)
+            cachedLocation = new MapLocation(getX(), getY());
+        return cachedLocation;
     }
     public float getX() {
-        return ((float)queue.readCurrent(xLbl))/locationPrecisionMultiplier;
+        if (cachedX == null)
+            cachedX = ((float)queue.readCurrent(xLbl))/locationPrecisionMultiplier;
+        return cachedX;
     }
     public float getY() {
-        return ((float)queue.readCurrent(yLbl))/locationPrecisionMultiplier;
+        if (cachedY == null)
+            cachedY = ((float)queue.readCurrent(yLbl))/locationPrecisionMultiplier;
+        return cachedY;
     }
+
+    private RobotType cachedType = null;
     public RobotType getType() {
-        return codeToType.get(queue.readCurrent(typeLbl));
+        if (cachedType == null)
+            cachedType = codeToType.get(queue.readCurrent(typeLbl));
+        return cachedType;
     }
+
+    private Integer cachedTurnSensed = null;
     public int getTurnSensed() {
-        return queue.readCurrent(turnsensedLbl);
+        if (cachedTurnSensed == null)
+            cachedTurnSensed = queue.readCurrent(turnsensedLbl);
+        return cachedTurnSensed;
+    }
+    public int getInfoAge() {
+        return rc.getRoundNum() - getTurnSensed();
     }
 
     // Takes care of updating the queue position (read/write), queuing the array,
     //  and yielding for the broadcast.
-    public void enqueueBatch(RobotInfo[] robots) {
-        // Track each iteration's bytecode use, yield if necessary for broadcast.
-        SjxBytecodeTracker bct = new SjxBytecodeTracker();
-        bct.start(Clock.getBytecodesLeft());
+    public void enqueueBatchTask(RobotInfo[] robots, int bytecodeallotment) {
 
-        queue.readQueuePosition();
+        // Note: this task can abort at any time, so there's no need to yield
+        //  to the main method, we can just return entirely.
+        // It does, however require a yield for broadcast, and will advance the turn.
+        // TODO find a way to tell the tasker that a broadcast write is needed before
+        //  the turn is up, so other tasks can continue, and do one write at the end.
+
+        SjxBytecodeTracker bct = new SjxBytecodeTracker();
+        // Reserve 300 for the write/yield at the end.
+        bct.start(bytecodeallotment-300);
+        bct.poll();
+        if (bct.isAllotmentExceeded())
+            return;
+
+        queue.readMetadata();
         for (RobotInfo robot : robots) {
-            if (bct.getCostSinceLastPoll() > Clock.getBytecodesLeft())
-                queue.yieldForBroadcast();
             bct.poll();
+            if (bct.isAllotmentExceeded())
+                break;
             queue.enqueue(convert(robot, rc));
         }
-        queue.writeQueuePosition();
-        // TODO add a bct tracker to the robot player that tracks the cost of the
-        //  main method. If we have enough bytecode to run the main method, run it.
-        // else, yield.
+        queue.writeMetadata();
         queue.yieldForBroadcast();
     }
 
@@ -145,7 +255,8 @@ class TestSjxRobotBroadcastQueue {
 
 
         SjxRobotBroadcastQueue queue = new SjxRobotBroadcastQueue(rc,
-                10, 500, 499);
+                10, 500, 498,
+                499);
 
         long rseed = 1986058301;
         Random r = new Random();
@@ -165,11 +276,14 @@ class TestSjxRobotBroadcastQueue {
             }
         }
         int turnSensed = rc.getRoundNum();
-        queue.enqueueBatch(robots);
+        queue.enqueueBatchTask(robots, 50000);
 
         // Iterate through the queue to make sure it's content is accurate.
-        queue.globalFirst();
+        queue.globalPrepIter();
         for (int i = max-1; i > max - queue.getSize() - 1; i--) {
+
+            queue.next();
+
             if (queue.getId() != robots[i].getID())
                 return false;
             if (Math.abs(queue.getX() - robots[i].getLocation().x) > 0.001)
@@ -180,8 +294,8 @@ class TestSjxRobotBroadcastQueue {
                 return false;
             if (Math.abs(turnSensed - queue.getTurnSensed()) > 5)
                 return false;
-
-            queue.next();
+            if (!queue.getValidity())
+                return false;
         }
 
         // Release the test to others.

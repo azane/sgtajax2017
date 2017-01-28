@@ -1,6 +1,7 @@
 package lumber_jack_s;
 import battlecode.common.*;
 import sjxbin.SjxYieldBytecode;
+import sjxbin.SjxMath;
 
 import java.util.Random;
 
@@ -148,25 +149,113 @@ void unitGardenerLoop() throws GameActionException{
 	rc.setIndicatorDot(rc.getLocation(), 255, 0, 0);
 	buildRobotInOrder();
 	waterFunc();
-	Direction moveDir = randomDirection();
+
+	MapLocation myLocation = rc.getLocation();
+	
+	//Move away from trees
+	TreeInfo[] trees = rc.senseNearbyTrees();
+	float treeX = 0;
+	float treeY = 0;
+	if (trees.length != 0){
+		for (TreeInfo tree : trees){
+			double[] dxdy = SjxMath.gaussianDerivative(myLocation, tree.getLocation(), tree.radius*2, 1.);
+			treeX = treeX + (float)dxdy[0]; //Add all x's and y's
+			treeY = treeY + (float)dxdy[1]; 
+		}
+		treeX = treeX/trees.length;
+		treeY = treeY/trees.length;
+	}
+	
+	//Move away from other robots
+	RobotInfo[] robots = rc.senseNearbyRobots();
+	float robotX = 0;
+	float robotY = 0;
+	if (robots.length != 0){
+		for (RobotInfo robot : robots){
+			double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(), robot.getRadius()*2, 5.);
+			robotX = robotX + (float)dxdy[0]; //Add all x's and y's
+			robotY = robotY + (float)dxdy[1]; 
+		}
+		robotX = robotX/trees.length;
+		robotY = robotY/trees.length;
+	}
+	
+	float newX = treeX + robotX;
+	float newY = treeY + robotY;
+	
+	
+	MapLocation plopSpot = new MapLocation(myLocation.x - newX, myLocation.y - newY);
+	rc.setIndicatorDot(plopSpot, 0, 0, 0); // Set an indicator to see where the dot is going.
+	
+	
+	// Finally, move to that new location
+	Direction moveDir = myLocation.directionTo(plopSpot);
 	tryMove(moveDir);
 	
 }
 
 void findEmptySpot() throws GameActionException{
-	//Move code globalFirst.
-	Direction moveDir = randomDirection();
+	MapLocation myLocation = rc.getLocation();
+	
+	//Move away from trees
+	TreeInfo[] trees = rc.senseNearbyTrees();
+	float treeX = 0;
+	float treeY = 0;
+	if (trees.length != 0){
+		for (TreeInfo tree : trees){
+			double[] dxdy = SjxMath.gaussianDerivative(myLocation, tree.getLocation(), 2., tree.radius*4);
+			treeX = treeX + (float)dxdy[0]; //Add all x's and y's
+			treeY = treeY + (float)dxdy[1]; 
+		}
+		treeX = treeX/trees.length;
+		treeY = treeY/trees.length;
+	}
+	
+	//Move away from other robots
+	RobotInfo[] robots = rc.senseNearbyRobots();
+	float robotX = 0;
+	float robotY = 0;
+	if (robots.length != 0){
+		for (RobotInfo robot : robots){
+			if (robot.getType() == RobotType.GARDENER){
+				double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(), 1., robot.getRadius()*2);
+				robotX = robotX + (float)dxdy[0]; //Add all x's and y's
+				robotY = robotY + (float)dxdy[1]; 
+			}
+		}
+		robotX = robotX/trees.length;
+		robotY = robotY/trees.length;
+	}
+	
+	float newX = treeX + robotX;
+	float newY = treeY + robotY;
+	
+	
+	MapLocation plopSpot = new MapLocation(myLocation.x - newX, myLocation.y - newY);
+	rc.setIndicatorDot(plopSpot, 0, 0, 0); // Set an indicator to see where the dot is going.
+	
+	
+	// Finally, move to that new location
+	Direction moveDir = myLocation.directionTo(plopSpot);
 	tryMove(moveDir);
 
-	boolean possibleSpot = true;
+	int emptySpots = treeBuildDirs.length;
+	foundSpot = false;
+	MapLocation treeLocation;
 	// Have we found the right spot?
 	for (Direction buildDir : treeBuildDirs){
-		if (!rc.canPlantTree(buildDir)){
-			System.out.println("Cannot build tree.");
-			possibleSpot = false;
+		treeLocation = myLocation.add(buildDir, GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS*2+RobotType.GARDENER.bodyRadius);
+		rc.setIndicatorDot(treeLocation, 255, 255, 255);
+		if (rc.isLocationOccupied(treeLocation)){
+			System.out.println("Cannot build tree at: "+treeLocation.toString());
+			emptySpots -= 1;
 		}
 	}
-	foundSpot = possibleSpot;
+	
+	if(emptySpots > 4){
+		foundSpot = true;
+	}	
+
 }
 
 

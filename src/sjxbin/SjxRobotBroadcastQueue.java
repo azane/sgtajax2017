@@ -73,6 +73,10 @@ public class SjxRobotBroadcastQueue {
 
     }
 
+    public int getNumElements() {
+        return queue.getNumElements();
+    }
+
     private boolean isCurrentValidAsFarAsWeKnow() {
         // If we can sense the location, but can't sense the robot, this data is invalid.
         // Also require that the data is reasonably old. We can use recent data for
@@ -90,18 +94,34 @@ public class SjxRobotBroadcastQueue {
             return true;
     }
 
-    public void globalPrepIter() {
+    public void globalPrepIter(boolean popInvalid) {
         queue.readMetadata();
         nullifyCache();
-        // first first for some popping.
-        queue.first();
 
-        // Pop invalidated elements, by others or us, till we get to the bottom!
-        while(!queue.isEmpty()
-                && (!getValidity() || !isCurrentValidAsFarAsWeKnow())) {
-            // Draw a red dot on the location that's being popped.
-            rc.setIndicatorDot(getLocation(), 255, 0, 0);
-            queue.pop();
+        if (popInvalid) {
+            // first first for some popping.
+            queue.first();
+
+            // Cleaning up the data is not time essential, and will happen when people
+            //  aren't needing to shoot their guns.
+            SjxBytecodeTracker bct = new SjxBytecodeTracker();
+            bct.start(Math.min(Clock.getBytecodesLeft() - 3000, 5000));
+            bct.poll();
+            // Pop invalidated elements, by others or us, till we get to the bottom!
+            while (!queue.isEmpty() && !bct.isAllotmentExceeded()
+                    && (!getValidity() || !isCurrentValidAsFarAsWeKnow())) {
+                // Draw a blue line to the location that's being popped.
+                rc.setIndicatorLine(rc.getLocation(), getLocation(), 0, 0, 255);
+                System.out.println("Popping queue!");
+                queue.pop();
+                bct.poll();
+            }
+            // Write the meta data after popping.
+            queue.writeMetadata();
+            // Yield your turn iff you're not going to lose much.
+            if (Clock.getBytecodesLeft() < 5000)
+                queue.yieldForBroadcast();
+            bct.end();
         }
 
         // Now call prep iter, as we're ready to iter!
@@ -202,6 +222,11 @@ public class SjxRobotBroadcastQueue {
         return rc.getRoundNum() - getTurnSensed();
     }
 
+    public RobotInfo getRobot() {
+        return new RobotInfo(getId(), rc.getTeam().opponent(), getType(), getLocation(),
+                0,0,0);
+    }
+
     // Takes care of updating the queue position (read/write), queuing the array,
     //  and yielding for the broadcast.
     public void enqueueBatchTask(RobotInfo[] robots, int bytecodeallotment) {
@@ -214,7 +239,7 @@ public class SjxRobotBroadcastQueue {
 
         SjxBytecodeTracker bct = new SjxBytecodeTracker();
         // Reserve 300 for the write/yield at the end.
-        bct.start(bytecodeallotment-300);
+        bct.start(bytecodeallotment-2000);
         bct.poll();
         if (bct.isAllotmentExceeded())
             return;
@@ -279,7 +304,7 @@ class TestSjxRobotBroadcastQueue {
         queue.enqueueBatchTask(robots, 50000);
 
         // Iterate through the queue to make sure it's content is accurate.
-        queue.globalPrepIter();
+        queue.globalPrepIter(false);
         for (int i = max-1; i > max - queue.getSize() - 1; i--) {
 
             queue.next();

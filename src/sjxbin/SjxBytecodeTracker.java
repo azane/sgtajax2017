@@ -32,6 +32,9 @@ public class SjxBytecodeTracker {
     }
 
     private int bytecodeAllotment;
+    public int getBytecodeAllotment() {
+        return bytecodeAllotment;
+    }
 
     private static int mainMethodCost = 0;
     public static int getMainMethodCost() {
@@ -54,7 +57,8 @@ public class SjxBytecodeTracker {
     }
 
     public void start(int bytecodeAllotment) {
-        if (running) throw new RuntimeException("Must call .end() before starting again.");
+        if (running)
+            throw new RuntimeException("Must call .end() before starting again.");
 
         running = true;
         roundStart = RobotPlayer.rc.getRoundNum();
@@ -67,7 +71,8 @@ public class SjxBytecodeTracker {
     }
 
     public int poll() {
-        if (!running) throw new RuntimeException("Must call .start() before polling.");
+        if (!running)
+            throw new RuntimeException("Must call .start() before polling.");
 
         int lastTotalCost = totalCost;
         // The number of rounds passed * the bytecode turn limit
@@ -111,14 +116,26 @@ public class SjxBytecodeTracker {
         }
     }
 
+    private String yieldBytecodeNumbers = "";
     public void yieldForBroadcast() {
-        try {
-            RobotPlayer.rp.mainMethod(true);
+
+        // If we have enough bytecode to run the main method, and then yield, do that.
+        if (Clock.getBytecodesLeft() > mainMethodCost*1.2)
+            yieldToMain();
+        else {
+            System.out.println("Not yielding before broadcast. Not enough bytecode.");
+            int remainder = Clock.getBytecodesLeft();
+            yieldBytecodeNumbers += remainder + "\n";
+            if (RobotPlayer.rc.getRoundNum() > 700)
+                System.out.println();
         }
-        catch (GameActionException e) {
-            System.out.println("RobotPlayer's main method failed to complete.");
-        }
+
+        // Subtract the bytecode from the rest of the turn from the total cost.
+//        totalCost -= remainder;
+//        costSinceLastPoll -= remainder;
         Clock.yield();
+        //this.poll();
+        //System.out.println();
     }
 
     public boolean isAllotmentExceeded() {

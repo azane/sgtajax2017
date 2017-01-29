@@ -69,7 +69,7 @@ public strictfp class archon extends RobotPlayer{
 		SjxBytecodeTracker bct = new SjxBytecodeTracker();
 		bct.start(0);
 		bct.poll();
-		enemyRobots.globalPrepIter(true);
+		enemyRobots.globalPrepIter();
 		System.out.println("Enemy bot stack:" + enemyRobots.getNumElements());
 		while (enemyRobots.next() && enemyRobots.getCurrentIndex() < 20) {
 			MapLocation loc = enemyRobots.getLocation();

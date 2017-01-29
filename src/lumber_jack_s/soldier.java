@@ -12,7 +12,7 @@ public strictfp class soldier extends RobotPlayer{
         donateBullets();
 
         // Search for enemy archons
-        searchForArchon();
+        //searchForArchon();
 
         MapLocation myLocation = rc.getLocation();
 

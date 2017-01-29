@@ -94,35 +94,41 @@ public class SjxRobotBroadcastQueue {
             return true;
     }
 
-    public void globalPrepIter(boolean popInvalid) {
-        queue.readMetadata();
-        nullifyCache();
+    public void popInvalidsTask(int bytecodeallotment, boolean yieldForBroadcast,
+                                 boolean readWriteMetaData) {
+        // first for some popping.
+        queue.first();
 
-        if (popInvalid) {
-            // first first for some popping.
-            queue.first();
+        if (readWriteMetaData)
+            queue.readMetadata();
 
-            // Cleaning up the data is not time essential, and will happen when people
-            //  aren't needing to shoot their guns.
-            SjxBytecodeTracker bct = new SjxBytecodeTracker();
-            bct.start(Math.min(Clock.getBytecodesLeft() - 3000, 5000));
+        // Cleaning up the data is not time essential, and will happen when people
+        //  aren't needing to shoot their guns.
+        SjxBytecodeTracker bct = new SjxBytecodeTracker();
+        bct.start(bytecodeallotment);
+        bct.poll();
+        // Pop invalidated elements, by others or us, till we get to the bottom!
+        while (!queue.isEmpty() && !bct.isAllotmentExceeded()
+                && (!getValidity() || !isCurrentValidAsFarAsWeKnow())) {
+            // Draw a blue line to the location that's being popped.
+            rc.setIndicatorLine(rc.getLocation(), getLocation(), 0, 0, 255);
+            //System.out.println("Popping queue!");
+            queue.pop();
             bct.poll();
-            // Pop invalidated elements, by others or us, till we get to the bottom!
-            while (!queue.isEmpty() && !bct.isAllotmentExceeded()
-                    && (!getValidity() || !isCurrentValidAsFarAsWeKnow())) {
-                // Draw a blue line to the location that's being popped.
-                rc.setIndicatorLine(rc.getLocation(), getLocation(), 0, 0, 255);
-                System.out.println("Popping queue!");
-                queue.pop();
-                bct.poll();
-            }
+        }
+
+        if (readWriteMetaData)
             // Write the meta data after popping.
             queue.writeMetadata();
-            // Yield your turn iff you're not going to lose much.
-            if (Clock.getBytecodesLeft() < 5000)
-                queue.yieldForBroadcast();
-            bct.end();
-        }
+
+        if (yieldForBroadcast)
+            bct.yieldForBroadcast();
+        bct.end();
+    }
+
+    public void globalPrepIter() {
+        queue.readMetadata();
+        nullifyCache();
 
         // Now call prep iter, as we're ready to iter!
         queue.prepIter();
@@ -139,6 +145,8 @@ public class SjxRobotBroadcastQueue {
         // We can't pop elements here, because we might not be at the top of the stack.
         // Instead, we can just update the validity of the entry.
         // Make sure it hasn't already been invalidated.
+        // Also, it's not really important that this get updated on THIS turn, as invalid is invalid.
+        //  i.e. once invalid, always invalid. no race conditions.
         if (getValidity() && !isCurrentValidAsFarAsWeKnow()) {
             queue.writeCurrent(validdataLbl, 0);
             cachedValidity = false;
@@ -238,13 +246,24 @@ public class SjxRobotBroadcastQueue {
         //  the turn is up, so other tasks can continue, and do one write at the end.
 
         SjxBytecodeTracker bct = new SjxBytecodeTracker();
-        // Reserve 300 for the write/yield at the end.
-        bct.start(Math.max(bytecodeallotment-500, 0));
+        // Reserve some space to make sure of the write/yield at the end.
+        bct.start(Math.max(bytecodeallotment-1000, 0));
         bct.poll();
         if (bct.isAllotmentExceeded())
             return;
 
         queue.readMetadata();
+
+        // Run the popping task a bit first, give it everything robots is empty.
+        // Note that this probably won't run to its full allotment anyway.
+        int popTaskBytecodeAllotment;
+        if (robots.length == 0)
+            popTaskBytecodeAllotment = bct.getBytecodeAllotment();
+        else
+            popTaskBytecodeAllotment = bct.getBytecodeAllotment()/3;
+        // Don't yield or read/write, we're taking care of that out here.
+        popInvalidsTask(popTaskBytecodeAllotment, false, false);
+
         for (RobotInfo robot : robots) {
             if (bct.isAllotmentExceeded())
                 break;
@@ -252,7 +271,8 @@ public class SjxRobotBroadcastQueue {
             bct.poll();
         }
         queue.writeMetadata();
-        queue.yieldForBroadcast();
+        bct.yieldForBroadcast();
+        bct.end();
     }
 
     public static boolean test(RobotController rc) {
@@ -304,7 +324,7 @@ class TestSjxRobotBroadcastQueue {
         queue.enqueueBatchTask(robots, 50000);
 
         // Iterate through the queue to make sure it's content is accurate.
-        queue.globalPrepIter(false);
+        queue.globalPrepIter();
         for (int i = max-1; i > max - queue.getSize() - 1; i--) {
 
             queue.next();

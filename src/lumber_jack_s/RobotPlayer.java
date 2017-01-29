@@ -116,12 +116,12 @@ public strictfp class RobotPlayer {
 	public void mainMethod() throws GameActionException {
         throw new RuntimeException("This method is not implemented in the parent class!");
     }
-
-    private SjxBytecodeTracker bct = new SjxBytecodeTracker();
     public void mainMethod(boolean measure) throws GameActionException{
+        SjxBytecodeTracker bct = new SjxBytecodeTracker();
         bct.start(0);
         bct.poll();
         mainMethod();
+        bct.poll();
         bct.setMainMethodCost();
         bct.end();
     }

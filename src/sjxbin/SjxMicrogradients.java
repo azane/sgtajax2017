@@ -311,27 +311,35 @@ public strictfp class SjxMicrogradients {
         double[] gradient = new double[2];
 
         // Increase tree sensitivity if we are stuck.
-        updateTreeToMacroRate();
+        //updateTreeToMacroRate();
 
         if (robots.length == 0) {
             System.out.println("Not sensing any bots.");
             //return SjxMath.elementwiseSum(gradient, macroGradient(myLocation), false);
         }
 
+        SjxBytecodeTracker bct = new SjxBytecodeTracker();
+        // Leave at least 5000 bytecode for end of turn processing.
+        //  This will hopefully include some task processing.
+        bct.start(Clock.getBytecodesLeft() - 5000);
+        bct.poll();
+
         // Keep a hash of the robots you've already processed nearby.
         HashSet<Integer> processedBots = new HashSet<>();
         for (RobotInfo robot : robots) {
+            if (bct.isAllotmentExceeded())
+                break;
             processedBots.add(robot.getID());
             gradient = SjxMath.elementwiseSum(getMyGradient(myLocation, robot), gradient, false);
+            bct.poll();
         }
 
-        SjxBytecodeTracker bct = new SjxBytecodeTracker();
-        // Leave 2000 bytecode for end of turn processing.
-        bct.start(Clock.getBytecodesLeft() - 3000);
-        bct.poll();
+        // Do trees for lumberjacks only, and only if they have bytecode to spare from sensing close bots.
+        // But before we sense macro/out of range targets.
+        if (myType == RobotType.LUMBERJACK && !bct.isAllotmentExceeded())
+            gradient = SjxMath.elementwiseSum(gradient, seekTreesGradient(myLocation, bct), false);
 
-        // Only pop invalids if there aren't any bad guys around.
-        badBots.globalPrepIter(enemyMilitaryCounted == 0);
+        badBots.globalPrepIter();
         System.out.println("Enemy bot stack:" + badBots.getNumElements());
 
         // Process up to bytecode allotment or to 15 units, whichever is first.
@@ -355,6 +363,9 @@ public strictfp class SjxMicrogradients {
                         _scale = macroEconomicTargetScale;
                     case ENEMYRAIDER:
                     case ENEMYMILITARY:
+                        if (myType == RobotType.LUMBERJACK)
+                            // Run away from military like you run to economics.
+                            _scale = -macroEconomicTargetScale;
                         _scale = macroMilitaryTargetScale;
                     default:
                         _scale = 10;
@@ -375,7 +386,7 @@ public strictfp class SjxMicrogradients {
         }
 
         // Add the macro level gradients.
-        gradient = SjxMath.elementwiseSum(gradient, macroGradient(myLocation), false);
+        //gradient = SjxMath.elementwiseSum(gradient, macroGradient(myLocation), false);
 
         // Mavg it if haven't moved.
 //        if (!me.hasMoved())
@@ -394,7 +405,9 @@ public strictfp class SjxMicrogradients {
         if (gradient[0] == 0 && gradient[1] == 0) {
             for (MapLocation loc : me.getInitialArchonLocations(myTeam.opponent()))
                 gradient = SjxMath.elementwiseSum(gradient,
-                        SjxMath.gaussianDerivative(myLocation, loc, 70., macroEconomicTargetScale),
+                        SjxMath.gaussianDerivative(myLocation, loc, 70.,
+                                // Split up the army when heading to initial locations.
+                                macroEconomicTargetScale*(me.getID()%3)),
                 false);
         }
 
@@ -405,6 +418,9 @@ public strictfp class SjxMicrogradients {
             if (!Double.isFinite(d))
                 System.out.println("Why you not finite?");
         }
+
+        bct.poll();
+        bct.end();
 
         return gradient;
 
@@ -425,75 +441,6 @@ public strictfp class SjxMicrogradients {
 //        System.out.println("My treeToMacroRate: " + treeToMacroRate);
 //
 //        lastLocation = me.getLocation();
-    }
-
-    public double[] macroGradient(MapLocation myLocation) {
-        // TODO read target broadcast channels
-        // TODO convert coords to location
-        // TODO calculate the attraction/repulsion of each macro target given robot type.
-        // TODO include treees?
-
-        double[] gradient = new double[2];
-        double[] treeAvoidGrad = new double[2];
-
-        switch (myType) {
-//            case SOLDIER:
-//                treeAvoidGrad = avoidTreesGradient(myLocation);
-//                System.out.println("My tree gradient is: " + Arrays.toString(treeAvoidGrad));
-//            case TANK:
-//                try {
-//                    MapLocation archonLoc = RobotPlayer.findClosestArchon();
-//                    if (archonLoc != null) {
-//                        // Large and small, stacked.
-//                        double[] archonGradient = SjxMath.gaussianDerivative(myLocation, archonLoc,
-//                                        75, macroEconomicTargetScale);
-////                        archonGradient = SjxMath.elementwiseSum(archonGradient,
-////                                SjxMath.gaussianDerivative(myLocation, archonLoc,
-////                                        20, macroEconomicTargetScale/2.),
-////                                false
-////                        );
-////                        archonGradient[0] /= 2.;
-////                        archonGradient[1] /= 2.;
-//                        System.out.println("My archon gradient is: " + Arrays.toString(archonGradient));
-//
-//                        // Make sure the tree gradient is half of the archon gradient.
-//                        double treeMag = SjxMath.vectorMagnitude(treeAvoidGrad);
-//                        double archonMag = SjxMath.vectorMagnitude(archonGradient);
-//                        if (treeMag > 0.) {
-//                            treeAvoidGrad[0] = (treeAvoidGrad[0] / treeMag) * (archonMag / treeToMacroRate);
-//                            treeAvoidGrad[1] = (treeAvoidGrad[1] / treeMag) * (archonMag / treeToMacroRate);
-//                        }
-//                        else
-//                            System.out.println("My tree gradient is zero?");
-//
-//                        gradient = SjxMath.elementwiseSum(treeAvoidGrad, gradient, false);
-//                        gradient = SjxMath.elementwiseSum(archonGradient, gradient, false);
-//                    }
-//                }
-//                catch (GameActionException e) {
-//                    System.out.println(e.getMessage());
-//                }
-//                break;
-            case LUMBERJACK:
-                gradient = SjxMath.elementwiseSum(gradient, seekTreesGradient(myLocation), false);
-//                System.out.println("My tree gradient is: " + Arrays.toString(gradient));
-//                try {
-//                    MapLocation archonLoc = RobotPlayer.findClosestArchon();
-//                    if (archonLoc != null) {
-//                        double[] archonGradient = SjxMath.gaussianDerivative(myLocation, archonLoc,
-//                                75, macroEconomicTargetScale);
-//                        System.out.println("My archon gradient is: " + Arrays.toString(archonGradient));
-//                        gradient = SjxMath.elementwiseSum(archonGradient, gradient, false);
-//                    }
-//                }
-//                catch (GameActionException e) {
-//                    System.out.println(e.getMessage());
-//                }
-                break;
-        }
-
-        //System.out.println("My total gradient is " + Arrays.toString(gradient));
-        return gradient;
     }
     //endregion
 
@@ -667,7 +614,7 @@ public strictfp class SjxMicrogradients {
         updateShootGradients(gradient, robot);
     }
 
-    private double[] treeGradient(MapLocation myLocation, double scale) {
+    private double[] treeGradient(MapLocation myLocation, double scale, SjxBytecodeTracker bct) {
 
         // Sense all nearby trees.
         TreeInfo[] trees;
@@ -681,6 +628,9 @@ public strictfp class SjxMicrogradients {
 
         // Iterate nearby trees
         for (TreeInfo tree : trees) {
+
+            if (bct.isAllotmentExceeded())
+                break;
 
             double closeStandardDeviation = (tree.radius + myType.bodyRadius);
 
@@ -717,6 +667,8 @@ public strictfp class SjxMicrogradients {
 
             updateClosestTree(myLocation, tree);
 
+            bct.poll();
+
         }
 
         // Normalize gradient over all nearby trees.
@@ -727,11 +679,11 @@ public strictfp class SjxMicrogradients {
 
         return gradient;
     }
-    public double[] avoidTreesGradient(MapLocation myLocation) {
+    public double[] avoidTreesGradient(MapLocation myLocation, SjxBytecodeTracker bct) {
         // Bouncing around trees isn't what we want. Instead, move orthogonally to the trees
         //  to move around them!
         // TODO disabled until we implement going orthogonal TOWARD other macro targets.
-        double[] treeGrad = treeGradient(myLocation, -treeScale);
+        double[] treeGrad = treeGradient(myLocation, -treeScale, bct);
 
 //        // Get the vector orthogonal to this one by swapping and negating one.
 //        double[] orthoGrad = new double[treeGrad.length];
@@ -747,8 +699,9 @@ public strictfp class SjxMicrogradients {
 //        return orthoGrad;
         return treeGrad;
     }
-    public double[] seekTreesGradient(MapLocation myLocation) {
-        return treeGradient(myLocation, treeScale);
+    public double[] seekTreesGradient(MapLocation myLocation,
+                                      SjxBytecodeTracker bct) {
+        return treeGradient(myLocation, treeScale, bct);
     }
 
     // TODO bullet dodging gradients

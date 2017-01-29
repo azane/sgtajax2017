@@ -1,5 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import com.intellij.ui.GroupedElementsRenderer;
 import sjxbin.SjxYieldBytecode;
 
 
@@ -8,7 +9,7 @@ public strictfp class scout extends RobotPlayer{
 
     int startRound = rc.getRoundNum();
 
-    MapLocation enemyArchonLocation = pickInitialArchon();
+    MapLocation enemyArchonLocation = pickInitialArchon2();
     boolean foundEnemyArchon = false;
 
 
@@ -21,6 +22,118 @@ public strictfp class scout extends RobotPlayer{
 
     public void mainMethod() throws GameActionException {
 
+        MapLocation myLocation = rc.getLocation();
+        Direction dirToMove = null;
+        RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
+        TreeInfo[] trees = rc.senseNearbyTrees();
+
+        //--- Scout Collect Bullets
+        //-------------------------
+        for (TreeInfo tree : trees) {
+            if (tree.getContainedBullets() != 0) {
+                if (rc.canShake(tree.getLocation())){
+                    rc.shake(tree.getLocation());
+                } else {
+                    dirToMove = myLocation.directionTo(tree.getLocation());
+                    tryMove(dirToMove);
+                    break;
+                }
+            }
+        }
+        //-----------------------
+        //--- End Collect Bullets
+
+
+        //--- Scout Avoid Enemy Ranged Code
+        //---------------------------------
+        int rangedEnemyCount = 0;
+        int enemyGardenerCount = 0;
+        MapLocation enemyRanger = null;
+
+        for (RobotInfo robot : robots) {
+            RobotType botType = robot.getType();
+            if (botType == RobotType.SOLDIER || botType == RobotType.TANK) {
+                if (myLocation.distanceTo(robot.getLocation()) < 10) {
+                    rangedEnemyCount++;
+                    enemyRanger = robot.getLocation();
+                }
+            } else if (botType == RobotType.GARDENER) {
+                enemyGardenerCount++;
+            }
+        }
+
+        if (rangedEnemyCount == 1 && enemyGardenerCount >= 1) {
+            for (RobotInfo robot : robots) {
+                if (robot.getType() == RobotType.GARDENER) {
+                    MapLocation gardenerLocation = robot.getLocation();
+                    Direction angle = enemyRanger.directionTo(gardenerLocation);
+                    float offset = 2.8f;
+
+                    MapLocation destination = new MapLocation(angle.getDeltaX(offset), angle.getDeltaY(offset));
+                    if (rc.canMove(destination)) {
+                        rc.move(destination);
+                    } else {
+                        tryMove(myLocation.directionTo(destination));
+                    }
+                }
+            }
+        }
+
+        //--- End Avoid Enemy Ranged Code
+        //-------------------------------
+
+
+        // ToDo Is this section necessary still??
+        //--- Scout Search Code
+        //---------------------
+        if (searchForArchon() != null) {
+            enemyArchonLocation = searchForArchon();
+            foundEnemyArchon = true;
+        } else {
+            foundEnemyArchon = false;
+        }
+        //--- End Search Code
+        //-------------------
+
+
+        //--- Scout Attack Code   // Move toward gardener before trying to shoot them
+        //---------------------
+        if (robots.length > 0) {
+            for (RobotInfo robot : robots) {
+                if (robot.getType() == RobotType.GARDENER && rc.canFireSingleShot()) {
+                    Direction towardGardener = myLocation.directionTo(robot.getLocation());
+                    double distanceToGardener = myLocation.distanceTo(robot.getLocation());
+                    if (distanceToGardener > 3){
+                        tryMove(towardGardener);
+                    }
+                    if (distanceToGardener < 5) {
+                        rc.fireSingleShot(towardGardener);
+                    }
+                    break;
+                }
+            }
+        }
+        //--- End Attack Code
+        //-------------------
+
+
+        //--- Scout Move Code
+        //-------------------
+        if (rc.hasAttacked() == false) {
+            Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
+            if (enemyArchonLocation != null)
+                // Move towards the enemy archon or perpendicular to it
+                if (foundEnemyArchon){
+                    tryMove(towardsEnemyArchon.rotateLeftDegrees(90));
+                } else {
+                    tryMove(towardsEnemyArchon);
+                }
+        }
+        //--- End Move Code
+        //-----------------
+
+
+/*
         //--- Scout Search Code
         //---------------------
 
@@ -32,6 +145,7 @@ public strictfp class scout extends RobotPlayer{
                     break;
                 } else {
                     tryMove(rc.getLocation().directionTo(tree.getLocation()));
+                    return;
                 }
             }
         }
@@ -82,7 +196,7 @@ public strictfp class scout extends RobotPlayer{
                 }
         }
         //--- End Move Code
-        //-----------------
+        //-----------------*/
     }
 
     static void runScout(RobotController rc) throws GameActionException {
@@ -154,4 +268,40 @@ public strictfp class scout extends RobotPlayer{
             throw new RuntimeException("pickInitialArchonLocation CRAAASHHHED.");
         }
     }
+
+    // Read different enemy archon location for each scout
+    static MapLocation pickInitialArchon2() {
+        try {
+            MapLocation[] enemyInitialArchons = rc.getInitialArchonLocations(rc.getTeam().opponent());
+
+            int scoutChannel = gardener.GARDENER_BASE_OFFSET + gardener.SCOUTS_BUILT_OFFSET;
+            int scoutNumber = rc.readBroadcast(scoutChannel);
+            if (scoutNumber == 1) {
+                MapLocation enemyArchon = enemyInitialArchons[0];
+                return enemyArchon;
+            } else if (scoutNumber == 2) {
+                if (enemyInitialArchons.length >= 2) {
+                    MapLocation enemyArchon = enemyInitialArchons[1];
+                    return enemyArchon;
+                } else {
+                    MapLocation enemyArchon = enemyInitialArchons[0];
+                    return enemyArchon;
+                }
+            } else if (scoutNumber == 3) {
+                if (enemyInitialArchons.length >= 3) {
+                    MapLocation enemyArchon = enemyInitialArchons[2];
+                    return enemyArchon;
+                } else {
+                    MapLocation enemyArchon = enemyInitialArchons[0];
+                    return enemyArchon;
+                }
+            } else {
+                MapLocation enemyArchon = enemyInitialArchons[0];
+                return enemyArchon;
+            }
+        } catch (GameActionException e) {
+            throw new RuntimeException("pickInitialArchonLocation2 crashed and burned. :( ");
+        }
+    }
+
 }

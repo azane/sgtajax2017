@@ -413,5 +413,20 @@ public strictfp class RobotPlayer {
     	num_bots++;
     	setNumberRobotsBuilt(type, num_bots);
     }
+
+
+    static boolean enemyArchonsDead () throws GameActionException{
+        int archon1x = rc.readBroadcast(ARCHON_SEARCH_OFFSET+1);
+        int archon2x = rc.readBroadcast(ARCHON_SEARCH_OFFSET+3);
+        int archon3x = rc.readBroadcast(ARCHON_SEARCH_OFFSET+6);
+
+        if (archon1x==0 && archon2x==0 && archon3x==0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
 }
 

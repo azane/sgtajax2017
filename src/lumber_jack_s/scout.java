@@ -29,6 +29,8 @@ public strictfp class scout extends RobotPlayer{
 
         //--- Scout Collect Bullets
         //-------------------------
+
+        // Top priority is collecting all the bullets from trees
         for (TreeInfo tree : trees) {
             if (tree.getContainedBullets() != 0) {
                 if (rc.canShake(tree.getLocation())){
@@ -46,15 +48,16 @@ public strictfp class scout extends RobotPlayer{
 
         //--- Scout Avoid Enemy Ranged Code
         //---------------------------------
-        int rangedEnemyCount = 0;
+        int damagingEnemyCount = 0;
         int enemyGardenerCount = 0;
         MapLocation enemyRanger = null;
 
+        // Count number of enemy units that can damage and number of gardeners
         for (RobotInfo robot : robots) {
             RobotType botType = robot.getType();
             if (botType == RobotType.SOLDIER || botType == RobotType.TANK) {
                 if (myLocation.distanceTo(robot.getLocation()) < 10) {
-                    rangedEnemyCount++;
+                    damagingEnemyCount++;
                     enemyRanger = robot.getLocation();
                 }
             } else if (botType == RobotType.GARDENER) {
@@ -62,7 +65,8 @@ public strictfp class scout extends RobotPlayer{
             }
         }
 
-        if (rangedEnemyCount == 1 && enemyGardenerCount >= 1) {
+        // If only one enemy that can damage us and at least one gardener, make a line with the gardener between the enemy and scout
+        if (damagingEnemyCount == 1 && enemyGardenerCount >= 1) {
             for (RobotInfo robot : robots) {
                 if (robot.getType() == RobotType.GARDENER) {
                     MapLocation gardenerLocation = robot.getLocation();
@@ -77,6 +81,15 @@ public strictfp class scout extends RobotPlayer{
                     }
                 }
             }
+        // If at least one enemy that can hurt us and no gardeners to attack, go sit in the closest tree
+        } else if (damagingEnemyCount >= 1) {
+            for (TreeInfo tree : trees) {
+                if (rc.canMove(tree.getLocation())) {
+                    rc.move(tree.getLocation());
+                } else {
+                    tryMove(myLocation.directionTo(tree.getLocation()));
+                }
+            }
         }
 
         //--- End Avoid Enemy Ranged Code
@@ -86,6 +99,8 @@ public strictfp class scout extends RobotPlayer{
         // ToDo Is this section necessary still??
         //--- Scout Search Code
         //---------------------
+
+        // Looks for archon and broadcasts location, the broadcast queue might eliminate this?
         if (searchForArchon() != null) {
             enemyArchonLocation = searchForArchon();
             foundEnemyArchon = true;
@@ -96,8 +111,10 @@ public strictfp class scout extends RobotPlayer{
         //-------------------
 
 
-        //--- Scout Attack Code   // Move toward gardener before trying to shoot them
+        //--- Scout Attack Code
         //---------------------
+
+        // Attack gardeners, get close to them but not too close, don't fire from far away
         if (robots.length > 0) {
             for (RobotInfo robot : robots) {
                 if (robot.getType() == RobotType.GARDENER && rc.canFireSingleShot()) {
@@ -119,15 +136,24 @@ public strictfp class scout extends RobotPlayer{
 
         //--- Scout Move Code
         //-------------------
-        if (rc.hasAttacked() == false) {
+
+        // If the enemy archons are not dead, keep circling them
+        if (rc.hasAttacked() == false && !enemyArchonsDead()) {
             Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
-            if (enemyArchonLocation != null)
+            if (enemyArchonLocation != null) {
                 // Move towards the enemy archon or perpendicular to it
-                if (foundEnemyArchon){
+                if (foundEnemyArchon) {
                     tryMove(towardsEnemyArchon.rotateLeftDegrees(90));
                 } else {
                     tryMove(towardsEnemyArchon);
                 }
+            }
+        } else if (enemyArchonsDead()){
+            //ToDo Come up with a code to scour the map
+            //ToDo This part is really important
+            //ToDo so I'm making multiple lines
+            //ToDo so it stands out better
+            System.out.println("Scout should scour the map now");
         }
         //--- End Move Code
         //-----------------

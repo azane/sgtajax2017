@@ -33,7 +33,7 @@ public strictfp class archon extends RobotPlayer{
 			searchForArchon();
 	        
 	        // Count the number of robots nearby.  Make sure there's at least one gardener
-	        RobotInfo[] nearbyBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadius/3);
+	        RobotInfo[] nearbyBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadius);
 	        boolean buildThisTurn = false;
 	        int gardenerCount = 0;
 		    for (RobotInfo bot : nearbyBots){
@@ -41,9 +41,7 @@ public strictfp class archon extends RobotPlayer{
 		        	gardenerCount++;
 		        }
 	        }
-	        if (nearbyBots.length > 3 && gardenerCount < 1){
-	        	buildThisTurn = true;
-	        } else if (nearbyBots.length < 5 && gardenerCount < 2){
+	        if (gardenerCount < 2){
 	        	buildThisTurn = true;
 	        }
 	

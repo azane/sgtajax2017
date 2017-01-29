@@ -119,7 +119,7 @@ public strictfp class archon extends RobotPlayer{
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
 
-                RobotPlayer.rp.mainMethod();
+                RobotPlayer.rp.mainMethod(true);
 
             } catch (Exception e) {
                 System.out.println("Archon Exception");

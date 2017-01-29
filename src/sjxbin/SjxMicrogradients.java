@@ -327,7 +327,7 @@ public strictfp class SjxMicrogradients {
 
         SjxBytecodeTracker bct = new SjxBytecodeTracker();
         // Leave 2000 bytecode for end of turn processing.
-        bct.start(Clock.getBytecodesLeft() - 5000);
+        bct.start(Clock.getBytecodesLeft() - 3000);
         bct.poll();
 
         // Only pop invalids if there aren't any bad guys around.
@@ -347,7 +347,6 @@ public strictfp class SjxMicrogradients {
                         gradient = SjxMath.elementwiseSum(
                                 getMyGradient(myLocation, badBots.getRobot()), gradient, false);
                 }
-                bct.poll();
 
                 // Macro elements.
                 double _scale;
@@ -365,6 +364,8 @@ public strictfp class SjxMicrogradients {
                         SjxMath.gaussianDerivative(myLocation, badBots.getLocation(), 70., _scale),
                 false);
             }
+
+            bct.poll();
         }
 
 

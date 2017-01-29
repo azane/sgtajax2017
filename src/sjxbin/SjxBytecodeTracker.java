@@ -33,6 +33,14 @@ public class SjxBytecodeTracker {
 
     private int bytecodeAllotment;
 
+    private static int mainMethodCost = 0;
+    public static int getMainMethodCost() {
+        return mainMethodCost;
+    }
+    public void setMainMethodCost() {
+        mainMethodCost = totalCost;
+    }
+
     public SjxBytecodeTracker() {
         start = -1;
         turnLimit = Clock.getBytecodeNum() + Clock.getBytecodesLeft();;
@@ -96,7 +104,7 @@ public class SjxBytecodeTracker {
     public void yieldToMain() {
 
         try {
-            RobotPlayer.rp.mainMethod();
+            RobotPlayer.rp.mainMethod(true);
         }
         catch (GameActionException e) {
             System.out.println("RobotPlayer's main method failed to complete.");
@@ -105,7 +113,7 @@ public class SjxBytecodeTracker {
 
     public void yieldForBroadcast() {
         try {
-            RobotPlayer.rp.mainMethod();
+            RobotPlayer.rp.mainMethod(true);
         }
         catch (GameActionException e) {
             System.out.println("RobotPlayer's main method failed to complete.");

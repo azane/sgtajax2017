@@ -117,6 +117,15 @@ public strictfp class RobotPlayer {
         throw new RuntimeException("This method is not implemented in the parent class!");
     }
 
+    private SjxBytecodeTracker bct = new SjxBytecodeTracker();
+    public void mainMethod(boolean measure) throws GameActionException{
+        bct.start(0);
+        bct.poll();
+        mainMethod();
+        bct.setMainMethodCost();
+        bct.end();
+    }
+
     static void shootEmUp(MapLocation myLocation, RobotInfo targetBot) throws GameActionException{
         if (targetBot != null && !rc.hasAttacked()) {
             if (myLocation.distanceTo(targetBot.getLocation())

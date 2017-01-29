@@ -239,17 +239,17 @@ public class SjxRobotBroadcastQueue {
 
         SjxBytecodeTracker bct = new SjxBytecodeTracker();
         // Reserve 300 for the write/yield at the end.
-        bct.start(bytecodeallotment-2000);
+        bct.start(Math.max(bytecodeallotment-500, 0));
         bct.poll();
         if (bct.isAllotmentExceeded())
             return;
 
         queue.readMetadata();
         for (RobotInfo robot : robots) {
-            bct.poll();
             if (bct.isAllotmentExceeded())
                 break;
             queue.enqueue(convert(robot, rc));
+            bct.poll();
         }
         queue.writeMetadata();
         queue.yieldForBroadcast();

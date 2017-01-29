@@ -82,7 +82,7 @@ public strictfp class SjxMicrogradients {
     private double treeToMacroRate = 0.2;
 
     private double macroEconomicTargetScale = 6.;
-    private double macroMilitaryTargetScale = 6.;
+    private double macroMilitaryTargetScale = 10.;
     private double macroDefenseTargetScale = 6.;
 
     public void setScales() {
@@ -351,9 +351,10 @@ public strictfp class SjxMicrogradients {
                 if (badBots.getInfoAge() < 2) {
                     if (target == null)
                         updateTarget(myLocation, badBots.getRobot());
-                    if (badBots.getLocation().distanceTo(myLocation) < myType.sensorRadius * 3.)
+                    if (badBots.getLocation().distanceTo(myLocation) < myType.sensorRadius * 3.) {
                         gradient = SjxMath.elementwiseSum(
                                 getMyGradient(myLocation, badBots.getRobot()), gradient, false);
+                    }
                 }
 
                 // Macro elements.

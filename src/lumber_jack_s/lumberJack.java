@@ -1,10 +1,7 @@
 package lumber_jack_s;
 import battlecode.common.*;
-import battlecode.world.TeamInfo;
 import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
-
-import java.awt.*;
 
 public strictfp class lumberJack extends RobotPlayer{
     static RobotController rc = RobotPlayer.rc;

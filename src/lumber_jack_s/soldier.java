@@ -1,6 +1,5 @@
 package lumber_jack_s;
 import battlecode.common.*;
-import sjxbin.SjxMath;
 import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
 

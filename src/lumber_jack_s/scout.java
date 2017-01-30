@@ -1,6 +1,5 @@
 package lumber_jack_s;
 import battlecode.common.*;
-import com.intellij.ui.GroupedElementsRenderer;
 import sjxbin.SjxYieldBytecode;
 
 
@@ -8,9 +7,9 @@ public strictfp class scout extends RobotPlayer{
     static RobotController rc = RobotPlayer.rc;
 
     int startRound = rc.getRoundNum();
-
     MapLocation enemyArchonLocation = pickInitialArchon2();
     boolean foundEnemyArchon = false;
+    boolean atCenter = false;
 
 
 
@@ -20,7 +19,12 @@ public strictfp class scout extends RobotPlayer{
     **/
     @SuppressWarnings("unused")
 
+    // Test comment
     public void mainMethod() throws GameActionException {
+
+        // ToDo the mapCenter function can be moved out of the loop but it gave an error
+        MapLocation mapCenter = findMapCenter();
+
 
         MapLocation myLocation = rc.getLocation();
         Direction dirToMove = null;
@@ -55,7 +59,7 @@ public strictfp class scout extends RobotPlayer{
         // Count number of enemy units that can damage and number of gardeners
         for (RobotInfo robot : robots) {
             RobotType botType = robot.getType();
-            if (botType == RobotType.SOLDIER || botType == RobotType.TANK) {
+            if (botType == RobotType.SOLDIER || botType == RobotType.TANK || botType == RobotType.LUMBERJACK) {
                 if (myLocation.distanceTo(robot.getLocation()) < 10) {
                     damagingEnemyCount++;
                     enemyRanger = robot.getLocation();
@@ -65,7 +69,7 @@ public strictfp class scout extends RobotPlayer{
             }
         }
 
-        // If only one enemy that can damage us and at least one gardener, make a line with the gardener between the enemy and scout
+        // If only one enemy that can damage scout and at least one gardener, make a line with the gardener between the enemy and scout
         if (damagingEnemyCount == 1 && enemyGardenerCount >= 1) {
             for (RobotInfo robot : robots) {
                 if (robot.getType() == RobotType.GARDENER) {
@@ -84,10 +88,12 @@ public strictfp class scout extends RobotPlayer{
         // If at least one enemy that can hurt us and no gardeners to attack, go sit in the closest tree
         } else if (damagingEnemyCount >= 1) {
             for (TreeInfo tree : trees) {
-                if (rc.canMove(tree.getLocation())) {
-                    rc.move(tree.getLocation());
-                } else {
-                    tryMove(myLocation.directionTo(tree.getLocation()));
+                if (tree.getRadius() > 1){
+                    if (rc.canMove(tree.getLocation())) {
+                        rc.move(tree.getLocation());
+                    } else {
+                        tryMove(myLocation.directionTo(tree.getLocation()));
+                    }
                 }
             }
         }
@@ -120,7 +126,7 @@ public strictfp class scout extends RobotPlayer{
                 if (robot.getType() == RobotType.GARDENER && rc.canFireSingleShot()) {
                     Direction towardGardener = myLocation.directionTo(robot.getLocation());
                     double distanceToGardener = myLocation.distanceTo(robot.getLocation());
-                    if (distanceToGardener > 3){
+                    if (distanceToGardener > 2.75){
                         tryMove(towardGardener);
                     }
                     if (distanceToGardener < 5) {
@@ -149,80 +155,21 @@ public strictfp class scout extends RobotPlayer{
                 }
             }
         } else if (enemyArchonsDead()){
-            //ToDo Come up with a code to scour the map
-            //ToDo This part is really important
-            //ToDo so I'm making multiple lines
-            //ToDo so it stands out better
-            System.out.println("Scout should scour the map now");
+            Direction towardCenter = myLocation.directionTo(mapCenter);
+            if (atCenter) {
+                tryMove(towardCenter.rotateLeftDegrees(100));
+            } else {
+                tryMove(towardCenter);
+            }
+
+            if (myLocation.distanceTo(mapCenter) < 10) {
+                atCenter = true;
+            }
+            // ToDo set atCenter to false if stuck
         }
         //--- End Move Code
         //-----------------
 
-
-/*
-        //--- Scout Search Code
-        //---------------------
-
-        TreeInfo[] trees = rc.senseNearbyTrees();
-        for (TreeInfo tree : trees) {
-            if (tree.getContainedBullets() != 0) {
-                if (rc.canShake(tree.getLocation())){
-                    rc.shake(tree.getLocation());
-                    break;
-                } else {
-                    tryMove(rc.getLocation().directionTo(tree.getLocation()));
-                    return;
-                }
-            }
-        }
-
-
-        if (rc.getRoundNum() - startRound > 15) {
-            if (searchForArchon() != null) {
-                enemyArchonLocation = searchForArchon();
-                foundEnemyArchon = true;
-            } else {
-                foundEnemyArchon = false;
-            }
-        }
-        //--- End Search Code
-        //-------------------
-
-
-        //--- Scout Attack Code   // Move toward gardener before trying to shoot them
-        //---------------------
-        MapLocation myLocation = rc.getLocation();
-        RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
-        if (robots.length > 0) {
-            for (RobotInfo robot : robots) {
-                if (robot.getType() == RobotType.GARDENER && rc.canFireSingleShot()) {
-                    Direction towardGardener = myLocation.directionTo(robot.getLocation());
-                    if (myLocation.distanceTo(robot.getLocation()) > 2.5){
-                        tryMove(towardGardener);
-                    }
-                    rc.fireSingleShot(towardGardener);
-                    break;
-                }
-            }
-        }
-        //--- End Attack Code
-        //-------------------
-
-
-        //--- Scout Move Code
-        //-------------------
-        if (rc.hasAttacked() == false) {
-            Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
-            if (towardsEnemyArchon != null)
-                // Move towards the enemy archon or perpendicular to it
-                if (foundEnemyArchon){
-                    tryMove(towardsEnemyArchon.rotateLeftDegrees(90));
-                } else {
-                    tryMove(towardsEnemyArchon);
-                }
-        }
-        //--- End Move Code
-        //-----------------*/
     }
 
     static void runScout(RobotController rc) throws GameActionException {
@@ -327,6 +274,34 @@ public strictfp class scout extends RobotPlayer{
             }
         } catch (GameActionException e) {
             throw new RuntimeException("pickInitialArchonLocation2 crashed and burned. :( ");
+        }
+    }
+
+    public MapLocation findMapCenter() throws GameActionException {
+        try{
+            MapLocation[] initialEnemyArchons = rc.getInitialArchonLocations(rc.getTeam().opponent());
+            MapLocation[] initialFriendlyArchons = rc.getInitialArchonLocations(rc.getTeam());
+            float centerX = 0.0f;
+            float centerY = 0.0f;
+            int archonCount = 0;
+
+            for (MapLocation enemyArchon: initialEnemyArchons) {
+                centerX = centerX + enemyArchon.x;
+                centerY = centerY + enemyArchon.y;
+                archonCount++;
+            }
+            for (MapLocation friendlyArchon: initialFriendlyArchons) {
+                centerX = centerX + friendlyArchon.x;
+                centerY = centerY + friendlyArchon.y;
+                archonCount++;
+            }
+
+            MapLocation mapCenter = new MapLocation(centerX/archonCount,centerY/archonCount);
+            return mapCenter;
+
+        } catch (Exception e) {
+            System.out.println("MapCenter Exception");
+            return null;
         }
     }
 

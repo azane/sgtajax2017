@@ -3,8 +3,6 @@ import battlecode.common.*;
 import sjxbin.SjxYieldBytecode;
 import sjxbin.SjxMath;
 
-import java.util.Random;
-
 public strictfp class gardener extends RobotPlayer{static RobotController rc = RobotPlayer.rc;
 
 static int GARDENER_HOME_RANGE = 40;

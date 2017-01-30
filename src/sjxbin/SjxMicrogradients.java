@@ -344,6 +344,10 @@ public strictfp class SjxMicrogradients {
             // If we didn't process up close and if it's valid data.
             if (!processedBots.contains(badBots.getId()) && badBots.getValidity()) {
 
+                int color = 255 - badBots.getInfoAge()*20;
+                if (color < 0) color = 0;
+                RobotPlayer.rc.setIndicatorDot(badBots.getLocation(), color, color, 0);
+
                 // If recent
                 if (badBots.getInfoAge() < 2) {
                     if (target == null && getRobotGroup(myType, myTeam) != RobotGroup.FRIENDLYECONOMIC)

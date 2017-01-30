@@ -171,7 +171,10 @@ public strictfp class RobotPlayer {
 
         // Leave a 5% chance for them to still shoot if below value.
         // Limit to 5 trees.
-        if (rc.getTeamBullets() < 100 && Math.random() < .95 && rc.getTreeCount() < 4)
+        if (rc.getTeamBullets() < 100 && Math.random() < .95 && rc.getTreeCount() < 4
+                // TODO check to see if we even have any farmers out that might be
+                //  trying to build.
+                && !(rc.senseNearbyTrees().length > 3))
             return;
 
         if (targetBot != null && !rc.hasAttacked()) {

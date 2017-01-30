@@ -1,6 +1,6 @@
 package lumber_jack_s;
 import battlecode.common.*;
-import battlecode.world.TeamInfo;
+import sjxbin.SjxMath;
 import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
 
@@ -8,6 +8,28 @@ import java.awt.*;
 
 public strictfp class lumberJack extends RobotPlayer{
     static RobotController rc = RobotPlayer.rc;
+
+    private TreeInfo lastTree = null;
+    public void essentialMethod() throws GameActionException {
+        // Call the super (dodges bullets)
+        super.essentialMethod();
+
+        if (!rc.hasAttacked()) {
+            RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.LUMBERJACK_STRIKE_RADIUS, enemy);
+            if(robots.length > 0) {
+                rc.strike();
+            }
+        }
+
+        if (lastTree != null) {
+            MapLocation loc = lastTree.getLocation();
+            if (rc.canShake(loc) && lastTree.getContainedBullets() > 0.)
+                rc.shake(loc);
+            else if (rc.canChop(loc) && !rc.hasAttacked()
+                    && lastTree.getTeam() != myTeam)
+                rc.chop(loc);
+        }
+    }
 
     public void mainMethod() throws GameActionException {
         // Get my location
@@ -17,7 +39,7 @@ public strictfp class lumberJack extends RobotPlayer{
         donateBullets();
 
         // Search for enemy archons
-        searchForArchon();
+        //searchForArchon();
 
         System.out.println(rc.readBroadcast(21));
 
@@ -27,13 +49,16 @@ public strictfp class lumberJack extends RobotPlayer{
 
         gradient = SjxMicrogradients.instance.getMyGradient(myLocation, rc.senseNearbyRobots());
 
-        // Prioritize attacking.
+        // Prioritize essentials, like attacking
         if (!rc.hasAttacked()) {
             RobotInfo[] robots = rc.senseNearbyRobots(GameConstants.LUMBERJACK_STRIKE_RADIUS, enemy);
             if(robots.length > 0) {
                 rc.strike();
             }
         }
+
+        double[] bdodge = dodgeIshBullets();
+        gradient = SjxMath.elementwiseSum(gradient, bdodge, false);
 
         // Add scaled gradient to myLocation coordinates.
         MapLocation gradientDestination = new MapLocation(
@@ -46,22 +71,18 @@ public strictfp class lumberJack extends RobotPlayer{
         TreeInfo closestTree = SjxMicrogradients.instance.getTreeLocation();
         if (closestTree != null) {
             MapLocation loc = closestTree.getLocation();
-//            double dist = closestTree.distanceTo(myLocation);
-//            boolean canDo = (dist <= GameConstants.LUMBERJACK_STRIKE_RADIUS);
-//            if (canDo)
             if (rc.canShake(loc) && closestTree.getContainedBullets() > 0.)
                 rc.shake(loc);
             else if (rc.canChop(loc) && !rc.hasAttacked()
                     && closestTree.getTeam() != myTeam)
                 rc.chop(loc);
         }
+        // Store for essentialMethod.
+        lastTree = closestTree;
+
         // Move toward the new vector.
         if (d != null)
             tryMove(d);
-
-
-
-
 
         //--- Lumberjack Chop/Shake Code
         //------------------------
@@ -153,7 +174,6 @@ public strictfp class lumberJack extends RobotPlayer{
 
             } catch (Exception e) {
                 System.out.println("Lumberjack Exception");
-                e.printStackTrace();
             }
 
             // .yield() yields the remainder of this bot's turn to army level tasks.

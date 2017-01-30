@@ -1,10 +1,17 @@
 package lumber_jack_s;
 import battlecode.common.*;
+import sjxbin.SjxMath;
 import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
 
 public strictfp class tank extends RobotPlayer{
     static RobotController rc = RobotPlayer.rc;
+
+    private RobotInfo lastTarget = null;
+    public void essentialMethod() throws GameActionException {
+        super.essentialMethod(); // Dodge bullets and force a move (so we don't step on our bullets).
+        shootEmUp(rc.getLocation(), lastTarget);
+    }
 
     public void mainMethod() throws GameActionException {
         // Donate bullets on last round
@@ -12,18 +19,15 @@ public strictfp class tank extends RobotPlayer{
 
         MapLocation myLocation = rc.getLocation();
 
-        // Sense all nearby robots.
-        //RobotInfo[] robots = rc.senseNearbyRobots();
-
-        // Search for enemy archons
-        searchForArchon();
-
-        double[] gradient = new double[2];
+        double[] gradient;
 
         // Store the closest enemy for updating.
         //RobotInfo closestEnemy = null;
 
         gradient = SjxMicrogradients.instance.getMyGradient(myLocation, rc.senseNearbyRobots());
+
+        double[] bdodge = dodgeIshBullets();
+        gradient = SjxMath.elementwiseSum(gradient, bdodge, false);
 
         // Add scaled gradient to myLocation coordinates.
         MapLocation gradientDestination = new MapLocation(
@@ -39,6 +43,8 @@ public strictfp class tank extends RobotPlayer{
         RobotInfo targetBot = SjxMicrogradients.instance.getShotLocation();
 
         shootEmUp(myLocation, targetBot);
+
+        lastTarget = targetBot;
     }
 
     /**

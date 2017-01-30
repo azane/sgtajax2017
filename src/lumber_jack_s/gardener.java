@@ -30,7 +30,7 @@ int LUMBERJACK_BUILD_LIMIT;
 int TANK_BUILD_LIMIT;
 float FRIENDLY_TREE_RADIUS;
 
-static RobotType[] EARLY_ROBOT_BUILD_ORDER = {TANK, LUMBERJACK, LUMBERJACK, SOLDIER, SOLDIER, LUMBERJACK};
+static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, LUMBERJACK, SOLDIER, SOLDIER, LUMBERJACK};
 static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, SOLDIER, TANK};
 
 
@@ -60,8 +60,6 @@ public void mainMethod() throws GameActionException {
 	        	unitGardenerLoop();
 	        	break;
 	    }
-		// Search for enemy archons
-		searchForArchon();
 	}
 }
 /**

@@ -321,7 +321,7 @@ public strictfp class SjxMicrogradients {
         SjxBytecodeTracker bct = new SjxBytecodeTracker();
         // Leave at least 5000 bytecode for end of turn processing.
         //  This will hopefully include some task processing.
-        bct.start(Clock.getBytecodesLeft() - 5000);
+        bct.start(Clock.getBytecodesLeft() - 4000);
         bct.poll();
 
         // Keep a hash of the robots you've already processed nearby.
@@ -407,8 +407,7 @@ public strictfp class SjxMicrogradients {
             for (MapLocation loc : me.getInitialArchonLocations(myTeam.opponent()))
                 gradient = SjxMath.elementwiseSum(gradient,
                         SjxMath.gaussianDerivative(myLocation, loc, 70.,
-                                // Split up the army when heading to initial locations.
-                                macroEconomicTargetScale*(me.getID()%3)),
+                                macroEconomicTargetScale),
                 false);
         }
 
@@ -421,6 +420,7 @@ public strictfp class SjxMicrogradients {
         }
 
         bct.poll();
+
         bct.end();
 
         return gradient;

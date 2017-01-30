@@ -116,23 +116,23 @@ public class SjxBytecodeTracker {
         }
     }
 
-    private String yieldBytecodeNumbers = "";
     public void yieldForBroadcast() {
 
         // If we have enough bytecode to run the main method, and then yield, do that.
+        // Otherwise, run the essential method only. This method is worth failing to broadcast.
         if (Clock.getBytecodesLeft() > mainMethodCost*1.2)
             yieldToMain();
         else {
-            System.out.println("Not yielding before broadcast. Not enough bytecode.");
-            int remainder = Clock.getBytecodesLeft();
-            yieldBytecodeNumbers += remainder + "\n";
-            if (RobotPlayer.rc.getRoundNum() > 700)
-                System.out.println();
+            try {
+                RobotPlayer.rp.essentialMethod();
+            }
+            catch (GameActionException e) {
+                System.out.println("essentialMethod failed to return.");
+            }
+            System.out.println("Calling essential method only. Not enough bytecode for mainMethod.");
         }
 
-        // Subtract the bytecode from the rest of the turn from the total cost.
-//        totalCost -= remainder;
-//        costSinceLastPoll -= remainder;
+
         Clock.yield();
         //this.poll();
         //System.out.println();

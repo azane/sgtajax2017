@@ -1,6 +1,5 @@
 package sjxbin;
 import battlecode.common.*;
-import scala.tools.nsc.Global;
 
 import java.util.Arrays;
 import java.util.Random;

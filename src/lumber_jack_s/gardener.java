@@ -215,7 +215,8 @@ void findEmptySpot() throws GameActionException{
 	if (robots.length != 0){
 		for (RobotInfo robot : robots){
 			if (robot.getType() == RobotType.GARDENER || robot.getType() == RobotType.ARCHON){
-				double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(), 1., robot.getRadius()*4);
+				double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(),
+						rc.getType().sensorRadius*.8, robot.getRadius()*2);
 				robotX = robotX + (float)dxdy[0]; //Add all x's and y's
 				robotY = robotY + (float)dxdy[1]; 
 			}

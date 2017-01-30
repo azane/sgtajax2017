@@ -86,6 +86,7 @@ public strictfp class SjxMicrogradients {
     private double macroDefenseTargetScale = 6.;
 
     private double mutualArchonHatred = 10.;
+    private double archonGardenerHatred = 15.;
 
     public void setScales() {
         // TODO set the scales given broadcasted information and robot type.
@@ -194,7 +195,13 @@ public strictfp class SjxMicrogradients {
                             SjxMath.gaussianDerivative(myLocation, robot.getLocation(),
                                     myType.sensorRadius, -mutualArchonHatred),
                 false);
-                    else
+                else if (robot.type == RobotType.GARDENER) {
+                    gradient = SjxMath.elementwiseSum(gradient,
+                            SjxMath.gaussianDerivative(myLocation, robot.getLocation(),
+                                    myType.sensorRadius, -archonGardenerHatred),
+                            false);
+                }
+                else
                 gradient = SjxMath.elementwiseSum(
                         gradient,
                         fleeEnemyGradient(myLocation, robot), false);

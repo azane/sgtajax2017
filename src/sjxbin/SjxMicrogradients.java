@@ -416,17 +416,20 @@ public strictfp class SjxMicrogradients {
             gradient = SjxMath.elementwiseSum(gradient, avoidTreesGradient(myLocation, bct),
                     false);
 
-            // Part of your gradient must be toward the center of the map.
-            double[] centerMap = SjxMath.gaussianDerivative(myLocation, RobotPlayer.rp.getMapCenter(),
-                    70, 10);
+            // Part of your gradient must be relative to the center of the map.
+            double[] centerMap = SjxMath.doughnutDerivative(
+                    myLocation, RobotPlayer.rp.getMapCenter(),
+                    15, 10,
+                    70, 10,
+                    false);
 
             double centerMapMag = SjxMath.vectorMagnitude(centerMap);
             double gradientMag = SjxMath.vectorMagnitude(gradient);
             if (centerMapMag != 0 && gradientMag != 0) {
                 // TODO Scale part with round number.
-                double ratio = .7; // where, e.g. 1:1 is half.
-                gradient[0] = (gradient[0] / gradientMag) * (centerMapMag*ratio);
-                gradient[1] = (gradient[1] / gradientMag) * (centerMapMag*ratio);
+                double gradientTocenterRatio = 1.4; // where, e.g. 1:1 is half.
+                gradient[0] = (gradient[0] / gradientMag) * (centerMapMag*gradientTocenterRatio);
+                gradient[1] = (gradient[1] / gradientMag) * (centerMapMag*gradientTocenterRatio);
             }
 
             gradient = SjxMath.elementwiseSum(gradient, centerMap, false);

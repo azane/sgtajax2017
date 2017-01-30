@@ -4,8 +4,6 @@ import sjxbin.SjxMath;
 import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
 
-import java.awt.*;
-
 public strictfp class lumberJack extends RobotPlayer{
     static RobotController rc = RobotPlayer.rc;
 

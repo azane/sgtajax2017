@@ -31,10 +31,36 @@ public strictfp class RobotPlayer {
     public RobotPlayer() {
         try {
             rp = this;
+
+            double[] centerSum = new double[2];
+            int numArchons = 0;
+            for (MapLocation loc : rc.getInitialArchonLocations(myTeam)) {
+                centerSum[0] += loc.x;
+                centerSum[1] += loc.y;
+                numArchons++;
+            }
+            for (MapLocation loc : rc.getInitialArchonLocations(enemy)) {
+                centerSum[0] += loc.x;
+                centerSum[1] += loc.y;
+                numArchons++;
+            }
+
+            if (numArchons > 0) {
+                centerSum[0] /= numArchons;
+                centerSum[1] /= numArchons;
+            }
+
+            mapCenter = new MapLocation((float)centerSum[0], (float)centerSum[1]);
+            rc.setIndicatorDot(mapCenter, 100, 100, 100);
         }
         catch (Exception e) {
             System.out.println("Crashed on setting the instance to the static field.");
         }
+    }
+
+    private MapLocation mapCenter;
+    public MapLocation getMapCenter() {
+        return mapCenter;
     }
 
     /**
@@ -168,7 +194,7 @@ public strictfp class RobotPlayer {
             // Sample a random bullet.
             BulletInfo bullet = bullets[(int) Math.floor(Math.random() * bullets.length)];
 
-            MapLocation dontbehere = bullet.location.add(bullet.dir, bullet.speed*2);
+            MapLocation dontbehere = bullet.location.add(bullet.dir, bullet.speed);
 
             double stdev = rc.getType().bodyRadius*1.4;
 
@@ -185,6 +211,7 @@ public strictfp class RobotPlayer {
             );
         }
         return gradient;
+        //return new double[2];
     }
 
     /**

@@ -78,12 +78,14 @@ public strictfp class SjxMicrogradients {
     // The scale at which you respond to danger related to enemy military.
     private double enemyMilitaryDangerScale = 6.;
     private double enemyEconomicAttractionScale = 6.;
-    private double treeScale = 3.;
+    private double treeScale = 2.;
     private double treeToMacroRate = 0.2;
 
     private double macroEconomicTargetScale = 6.;
     private double macroMilitaryTargetScale = 10.;
     private double macroDefenseTargetScale = 6.;
+
+    private double mutualArchonHatred = 10.;
 
     public void setScales() {
         // TODO set the scales given broadcasted information and robot type.
@@ -183,14 +185,19 @@ public strictfp class SjxMicrogradients {
         RobotGroup rg = getRobotGroup(robot);
 
         switch (myType) {
-            case ARCHON:
             case GARDENER:
-                // Avoid enemy military and raiders.
-                if (rg == RobotGroup.ENEMYMILITARY
-                        || rg == RobotGroup.ENEMYRAIDER)
-                    gradient = SjxMath.elementwiseSum(
-                            fleeEnemyGradient(myLocation, robot),
-                            gradient, false);
+                break;
+            case ARCHON:
+                // Avoid...everyone, but especially other archons.
+                if (robot.type == RobotType.ARCHON)
+                    gradient = SjxMath.elementwiseSum(gradient,
+                            SjxMath.gaussianDerivative(myLocation, robot.getLocation(),
+                                    myType.sensorRadius, -mutualArchonHatred),
+                false);
+                    else
+                gradient = SjxMath.elementwiseSum(
+                        gradient,
+                        fleeEnemyGradient(myLocation, robot), false);
                 break;
             case LUMBERJACK:
                 // TODO add a gamestate where lumberjacks exhibit minimal friendlydonut and
@@ -237,24 +244,6 @@ public strictfp class SjxMicrogradients {
                             gradient, true);
                 break;
             case TANK:
-                // Charge enemies.
-                if (robot.team != myTeam) {
-                    gradient = SjxMath.elementwiseSum(
-                            chargeEnemyGradient(myLocation, robot),
-                            gradient, false);
-                    // Update firing target.
-                    updateTarget(myLocation, robot);
-                }
-                else
-                    // Only donut school other tanks.
-                    if (robot.getType() == RobotType.TANK) {
-                        gradient = SjxMath.elementwiseSum(
-                                friendlyDonutGradient(myLocation, robot),
-                                gradient, false);
-                    }
-                    else
-                        // Manually add to shooting gradients.
-                        addToShootingGradients(myLocation, robot);
             case SOLDIER:
                 if (robot.team != myTeam) {
                     // Kite all enemies.
@@ -266,7 +255,7 @@ public strictfp class SjxMicrogradients {
                     updateTarget(myLocation, robot);
                 }
                 else
-                    // Donut school friendly raiders and military.
+                    // Donut school friendly military.
                     if (rg == RobotGroup.FRIENDLYMILITARY) {
                         gradient = SjxMath.elementwiseSum(
                                 friendlyDonutGradient(myLocation, robot),
@@ -342,14 +331,15 @@ public strictfp class SjxMicrogradients {
         badBots.globalPrepIter();
         System.out.println("Enemy bot stack:" + badBots.getNumElements());
 
-        // Process up to bytecode allotment or to 15 units, whichever is first.
-        while (badBots.next() && !bct.isAllotmentExceeded() && badBots.getCurrentIndex() < 15) {
+        // Process up to bytecode allotment or to 5 units, whichever is first.
+        while (badBots.next() && !bct.isAllotmentExceeded() && badBots.getCurrentIndex() < 5) {
 
             // If we didn't process up close and if it's valid data.
             if (!processedBots.contains(badBots.getId()) && badBots.getValidity()) {
+
                 // If recent
                 if (badBots.getInfoAge() < 2) {
-                    if (target == null)
+                    if (target == null && getRobotGroup(myType, myTeam) != RobotGroup.FRIENDLYECONOMIC)
                         updateTarget(myLocation, badBots.getRobot());
                     if (badBots.getLocation().distanceTo(myLocation) < myType.sensorRadius * 3.) {
                         gradient = SjxMath.elementwiseSum(
@@ -358,22 +348,32 @@ public strictfp class SjxMicrogradients {
                 }
 
                 // Macro elements.
-                double _scale;
+                double _macroScale;
                 switch (getRobotGroup(badBots.getType(), myTeam.opponent())) {
                     case ENEMYECONOMIC:
-                        _scale = macroEconomicTargetScale;
+                        if (myType != RobotType.ARCHON && myType != RobotType.GARDENER) {
+                            _macroScale = macroEconomicTargetScale;
+                        }
+                        else
+                            _macroScale = 0;
+                        break;
                     case ENEMYRAIDER:
                     case ENEMYMILITARY:
-                        if (myType == RobotType.LUMBERJACK)
+                        if (myType == RobotType.LUMBERJACK) {
                             // Run away from military like you run to economics.
-                            _scale = -macroEconomicTargetScale;
-                        _scale = macroMilitaryTargetScale;
+                            _macroScale = -macroEconomicTargetScale/5.;
+                        }
+                        else if (myType == RobotType.ARCHON || myType == RobotType.GARDENER)
+                            _macroScale = -enemyMilitaryDangerScale;
+                        else
+                            _macroScale = macroMilitaryTargetScale;
+                        break;
                     default:
-                        _scale = 10;
+                        _macroScale = 10;
                 }
 
                 gradient = SjxMath.elementwiseSum(gradient,
-                        SjxMath.gaussianDerivative(myLocation, badBots.getLocation(), 70., _scale),
+                        SjxMath.gaussianDerivative(myLocation, badBots.getLocation(), 70., _macroScale),
                 false);
             }
 
@@ -402,14 +402,36 @@ public strictfp class SjxMicrogradients {
 //                    treeScale += 0.001;
 //        }
 
-        // If gradient is zilcho. Head to initial archon locations.
-        if (gradient[0] == 0 && gradient[1] == 0) {
-            for (MapLocation loc : me.getInitialArchonLocations(myTeam.opponent()))
-                gradient = SjxMath.elementwiseSum(gradient,
-                        SjxMath.gaussianDerivative(myLocation, loc, 70.,
-                                macroEconomicTargetScale),
-                false);
+        if (!(myType == RobotType.ARCHON || myType == RobotType.GARDENER)) {
+            // If gradient is zilcho. Head to initial archon locations.
+            if (gradient[0] == 0 && gradient[1] == 0) {
+                for (MapLocation loc : me.getInitialArchonLocations(myTeam.opponent()))
+                    gradient = SjxMath.elementwiseSum(gradient,
+                            SjxMath.gaussianDerivative(myLocation, loc, 70.,
+                                    macroEconomicTargetScale),
+                            false);
+            }
         }
+        else if (myType == RobotType.ARCHON){
+            gradient = SjxMath.elementwiseSum(gradient, avoidTreesGradient(myLocation, bct),
+                    false);
+
+            // Part of your gradient must be toward the center of the map.
+            double[] centerMap = SjxMath.gaussianDerivative(myLocation, RobotPlayer.rp.getMapCenter(),
+                    70, 10);
+
+            double centerMapMag = SjxMath.vectorMagnitude(centerMap);
+            double gradientMag = SjxMath.vectorMagnitude(gradient);
+            if (centerMapMag != 0 && gradientMag != 0) {
+                // TODO Scale part with round number.
+                double ratio = .7; // where, e.g. 1:1 is half.
+                gradient[0] = (gradient[0] / gradientMag) * (centerMapMag*ratio);
+                gradient[1] = (gradient[1] / gradientMag) * (centerMapMag*ratio);
+            }
+
+            gradient = SjxMath.elementwiseSum(gradient, centerMap, false);
+        }
+
 
         System.out.println("My gradient is: " + Arrays.toString(gradient));
         for(double d : gradient) {
@@ -541,15 +563,15 @@ public strictfp class SjxMicrogradients {
                     RobotType.LUMBERJACK.strideRadius*2.});
         }
         else {
-            myMap.put(RobotType.SOLDIER, new double[] {RobotType.SOLDIER.sensorRadius*4.,
+            myMap.put(RobotType.SOLDIER, new double[] {RobotType.SOLDIER.sensorRadius*3.,
                     RobotType.SOLDIER.sensorRadius*1.5});
-            myMap.put(RobotType.TANK, new double[] {RobotType.TANK.sensorRadius*4.,
+            myMap.put(RobotType.TANK, new double[] {RobotType.TANK.sensorRadius*3.,
                     RobotType.TANK.sensorRadius*1.5});
         }
-        myMap.put(RobotType.ARCHON, new double[] {RobotType.ARCHON.sensorRadius*3.,
-                RobotType.ARCHON.sensorRadius*1.5});
-        myMap.put(RobotType.GARDENER, new double[] {RobotType.GARDENER.sensorRadius*3.,
-                RobotType.GARDENER.sensorRadius*1.5});
+        myMap.put(RobotType.ARCHON, new double[] {RobotType.ARCHON.sensorRadius*2.,
+                RobotType.ARCHON.sensorRadius*1.2});
+        myMap.put(RobotType.GARDENER, new double[] {RobotType.GARDENER.sensorRadius*2.,
+                RobotType.GARDENER.sensorRadius*1.2});
         return myMap;
     }
     public double[] enemyKitingDonutGradient(MapLocation myLocation, RobotInfo robot) {
@@ -589,7 +611,8 @@ public strictfp class SjxMicrogradients {
     public double[] fleeEnemyGradient(MapLocation myLocation, RobotInfo robot) {
 
         double[] gradient = SjxMath.gaussianDerivative(
-                            myLocation, robot.location, range, -enemyMilitaryDangerScale);
+                            myLocation, robot.location,
+                myType.sensorRadius*3., -enemyMilitaryDangerScale);
 
         updateShootGradients(gradient, robot);
 
@@ -619,7 +642,11 @@ public strictfp class SjxMicrogradients {
 
         // Sense all nearby trees.
         TreeInfo[] trees;
-        if (myType != RobotType.LUMBERJACK)
+        if (myType == RobotType.ARCHON) {
+            // Only deal with your own trees.
+            trees = me.senseNearbyTrees(-1, myTeam);
+        }
+        else if (myType != RobotType.LUMBERJACK)
             trees = me.senseNearbyTrees((float)(myType.strideRadius*2. + myType.bodyRadius*2.));
         else
             trees = me.senseNearbyTrees();
@@ -658,7 +685,7 @@ public strictfp class SjxMicrogradients {
             );
 
             // Add a larger gradient around the tree for lumberjacks.
-            if (myType == RobotType.LUMBERJACK)
+            if (myType == RobotType.LUMBERJACK || myType == RobotType.ARCHON)
                 gradient = SjxMath.elementwiseSum(
                         gradient,
                         SjxMath.gaussianDerivative(myLocation, tree.location,
@@ -666,7 +693,8 @@ public strictfp class SjxMicrogradients {
                         false
                 );
 
-            updateClosestTree(myLocation, tree);
+            if (myType == RobotType.LUMBERJACK)
+                updateClosestTree(myLocation, tree);
 
             bct.poll();
 

@@ -52,7 +52,6 @@ public strictfp class soldier extends RobotPlayer{
         shootEmUp(myLocation, targetBot);
 
         lastTarget = targetBot;
-
     }
 
     /**

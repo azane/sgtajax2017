@@ -52,12 +52,12 @@ public strictfp class SjxMath {
 //            sumVector[i] = x1[i] + x2[i]*sign;
 //        }
         if (subtract) {
-            sumVector[0] = x1[0] + x2[0];
-            sumVector[1] = x1[1] + x2[1];
-        }
-        else {
             sumVector[0] = x1[0] - x2[0];
             sumVector[1] = x1[1] - x2[1];
+        }
+        else {
+            sumVector[0] = x1[0] + x2[0];
+            sumVector[1] = x1[1] + x2[1];
         }
 
         return sumVector;

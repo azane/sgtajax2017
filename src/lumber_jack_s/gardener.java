@@ -28,8 +28,8 @@ int LUMBERJACK_BUILD_LIMIT;
 int TANK_BUILD_LIMIT;
 float FRIENDLY_TREE_RADIUS;
 
-static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, LUMBERJACK, SOLDIER, SOLDIER, LUMBERJACK};
-static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, SOLDIER, TANK};
+static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, LUMBERJACK, SOLDIER, SOLDIER, SCOUT};
+static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, SOLDIER, SCOUT};
 
 
 Direction east = Direction.getEast();
@@ -172,8 +172,8 @@ void unitGardenerLoop() throws GameActionException{
 			robotX = robotX + (float)dxdy[0]; //Add all x's and y's
 			robotY = robotY + (float)dxdy[1]; 
 		}
-		robotX = robotX/trees.length;
-		robotY = robotY/trees.length;
+		robotX = robotX/robots.length;
+		robotY = robotY/robots.length;
 	}
 	
 	float newX = treeX + robotX;
@@ -219,8 +219,8 @@ void findEmptySpot() throws GameActionException{
 				robotY = robotY + (float)dxdy[1]; 
 			}
 		}
-		robotX = robotX/trees.length;
-		robotY = robotY/trees.length;
+		robotX = robotX/robots.length;
+		robotY = robotY/robots.length;
 	}
 	
 	float newX = treeX + robotX;

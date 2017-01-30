@@ -21,6 +21,11 @@ public strictfp class SjxMath {
     public static double sigmoid(double x) {
         return 2./(1. + Math.exp(-x)) -1.;
     }
+
+    public static double sigmoid(double x, double a, double b, double c, double d) {
+        return a*(1./(1. + Math.exp(-(b*x - c)))) + d;
+    }
+
     public static double sigmoidDerivative(double x) {
         return 2.*(Math.exp(x)/Math.pow(Math.exp(x) + 1., 2));
     }

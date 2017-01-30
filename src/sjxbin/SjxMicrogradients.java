@@ -350,9 +350,12 @@ public strictfp class SjxMicrogradients {
 
                 // If recent
                 if (badBots.getInfoAge() < 2) {
-                    if (target == null && getRobotGroup(myType, myTeam) != RobotGroup.FRIENDLYECONOMIC)
+                    double dist = badBots.getLocation().distanceTo(myLocation);
+                    if (    dist < SjxMath.sigmoid(me.getTeamBullets(), 80., .02, 5, 20)
+                            && target == null
+                            && getRobotGroup(myType, myTeam) != RobotGroup.FRIENDLYECONOMIC)
                         updateTarget(myLocation, badBots.getRobot());
-                    if (badBots.getLocation().distanceTo(myLocation) < myType.sensorRadius * 3.) {
+                    if (dist < myType.sensorRadius * 3.) {
                         gradient = SjxMath.elementwiseSum(
                                 getMyGradient(myLocation, badBots.getRobot()), gradient, false);
                     }
@@ -372,7 +375,7 @@ public strictfp class SjxMicrogradients {
                     case ENEMYMILITARY:
                         if (myType == RobotType.LUMBERJACK) {
                             // Run away from military like you run to economics.
-                            _macroScale = -macroEconomicTargetScale/5.;
+                            _macroScale = 0;
                         }
                         else if (myType == RobotType.ARCHON || myType == RobotType.GARDENER)
                             _macroScale = -enemyMilitaryDangerScale;

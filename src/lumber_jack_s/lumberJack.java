@@ -73,7 +73,10 @@ public strictfp class lumberJack extends RobotPlayer{
                 rc.shake(loc);
             else if (rc.canChop(loc) && !rc.hasAttacked()
                     && closestTree.getTeam() != myTeam)
-                rc.chop(loc);
+                if (rc.senseNearbyRobots(GameConstants.LUMBERJACK_STRIKE_RADIUS, myTeam).length > 0)
+                    rc.chop(loc);
+                else
+                    rc.strike();
         }
         // Store for essentialMethod.
         lastTree = closestTree;

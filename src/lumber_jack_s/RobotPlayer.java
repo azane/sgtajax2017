@@ -2,6 +2,7 @@ package lumber_jack_s;
 import battlecode.common.*;
 import sjxbin.*;
 
+
 public strictfp class RobotPlayer {
     public static RobotController rc;
     // Make this a 'singleton'.
@@ -30,6 +31,7 @@ public strictfp class RobotPlayer {
     //  this base constructor, as per usual.
     public RobotPlayer() {
         try {
+
             rp = this;
 
             double[] centerSum = new double[2];

@@ -2,6 +2,7 @@ package lumber_jack_s;
 import battlecode.common.*;
 import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
+import sjxbin.SjxMath;
 
 public strictfp class soldier extends RobotPlayer{
     static RobotController rc = RobotPlayer.rc;

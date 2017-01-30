@@ -1,7 +1,6 @@
 package testplayer;
 import battlecode.common.*;
 import sjxbin.SjxMath;
-import sjxbin.SjxMicrogradients;
 
 public strictfp class soldier extends RobotPlayer{
     static RobotController rc;

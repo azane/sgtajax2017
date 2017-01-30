@@ -169,7 +169,9 @@ public strictfp class RobotPlayer {
 
     static void shootEmUp(MapLocation myLocation, RobotInfo targetBot) throws GameActionException{
 
-        if (rc.getTeamBullets() < 100)
+        // Leave a 5% chance for them to still shoot if below value.
+        // Limit to 5 trees.
+        if (rc.getTeamBullets() < 100 && Math.random() < .95 && rc.getTreeCount() < 4)
             return;
 
         if (targetBot != null && !rc.hasAttacked()) {

@@ -29,7 +29,7 @@ int TANK_BUILD_LIMIT;
 float FRIENDLY_TREE_RADIUS;
 
 static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, LUMBERJACK, SOLDIER, SOLDIER, LUMBERJACK};
-static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, SOLDIER, SOLDIER, SOLDIER, TANK};
+static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, SOLDIER, TANK};
 
 
 Direction east = Direction.getEast();
@@ -58,8 +58,6 @@ public void mainMethod() throws GameActionException {
 	        	unitGardenerLoop();
 	        	break;
 	    }
-		// Search for enemy archons
-		searchForArchon();
 	}
 }
 /**
@@ -85,7 +83,7 @@ void runGardener(RobotController rc) throws GameActionException {
         // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
         try {
 
-            RobotPlayer.rp.mainMethod();
+            RobotPlayer.rp.mainMethod(true);
 
         } catch (Exception e) {
             System.out.println("Gardener Exception");

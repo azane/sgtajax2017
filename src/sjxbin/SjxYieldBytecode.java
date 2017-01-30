@@ -27,6 +27,8 @@ public class SjxYieldBytecode {
                     //Clock.yield();
                     break;
                 case(1):
+                    if (RobotPlayer.rc.getType() == RobotType.SOLDIER)
+                        System.out.println();
                     RobotPlayer.enemyRobots.enqueueBatchTask(
                             RobotPlayer.rc.senseNearbyRobots(-1,
                                     RobotPlayer.rc.getTeam().opponent()), bytecodeAllotments[i]);

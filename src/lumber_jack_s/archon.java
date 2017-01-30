@@ -28,9 +28,6 @@ public strictfp class archon extends RobotPlayer{
 	
 	        // Donate bullets on last round
 	        donateBullets();
-
-			// Search for enemy archons
-			searchForArchon();
 	        
 	        // Count the number of robots nearby.  Make sure there's at least one gardener
 	        RobotInfo[] nearbyBots = rc.senseNearbyRobots(RobotType.ARCHON.sensorRadius);
@@ -70,6 +67,7 @@ public strictfp class archon extends RobotPlayer{
 		bct.start(0);
 		bct.poll();
 		enemyRobots.globalPrepIter();
+		System.out.println("Enemy bot stack:" + enemyRobots.getNumElements());
 		while (enemyRobots.next() && enemyRobots.getCurrentIndex() < 20) {
 			MapLocation loc = enemyRobots.getLocation();
 			int age = enemyRobots.getInfoAge();
@@ -118,7 +116,7 @@ public strictfp class archon extends RobotPlayer{
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
 
-                RobotPlayer.rp.mainMethod();
+                RobotPlayer.rp.mainMethod(true);
 
             } catch (Exception e) {
                 System.out.println("Archon Exception");

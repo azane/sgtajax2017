@@ -116,20 +116,75 @@ public strictfp class RobotPlayer {
 	public void mainMethod() throws GameActionException {
         throw new RuntimeException("This method is not implemented in the parent class!");
     }
+    public void mainMethod(boolean measure) throws GameActionException{
+        SjxBytecodeTracker bct = new SjxBytecodeTracker();
+        bct.start(0);
+        bct.poll();
+        mainMethod();
+        bct.poll();
+        bct.setMainMethodCost();
+        bct.end();
+    }
+    // This method can be overriden to hold the turn-essential code like shooting or striking.
+    // Turn skipping actions like yielding should call this if they can't call the full main.
+    // If a unit type does not override, it just dodges bullets. Overrides should call the super.
+    // Note, this and mainMethod should not be nested. Functionality and ordering are different, even
+    //  though they perform similar tasks.
+    public void essentialMethod() throws GameActionException {
+
+        // Bullet dodging is essential. And we need to force a move so we don't walk on our own bullets.
+        double[] bdodge = RobotPlayer.dodgeIshBullets();
+
+        MapLocation myLoc = rc.getLocation();
+
+        tryMove(myLoc.directionTo(new MapLocation(
+                (float)(myLoc.x + bdodge[0]), (float)(myLoc.y + bdodge[1]))));
+    }
 
     static void shootEmUp(MapLocation myLocation, RobotInfo targetBot) throws GameActionException{
         if (targetBot != null && !rc.hasAttacked()) {
             if (myLocation.distanceTo(targetBot.getLocation())
-                    < ((targetBot.getType().bodyRadius * 2.5) + rc.getType().bodyRadius)
+                    < ((targetBot.getType().bodyRadius * 5.) + rc.getType().bodyRadius)
                     && rc.canFirePentadShot())
                 rc.firePentadShot(myLocation.directionTo(targetBot.getLocation()));
             else if (myLocation.distanceTo(targetBot.getLocation())
-                    < ((targetBot.getType().bodyRadius * 3.7) + rc.getType().bodyRadius)
+                    < ((targetBot.getType().bodyRadius * 7.) + rc.getType().bodyRadius)
                     && rc.canFireTriadShot())
                 rc.fireTriadShot(myLocation.directionTo(targetBot.getLocation()));
             else if (rc.canFireSingleShot())
                 rc.fireSingleShot(myLocation.directionTo(targetBot.getLocation()));
         }
+    }
+
+    static double[] dodgeIshBullets() throws GameActionException {
+
+        int sampleSize = 10;
+
+        BulletInfo[] bullets = rc.senseNearbyBullets(rc.getType().bodyRadius*4);
+
+        double[] gradient = new double[2];
+
+        for (int i = 0; i < Math.min(sampleSize, bullets.length); i++) {
+            // Sample a random bullet.
+            BulletInfo bullet = bullets[(int) Math.floor(Math.random() * bullets.length)];
+
+            MapLocation dontbehere = bullet.location.add(bullet.dir, bullet.speed*2);
+
+            double stdev = rc.getType().bodyRadius*1.4;
+
+            rc.setIndicatorLine(dontbehere,
+                    dontbehere.add(bullet.dir, (float)(stdev)),
+                    255, 255, 255);
+            rc.setIndicatorDot(dontbehere, 255, 255, 255);
+
+            gradient = SjxMath.elementwiseSum(
+                    gradient,
+                    SjxMath.gaussianDerivative(rc.getLocation(), dontbehere,
+                            stdev, 0.1),
+                    true
+            );
+        }
+        return gradient;
     }
 
     /**
@@ -179,13 +234,23 @@ public strictfp class RobotPlayer {
         while(currentCheck<=checksPerSide) {
             // Try the offset of the left side
             if(rc.canMove(dir.rotateLeftDegrees(degreeOffset*currentCheck))) {
-                rc.move(dir.rotateLeftDegrees(degreeOffset*currentCheck));
-                return true;
+                try {
+                    rc.move(dir.rotateLeftDegrees(degreeOffset*currentCheck));
+                    return true;
+                }
+                catch (GameActionException e) {
+                    return false;
+                }
             }
             // Try the offset on the right side
             if(rc.canMove(dir.rotateRightDegrees(degreeOffset*currentCheck))) {
-                rc.move(dir.rotateRightDegrees(degreeOffset*currentCheck));
-                return true;
+                try {
+                    rc.move(dir.rotateRightDegrees(degreeOffset * currentCheck));
+                    return true;
+                }
+                catch (GameActionException e) {
+                    return false;
+                }
             }
             // No move performed, try slightly further
             currentCheck++;

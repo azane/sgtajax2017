@@ -211,6 +211,7 @@ void findEmptySpot() throws GameActionException{
 	RobotInfo[] robots = rc.senseNearbyRobots();
 	float robotX = 0;
 	float robotY = 0;
+	MapLocation nearestArchonLoc = null;
 	if (robots.length != 0){
 		for (RobotInfo robot : robots){
 			if (robot.getType() == RobotType.GARDENER){
@@ -218,6 +219,13 @@ void findEmptySpot() throws GameActionException{
 				robotX = robotX + (float)dxdy[0]; //Add all x's and y's
 				robotY = robotY + (float)dxdy[1]; 
 			}
+
+			if (robot.getType() == RobotType.ARCHON && robot.team == myTeam)
+				if (nearestArchonLoc == null ||
+						rc.getLocation().distanceSquaredTo(robot.getLocation())
+						< rc.getLocation().distanceSquaredTo(nearestArchonLoc)) {
+					nearestArchonLoc = robot.getLocation();
+				}
 		}
 		robotX = robotX/robots.length;
 		robotY = robotY/robots.length;
@@ -247,8 +255,18 @@ void findEmptySpot() throws GameActionException{
 			emptySpots -= 1;
 		}
 	}
-	
-	if(emptySpots > 4){
+
+	double archonDistanceThreshold = (ARCHON.bodyRadius*4 + 1.5);
+	if(emptySpots > 4
+			&& (
+				nearestArchonLoc == null
+				||
+					(rc.getLocation().distanceTo(nearestArchonLoc) < archonDistanceThreshold
+							// TODO track how many times you've failed, if it's lots, then build.
+							// For now though, give a small chance of building regardless of archon situation.
+					|| Math.random() < 0.05)
+				)
+		){
 		foundSpot = true;
 	}	
 

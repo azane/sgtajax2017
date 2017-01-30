@@ -214,13 +214,13 @@ void findEmptySpot() throws GameActionException{
 	MapLocation nearestArchonLoc = null;
 	if (robots.length != 0){
 		for (RobotInfo robot : robots){
-			if (robot.getType() == RobotType.GARDENER){
-				double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(), 1., robot.getRadius()*2);
+			if (robot.getType() == RobotType.GARDENER || robot.getType() == RobotType.ARCHON){
+				double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(), 1., robot.getRadius()*4);
 				robotX = robotX + (float)dxdy[0]; //Add all x's and y's
 				robotY = robotY + (float)dxdy[1]; 
 			}
 
-			if (robot.getType() == RobotType.ARCHON && robot.team == myTeam)
+			if (robot.getType() == RobotType.ARCHON && robot.getTeam() == rc.getTeam())
 				if (nearestArchonLoc == null ||
 						rc.getLocation().distanceSquaredTo(robot.getLocation())
 						< rc.getLocation().distanceSquaredTo(nearestArchonLoc)) {
@@ -256,16 +256,17 @@ void findEmptySpot() throws GameActionException{
 		}
 	}
 
-	double archonDistanceThreshold = (ARCHON.bodyRadius*4 + 1.5);
+
+	if (nearestArchonLoc != null)
+		rc.setIndicatorDot(nearestArchonLoc, 255, 255, 255);
+	boolean archonOkay = nearestArchonLoc == null;
+
+
 	if(emptySpots > 4
-			&& (
-				nearestArchonLoc == null
-				||
-					(rc.getLocation().distanceTo(nearestArchonLoc) < archonDistanceThreshold
+			&& ( 	archonOkay
 							// TODO track how many times you've failed, if it's lots, then build.
 							// For now though, give a small chance of building regardless of archon situation.
-					|| Math.random() < 0.05)
-				)
+					)//|| Math.random() < 0.05)
 		){
 		foundSpot = true;
 	}	

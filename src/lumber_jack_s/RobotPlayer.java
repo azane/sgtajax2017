@@ -202,10 +202,10 @@ public strictfp class RobotPlayer {
 
             double stdev = rc.getType().bodyRadius*1.4;
 
-            rc.setIndicatorLine(dontbehere,
-                    dontbehere.add(bullet.dir, (float)(stdev)),
-                    255, 255, 255);
-            rc.setIndicatorDot(dontbehere, 255, 255, 255);
+//            rc.setIndicatorLine(dontbehere,
+//                    dontbehere.add(bullet.dir, (float)(stdev)),
+//                    255, 255, 255);
+//            rc.setIndicatorDot(dontbehere, 255, 255, 255);
 
             gradient = SjxMath.elementwiseSum(
                     gradient,

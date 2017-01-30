@@ -30,8 +30,8 @@ int LUMBERJACK_BUILD_LIMIT;
 int TANK_BUILD_LIMIT;
 float FRIENDLY_TREE_RADIUS;
 
-static RobotType[] EARLY_ROBOT_BUILD_ORDER = {TANK, LUMBERJACK, LUMBERJACK, SOLDIER, SOLDIER, LUMBERJACK};
-static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, SOLDIER, TANK};
+static RobotType[] EARLY_ROBOT_BUILD_ORDER = {LUMBERJACK, TANK, LUMBERJACK, SOLDIER, SOLDIER, LUMBERJACK, SCOUT, LUMBERJACK, LUMBERJACK, SOLDIER, SOLDIER, LUMBERJACK, SCOUT};
+static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, SOLDIER, TANK, SCOUT};
 
 
 Direction east = Direction.getEast();
@@ -39,8 +39,8 @@ Direction[] treeBuildDirs = new Direction[]{east, east.rotateLeftDegrees(60), ea
 		east.rotateLeftDegrees(180), east.rotateLeftDegrees(240), east.rotateLeftDegrees(300)}; 
 
 TreeInfo[] myTrees;
-boolean phaseOne = false;
-boolean phaseTwo = false;
+boolean inPhaseOne = false;
+boolean inPhaseTwo = false;
 boolean foundSpot = false;
 int buildNum = 0;
 
@@ -105,19 +105,19 @@ void runGardener(RobotController rc) throws GameActionException {
 }
 
 void runInit() throws GameActionException{
-	if (!phaseOne){
-		phaseOne = buildRobot(RobotType.SCOUT);
+	if (!inPhaseOne){
+		inPhaseOne = buildRobot(SCOUT);
 	}
 	else {
 		int numTrees = rc.senseNearbyTrees().length;
 		if (numTrees < 3){
-			phaseTwo = buildTree();
+			inPhaseTwo = buildTree();
 		}
 		else {
-			phaseTwo = buildRobot(RobotType.LUMBERJACK);
+			inPhaseTwo = buildRobot(LUMBERJACK);
 		}
 	}
-	if (phaseTwo) {
+	if (inPhaseTwo) {
 		rc.broadcast(INIT_OFFSET, 1);
 	}
 	Direction moveDir = randomDirection();
@@ -149,48 +149,9 @@ void unitGardenerLoop() throws GameActionException{
 	rc.setIndicatorDot(rc.getLocation(), 255, 0, 0);
 	buildRobotInOrder();
 	waterFunc();
-
-	MapLocation myLocation = rc.getLocation();
 	
-	//Move away from trees
-	TreeInfo[] trees = rc.senseNearbyTrees();
-	float treeX = 0;
-	float treeY = 0;
-	if (trees.length != 0){
-		for (TreeInfo tree : trees){
-			double[] dxdy = SjxMath.gaussianDerivative(myLocation, tree.getLocation(), tree.radius*2, 1.);
-			treeX = treeX + (float)dxdy[0]; //Add all x's and y's
-			treeY = treeY + (float)dxdy[1]; 
-		}
-		treeX = treeX/trees.length;
-		treeY = treeY/trees.length;
-	}
-	
-	//Move away from other robots
-	RobotInfo[] robots = rc.senseNearbyRobots();
-	float robotX = 0;
-	float robotY = 0;
-	if (robots.length != 0){
-		for (RobotInfo robot : robots){
-			double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(), robot.getRadius()*2, 5.);
-			robotX = robotX + (float)dxdy[0]; //Add all x's and y's
-			robotY = robotY + (float)dxdy[1]; 
-		}
-		robotX = robotX/trees.length;
-		robotY = robotY/trees.length;
-	}
-	
-	float newX = treeX + robotX;
-	float newY = treeY + robotY;
-	
-	
-	MapLocation plopSpot = new MapLocation(myLocation.x - newX, myLocation.y - newY);
-	rc.setIndicatorDot(plopSpot, 0, 0, 0); // Set an indicator to see where the dot is going.
-	
-	
-	// Finally, move to that new location
-	Direction moveDir = myLocation.directionTo(plopSpot);
-	tryMove(moveDir);
+	//Move away from trees and enemy robots
+	gardenerMove(1, 2, 2, 5);
 	
 }
 
@@ -198,55 +159,17 @@ void findEmptySpot() throws GameActionException{
 	MapLocation myLocation = rc.getLocation();
 	
 	//Move away from trees
-	TreeInfo[] trees = rc.senseNearbyTrees();
-	float treeX = 0;
-	float treeY = 0;
-	if (trees.length != 0){
-		for (TreeInfo tree : trees){
-			double[] dxdy = SjxMath.gaussianDerivative(myLocation, tree.getLocation(), 2., tree.radius*4);
-			treeX = treeX + (float)dxdy[0]; //Add all x's and y's
-			treeY = treeY + (float)dxdy[1]; 
-		}
-		treeX = treeX/trees.length;
-		treeY = treeY/trees.length;
-	}
+	gardenerMove(2, 4, 1, 2);
 	
-	//Move away from other robots
-	RobotInfo[] robots = rc.senseNearbyRobots();
-	float robotX = 0;
-	float robotY = 0;
-	if (robots.length != 0){
-		for (RobotInfo robot : robots){
-			if (robot.getType() == RobotType.GARDENER){
-				double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(), 1., robot.getRadius()*2);
-				robotX = robotX + (float)dxdy[0]; //Add all x's and y's
-				robotY = robotY + (float)dxdy[1]; 
-			}
-		}
-		robotX = robotX/trees.length;
-		robotY = robotY/trees.length;
-	}
-	
-	float newX = treeX + robotX;
-	float newY = treeY + robotY;
-	
-	
-	MapLocation plopSpot = new MapLocation(myLocation.x - newX, myLocation.y - newY);
-	rc.setIndicatorDot(plopSpot, 0, 0, 0); // Set an indicator to see where the dot is going.
-	
-	
-	// Finally, move to that new location
-	Direction moveDir = myLocation.directionTo(plopSpot);
-	tryMove(moveDir);
 
 	int emptySpots = treeBuildDirs.length;
 	foundSpot = false;
 	MapLocation treeLocation;
 	// Have we found the right spot?
 	for (Direction buildDir : treeBuildDirs){
-		treeLocation = myLocation.add(buildDir, GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS*2+RobotType.GARDENER.bodyRadius);
+		treeLocation = myLocation.add(buildDir, GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS*2+GARDENER.bodyRadius);
 		rc.setIndicatorDot(treeLocation, 255, 255, 255);
-		if (rc.isLocationOccupied(treeLocation)){
+		if (rc.isLocationOccupied(treeLocation) && rc.onTheMap(treeLocation)){
 			System.out.println("Cannot build tree at: "+treeLocation.toString());
 			emptySpots -= 1;
 		}
@@ -256,6 +179,64 @@ void findEmptySpot() throws GameActionException{
 		foundSpot = true;
 	}	
 
+}
+
+void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, int robotScale) throws GameActionException{
+	MapLocation myLocation = rc.getLocation();
+	TreeInfo[] trees = rc.senseNearbyTrees();
+	float treeX = 0;
+	float treeY = 0;
+	if (trees.length != 0){
+		for (TreeInfo tree : trees){
+			double[] dxdy = SjxMath.gaussianDerivative(myLocation, tree.getLocation(), treeDeviation, tree.radius*treeScale);
+			treeX = treeX + (float)dxdy[0]; //Add all x's and y's
+			treeY = treeY + (float)dxdy[1]; 
+		}
+		treeX = treeX/trees.length;
+		treeY = treeY/trees.length;
+	}
+	
+	//Move away from other gardeners
+	RobotInfo[] robots = rc.senseNearbyRobots();
+	float robotX = 0;
+	float robotY = 0;
+	if (robots.length != 0){
+		for (RobotInfo robot : robots){
+			if (robot.getType() == GARDENER){
+				double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(), robotDeviation, robot.getRadius()*robotScale);
+				robotX = robotX + (float)dxdy[0]; //Add all x's and y's
+				robotY = robotY + (float)dxdy[1]; 
+			}
+		}
+		robotX = robotX/robots.length;
+		robotY = robotY/robots.length;
+	}
+	
+	//Move away from enemy robots
+	RobotInfo[] enemyRobots = rc.senseNearbyRobots(GARDENER.sensorRadius, rc.getTeam().opponent());
+	float enemyRobotX = 0;
+	float enemyRobotY = 0;
+	if (enemyRobots.length != 0){
+		for (RobotInfo robot : enemyRobots){
+			double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(), robotDeviation, robot.getRadius()*robotScale);
+			enemyRobotX = enemyRobotX + (float)dxdy[0]; //Add all x's and y's
+			enemyRobotY = enemyRobotY + (float)dxdy[1]; 
+		}
+		enemyRobotX = enemyRobotX/enemyRobots.length;
+		enemyRobotY = enemyRobotY/enemyRobots.length;
+	}
+	
+	float newX = treeX + robotX + enemyRobotX;
+	float newY = treeY + robotY + enemyRobotY;
+	
+	
+	MapLocation plopSpot = new MapLocation(myLocation.x - newX, myLocation.y - newY);
+	rc.setIndicatorDot(plopSpot, 0, 0, 0); // Set an indicator to see where the dot is going.
+	
+	
+	// Finally, move to that new location
+	Direction moveDir = myLocation.directionTo(plopSpot);
+	tryMove(moveDir);
 }
 
 
@@ -349,7 +330,7 @@ int getBuildLimit(RobotType type) throws GameActionException{
 }
 
 void waterFunc() throws GameActionException{
-	myTrees = rc.senseNearbyTrees(RobotType.GARDENER.bodyRadius+GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS, myTeam);
+	myTrees = rc.senseNearbyTrees(GARDENER.bodyRadius+GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS, myTeam);
     float min_health = GameConstants.BULLET_TREE_MAX_HEALTH-GameConstants.WATER_HEALTH_REGEN_RATE;
     TreeInfo tree_to_water = null;
     for (TreeInfo tree : myTrees){
@@ -368,13 +349,14 @@ void waterFunc() throws GameActionException{
 int getPersonality() throws GameActionException{
 	//If we have lots of space around us return 1 for fort gardener
 	TreeInfo [] nearbyTrees = rc.senseNearbyTrees();
+	int numGardeners = countNearbyRobotsOfType(GARDENER);
 
-	if(nearbyTrees.length < 5){
-		//Fort Gardener
+	if((nearbyTrees.length < 6 && numGardeners == 0) || (nearbyTrees.length < 4 && numGardeners < 2)){
+		//Fort Gardener - only build if it is the only gardener in the area.
 		return 1;
 	}
 	else {
-		//Unit Gardener
+		//Unit Gardener - build if there aren't many nearby trees and if there's already a gardener in the area.
 	    SCOUT_BUILD_LIMIT = 20;
 	    SOLDIER_BUILD_LIMIT = 150;
 	    LUMBERJACK_BUILD_LIMIT = 200;

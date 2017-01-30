@@ -32,6 +32,17 @@ public class SjxBytecodeTracker {
     }
 
     private int bytecodeAllotment;
+    public int getBytecodeAllotment() {
+        return bytecodeAllotment;
+    }
+
+    private static int mainMethodCost = 0;
+    public static int getMainMethodCost() {
+        return mainMethodCost;
+    }
+    public void setMainMethodCost() {
+        mainMethodCost = totalCost;
+    }
 
     public SjxBytecodeTracker() {
         start = -1;
@@ -46,7 +57,8 @@ public class SjxBytecodeTracker {
     }
 
     public void start(int bytecodeAllotment) {
-        if (running) throw new RuntimeException("Must call .end() before starting again.");
+        if (running)
+            throw new RuntimeException("Must call .end() before starting again.");
 
         running = true;
         roundStart = RobotPlayer.rc.getRoundNum();
@@ -59,7 +71,8 @@ public class SjxBytecodeTracker {
     }
 
     public int poll() {
-        if (!running) throw new RuntimeException("Must call .start() before polling.");
+        if (!running)
+            throw new RuntimeException("Must call .start() before polling.");
 
         int lastTotalCost = totalCost;
         // The number of rounds passed * the bytecode turn limit
@@ -96,7 +109,7 @@ public class SjxBytecodeTracker {
     public void yieldToMain() {
 
         try {
-            RobotPlayer.rp.mainMethod();
+            RobotPlayer.rp.mainMethod(true);
         }
         catch (GameActionException e) {
             System.out.println("RobotPlayer's main method failed to complete.");
@@ -104,13 +117,25 @@ public class SjxBytecodeTracker {
     }
 
     public void yieldForBroadcast() {
-        try {
-            RobotPlayer.rp.mainMethod();
+
+        // If we have enough bytecode to run the main method, and then yield, do that.
+        // Otherwise, run the essential method only. This method is worth failing to broadcast.
+        if (Clock.getBytecodesLeft() > mainMethodCost*1.2)
+            yieldToMain();
+        else {
+            try {
+                RobotPlayer.rp.essentialMethod();
+            }
+            catch (GameActionException e) {
+                System.out.println("essentialMethod failed to return.");
+            }
+            System.out.println("Calling essential method only. Not enough bytecode for mainMethod.");
         }
-        catch (GameActionException e) {
-            System.out.println("RobotPlayer's main method failed to complete.");
-        }
+
+
         Clock.yield();
+        //this.poll();
+        //System.out.println();
     }
 
     public boolean isAllotmentExceeded() {

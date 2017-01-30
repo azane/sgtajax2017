@@ -1,5 +1,6 @@
 package sjxbin;
 import battlecode.common.*;
+import scala.tools.nsc.Global;
 
 import java.util.Arrays;
 import java.util.Random;
@@ -36,17 +37,28 @@ public strictfp class SjxMath {
         return sum;
     }
 
-    public static double[] elementwiseSum(double[] x1, double[] x2, boolean negate) {
+    public static double[] elementwiseSum(double[] x1, double[] x2, boolean subtract) {
 
-        double[] sumVector = new double[x1.length];
+        double[] sumVector = new double[2];
 
-        double sign = 1.;
-        if (negate) {
-            sign *= -1.;
+        if (x2.length != 2 || x1.length != 2)
+            throw new RuntimeException("Must be of length 2.");
+
+//        double sign = 1.;
+//        if (negate) {
+//            sign *= -1.;
+//        }
+//
+//        for (int i = 0; i < x1.length; i++) {
+//            sumVector[i] = x1[i] + x2[i]*sign;
+//        }
+        if (subtract) {
+            sumVector[0] = x1[0] + x2[0];
+            sumVector[1] = x1[1] + x2[1];
         }
-
-        for (int i = 0; i < x1.length; i++) {
-            sumVector[i] = x1[i] + x2[i]*sign;
+        else {
+            sumVector[0] = x1[0] - x2[0];
+            sumVector[1] = x1[1] - x2[1];
         }
 
         return sumVector;

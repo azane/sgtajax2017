@@ -316,6 +316,8 @@ public class SjxBroadcastQueue {
 
     // This can be used to guarantee a broadcast.
     public void yieldForBroadcast() {
+        if (Clock.getBytecodeNum() < 3000)
+            System.out.println("oops skipped a turn!");
         Clock.yield();
     }
 

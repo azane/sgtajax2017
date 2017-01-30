@@ -130,13 +130,13 @@ public strictfp class soldier extends RobotPlayer{
                 }
 
                 // Get tree gradient.
-                double[] treeGradient = SjxMicrogradients.instance.avoidTreesGradient(myLocation);
+                //double[] treeGradient = SjxMicrogradients.instance.avoidTreesGradient(myLocation);
 
                 // Move in the direction of the gradient.
 
                 // Convert and apply universal scale.
                 double[] gradient = SjxMath.elementwiseSum(enemyGradient, friendlyGradient, false);
-                gradient = SjxMath.elementwiseSum(gradient, treeGradient, false);
+                //gradient = SjxMath.elementwiseSum(gradient, treeGradient, false);
                 double s = .1;
                 float x = (float) (gradient[0] * s);
                 float y = (float) (gradient[1] * s);

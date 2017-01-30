@@ -78,7 +78,7 @@ public strictfp class scout extends RobotPlayer{
                     float offset = 2.8f;
 
                     MapLocation destination = new MapLocation(angle.getDeltaX(offset), angle.getDeltaY(offset));
-                    if (rc.canMove(destination)) {
+                    if (rc.canMove(destination) && !rc.hasMoved()) {
                         rc.move(destination);
                     } else {
                         tryMove(myLocation.directionTo(destination));
@@ -89,7 +89,7 @@ public strictfp class scout extends RobotPlayer{
         } else if (damagingEnemyCount >= 1) {
             for (TreeInfo tree : trees) {
                 if (tree.getRadius() > 1){
-                    if (rc.canMove(tree.getLocation())) {
+                    if (rc.canMove(tree.getLocation()) && !rc.hasMoved()) {
                         rc.move(tree.getLocation());
                     } else {
                         tryMove(myLocation.directionTo(tree.getLocation()));

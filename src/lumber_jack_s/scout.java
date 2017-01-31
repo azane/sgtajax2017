@@ -10,8 +10,8 @@ public strictfp class scout extends RobotPlayer{
     MapLocation enemyArchonLocation = pickInitialArchon2();
     boolean foundEnemyArchon = false;
     boolean atCenter = false;
-
-
+    MapLocation mapCenter = RobotPlayer.rp.getMapCenter();
+    MapLocation everyTenLocation = rc.getLocation();
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -22,14 +22,16 @@ public strictfp class scout extends RobotPlayer{
     // Test comment
     public void mainMethod() throws GameActionException {
 
-        // ToDo the mapCenter function can be moved out of the loop but it gave an error
-        MapLocation mapCenter = findMapCenter();
-
-
         MapLocation myLocation = rc.getLocation();
         Direction dirToMove = null;
         RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
         TreeInfo[] trees = rc.senseNearbyTrees();
+
+        if (rc.getRoundNum()%10 == 0) {
+            everyTenLocation = rc.getLocation();
+        }
+        System.out.println(everyTenLocation);
+
 
         //--- Scout Collect Bullets
         //-------------------------
@@ -63,13 +65,11 @@ public strictfp class scout extends RobotPlayer{
                 }
             }
         }
-        // ToDo Add in code to flee from enemies at all costs
-
         //--- End Avoid Enemy Ranged Code
         //-------------------------------
 
 
-        // ToDo Is this section necessary still??
+        // ToDo Is this section necessary still?? Maybe not but I don't want to mess with stuff so I'm leaving it.
         //--- Scout Search Code
         //---------------------
 
@@ -121,7 +121,7 @@ public strictfp class scout extends RobotPlayer{
                     tryMoveWithDodge(towardsEnemyArchon);
                 }
             }
-        } else if (enemyArchonsDead()){
+        } else {//if (enemyArchonsDead()){
             Direction towardCenter = myLocation.directionTo(mapCenter);
             if (atCenter) {
                 tryMoveWithDodge(towardCenter.rotateLeftDegrees(100));
@@ -129,10 +129,12 @@ public strictfp class scout extends RobotPlayer{
                 tryMoveWithDodge(towardCenter);
             }
 
-            if (myLocation.distanceTo(mapCenter) < 10) {
+            if (myLocation.distanceTo(mapCenter) < 5) {
                 atCenter = true;
+            } else if (myLocation == everyTenLocation) {
+                atCenter = false;
+                tryMove(towardCenter);
             }
-            // ToDo set atCenter to false if stuck
         }
         //--- End Move Code
         //-----------------
@@ -244,43 +246,13 @@ public strictfp class scout extends RobotPlayer{
         }
     }
 
-    public MapLocation findMapCenter() throws GameActionException {
-        try{
-            MapLocation[] initialEnemyArchons = rc.getInitialArchonLocations(rc.getTeam().opponent());
-            MapLocation[] initialFriendlyArchons = rc.getInitialArchonLocations(rc.getTeam());
-            float centerX = 0.0f;
-            float centerY = 0.0f;
-            int archonCount = 0;
-
-            for (MapLocation enemyArchon: initialEnemyArchons) {
-                centerX = centerX + enemyArchon.x;
-                centerY = centerY + enemyArchon.y;
-                archonCount++;
-            }
-            for (MapLocation friendlyArchon: initialFriendlyArchons) {
-                centerX = centerX + friendlyArchon.x;
-                centerY = centerY + friendlyArchon.y;
-                archonCount++;
-            }
-
-            MapLocation mapCenter = new MapLocation(centerX/archonCount,centerY/archonCount);
-            return mapCenter;
-
-        } catch (Exception e) {
-            System.out.println("MapCenter Exception");
-            return null;
-        }
-    }
 
     public void tryMoveWithDodge(Direction dir) throws GameActionException {
         MapLocation myLocation = rc.getLocation();
         MapLocation destination = new MapLocation(myLocation.x + dir.getDeltaX(1.25f), myLocation.y + dir.getDeltaY(1.25f));
         double[] gradient = RobotPlayer.rp.dodgeIshBullets();
-        MapLocation smartDestination = new MapLocation((float)(destination.x + gradient[0]), (float)(destination.y + gradient[1]));
-
-        if (rc.canMove(smartDestination)) {
-            rc.move(smartDestination);
-        }
+        MapLocation smartDestination = new MapLocation((float)(destination.x + gradient[0]*3), (float)(destination.y + gradient[1]*3));
+        tryMove(myLocation.directionTo(smartDestination));
     }
 
 }

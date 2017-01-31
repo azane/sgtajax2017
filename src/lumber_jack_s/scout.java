@@ -12,6 +12,7 @@ public strictfp class scout extends RobotPlayer{
     boolean atCenter = false;
     MapLocation mapCenter = RobotPlayer.rp.getMapCenter();
     MapLocation everyTenLocation = rc.getLocation();
+    int personality = 0;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -110,7 +111,52 @@ public strictfp class scout extends RobotPlayer{
         //--- Scout Move Code
         //-------------------
 
-        // If the enemy archons are not dead, keep circling them
+        // Pick a path, reassess every 100 rounds
+        int currentRound = rc.getRoundNum();
+        if (currentRound%100 == 0 && currentRound>250) {
+            if (Math.random() > 0.3) {
+                personality = 1;
+            } else {
+                personality = 0;
+            }
+        } else if (enemyArchonsDead()) {
+            personality = 1;
+        }
+
+        // personality 0 is the archon circling code
+        if (personality == 0) {
+            if (rc.hasAttacked() == false) {
+                Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
+                if (enemyArchonLocation != null) {
+                    // Move towards the enemy archon or perpendicular to it
+                    if (foundEnemyArchon) {
+                        tryMoveWithDodge(towardsEnemyArchon.rotateLeftDegrees(90));
+                    } else {
+                        tryMoveWithDodge(towardsEnemyArchon);
+                    }
+                }
+            }
+            // personality 1 is the map scouring
+        } else if (personality == 1 || true){
+            Direction towardCenter = myLocation.directionTo(mapCenter);
+            if (atCenter) {
+                tryMoveWithDodge(towardCenter.rotateLeftDegrees(100));
+            } else {
+                tryMoveWithDodge(towardCenter);
+            }
+
+            if (myLocation.distanceTo(mapCenter) < 5) {
+                atCenter = true;
+            } else if (myLocation == everyTenLocation) {
+                atCenter = false;
+                tryMove(towardCenter);
+            } else {
+                atCenter = false;
+            }
+        }
+
+
+/*        // If the enemy archons are not dead, keep circling them
         if (rc.hasAttacked() == false && !enemyArchonsDead()) {
             Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
             if (enemyArchonLocation != null) {
@@ -135,7 +181,7 @@ public strictfp class scout extends RobotPlayer{
                 atCenter = false;
                 tryMove(towardCenter);
             }
-        }
+        }*/
         //--- End Move Code
         //-----------------
 

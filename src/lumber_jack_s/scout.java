@@ -27,10 +27,25 @@ public strictfp class scout extends RobotPlayer{
         Direction dirToMove = null;
         RobotInfo[] robots = rc.senseNearbyRobots(-1, enemy);
         TreeInfo[] trees = rc.senseNearbyTrees();
+        int enemyCount = 0;
+        float enemyX = 0f;
+        float enemyY = 0f;
 
         if (rc.getRoundNum()%10 == 0) {
             everyTenLocation = rc.getLocation();
         }
+
+        // Sit in tree if enemies are nearby
+        if (robots.length > 0) {
+            for (TreeInfo tree : trees) {
+                if (tree.getRadius() > 1) {
+                    tryMove(myLocation.directionTo(tree.getLocation()));
+                    break;
+                }
+            }
+        }
+
+
 
         // Pick a path, reassess every 100 rounds
         int currentRound = rc.getRoundNum();
@@ -138,19 +153,40 @@ public strictfp class scout extends RobotPlayer{
             //-----------------
 
         } else if (personality == 1){ // personality 1 is the map scouring
+
+            if (robots.length > 0) {
+                for (RobotInfo robot : robots) {
+                    RobotType botType = robot.getType();
+                    if (botType == RobotType.SOLDIER || botType == RobotType.TANK || botType == RobotType.LUMBERJACK) {
+                        enemyCount++;
+                        enemyX += robot.getLocation().x;
+                        enemyY += robot.getLocation().y;
+                        if (enemyCount > 3) {
+                            break;
+                        }
+                    }
+                }
+                MapLocation enemyClusterCenter = new MapLocation (enemyX/enemyCount,enemyY/enemyCount);
+                tryMove(myLocation.directionTo(enemyClusterCenter).opposite());
+            }
+
             Direction towardCenter = myLocation.directionTo(mapCenter);
             if (atCenter) {
-                tryMoveWithDodge(towardCenter.rotateLeftDegrees(120));
+                tryMoveWithDodge(towardCenter.rotateLeftDegrees(100));
             } else {
                 tryMoveWithDodge(towardCenter);
             }
 
             if (myLocation.distanceTo(mapCenter) < 5) {
                 atCenter = true;
-            } else if (myLocation == everyTenLocation) {
+            } /*else if (myLocation == everyTenLocation) {
                 atCenter = false;
                 tryMove(towardCenter);
-            }
+            }*/
+        }
+
+        if (rc.getRoundNum()%10 == 0) {
+            everyTenLocation = rc.getLocation();
         }
 
     }

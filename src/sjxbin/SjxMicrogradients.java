@@ -152,9 +152,7 @@ public strictfp class SjxMicrogradients {
     }
     private void updateTarget(MapLocation myLocation, RobotInfo robot) {
         // Pick the closest
-        // Note we aren't checking if we're shooting archons here.
-        // That's for long range only and is done in the gradient iteration.
-        if (!willShootFriends(myLocation, robot.location))
+        if (!willShootFriends(myLocation, robot.location) && !willShootArchon(myLocation, robot))
             if (target == null
                     || (getRobotGroup(robot) != RobotGroup.ENEMYECONOMIC
                         && getRobotGroup(target) == RobotGroup.ENEMYECONOMIC)
@@ -217,22 +215,28 @@ public strictfp class SjxMicrogradients {
             case GARDENER:
                 break;
             case ARCHON:
+                double _scale = 1.;
+                if (robot.getTeam() != myTeam)
+                    _scale = 2.5;
                 // Avoid...everyone, but especially other archons.
                 if (robot.type == RobotType.ARCHON)
                     gradient = SjxMath.elementwiseSum(gradient,
                             SjxMath.gaussianDerivative(myLocation, robot.getLocation(),
-                                    myType.sensorRadius, -mutualArchonHatred),
+                                    myType.sensorRadius, -mutualArchonHatred*_scale),
                 false);
                 else if (robot.type == RobotType.GARDENER) {
                     gradient = SjxMath.elementwiseSum(gradient,
                             SjxMath.gaussianDerivative(myLocation, robot.getLocation(),
-                                    myType.sensorRadius, -archonGardenerHatred),
+                                    myType.sensorRadius, -archonGardenerHatred*_scale),
                             false);
                 }
                 else
-                gradient = SjxMath.elementwiseSum(
-                        gradient,
-                        fleeEnemyGradient(myLocation, robot), false);
+                    gradient = SjxMath.elementwiseSum(
+                            gradient,
+                            SjxMath.gaussianDerivative(myLocation, robot.getLocation(),
+                                    myType.sensorRadius, -enemyMilitaryDangerScale*_scale),
+                            //fleeEnemyGradient(myLocation, robot),
+                            false);
                 break;
             case LUMBERJACK:
                 // TODO add a gamestate where lumberjacks exhibit minimal friendlydonut and
@@ -259,7 +263,6 @@ public strictfp class SjxMicrogradients {
                     gradient = SjxMath.elementwiseSum(
                             friendlyDonutGradient(myLocation, robot),
                             gradient, false);
-
                 break;
             case SCOUT:
                 // Avoid enemy military.
@@ -382,9 +385,9 @@ public strictfp class SjxMicrogradients {
                     double dist = badBots.getLocation().distanceTo(myLocation);
                     if (    dist < SjxMath.sigmoid(me.getTeamBullets(), 80., .02, 5, 20)
                             && target == null
-                            && getRobotGroup(myType, myTeam) != RobotGroup.FRIENDLYECONOMIC
+                            && getRobotGroup(myType, myTeam) != RobotGroup.FRIENDLYECONOMIC)
                             // Only check archon shot when doing long range.
-                            && !willShootArchon(myLocation, badbot))
+                            //&& !willShootArchon(myLocation, badbot))
                         updateTarget(myLocation, badbot);
                     if (dist < myType.sensorRadius * 3.) {
                         gradient = SjxMath.elementwiseSum(

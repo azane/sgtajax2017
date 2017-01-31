@@ -56,6 +56,10 @@ public class SjxBytecodeTracker {
         numTrackers++;
     }
 
+    public int getStartRound() {
+        return roundStart;
+    }
+
     public void start(int bytecodeAllotment) {
         if (running)
             throw new RuntimeException("Must call .end() before starting again.");

@@ -8,16 +8,10 @@ public strictfp class soldier extends RobotPlayer{
     static RobotController rc = RobotPlayer.rc;
 
     private RobotInfo lastTarget = null;
-    private RobotInfo lastLastTarget = null;
-    private RobotInfo lastLastLastTarget = null;
     public void essentialMethod() throws GameActionException {
         super.essentialMethod(); // Dodge bullets and force a move (so we don't step on our bullets).
         if (lastTarget != null)
             shootEmUp(rc.getLocation(), lastTarget);
-        else if (lastLastTarget != null)
-            shootEmUp(rc.getLocation(), lastLastTarget);
-        else if (lastLastLastTarget != null)
-            shootEmUp(rc.getLocation(), lastLastLastTarget);
     }
 
     public void mainMethod() throws GameActionException {
@@ -60,14 +54,8 @@ public strictfp class soldier extends RobotPlayer{
             shootEmUp(myLocation, targetBot);
         else if (lastTarget != null)
             shootEmUp(myLocation, lastTarget);
-        else if (lastLastTarget != null)
-            shootEmUp(myLocation, lastLastTarget);
-        else if (lastLastLastTarget != null)
-            shootEmUp(myLocation, lastLastLastTarget);
 
         lastTarget = targetBot;
-        lastLastTarget = lastTarget;
-        lastLastLastTarget = lastLastTarget;
     }
 
     /**

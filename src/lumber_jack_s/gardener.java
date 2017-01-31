@@ -15,6 +15,7 @@ static RobotType GARDENER = RobotType.GARDENER;
 static Team myTeam;
 static RobotType[] robotTypeList = {SCOUT, LUMBERJACK, SOLDIER, TANK};
 static int PERSONALITY;
+static int SETTLE_ROUND = 100;
 
 int SCOUT_BUILD_LIMIT;
 int SOLDIER_BUILD_LIMIT;
@@ -22,6 +23,7 @@ int LUMBERJACK_BUILD_LIMIT;
 int TANK_BUILD_LIMIT;
 float FRIENDLY_TREE_RADIUS;
 int updatedRound;
+int startTurn;
 
 static final int FARMER = 1;
 static final int UNITGARDENER = 2;
@@ -71,6 +73,7 @@ void runGardener(RobotController rc) throws GameActionException {
     // This is the RobotController object. You use it to perform actions from this robot,
     // and to get information on its readCurrent status.
     gardener.rc = rc;
+    startTurn = rc.getRoundNum();
     
     System.out.println("I'm a gardener!");
     
@@ -180,7 +183,7 @@ void findEmptySpot() throws GameActionException{
 	boolean archonOkay = nearestArchonLoc == null;
 
 
-	if(emptySpots > 4 && archonOkay)
+	if((emptySpots > 3 && archonOkay) || rc.getRoundNum() - startTurn > SETTLE_ROUND)
 	{
 		foundSpot = true;
 	}	
@@ -234,8 +237,10 @@ void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, in
 		enemyRobotY = enemyRobotY/enemyRobots.length;
 	}
 	
-	float newX = treeX + robotX + enemyRobotX;
-	float newY = treeY + robotY + enemyRobotY;
+	double[] bdodge = dodgeIshBullets();
+	
+	float newX = treeX + robotX + enemyRobotX + (float)bdodge[0];
+	float newY = treeY + robotY + enemyRobotY + (float)bdodge[1];
 	
 	
 	MapLocation plopSpot = new MapLocation(myLocation.x - newX, myLocation.y - newY);
@@ -371,7 +376,7 @@ int getPersonality() throws GameActionException{
 	//If we have lots of space around us return 1 for fort gardener
 	TreeInfo [] nearbyTrees = rc.senseNearbyTrees();
 
-	if(nearbyTrees.length < 3){
+	if(nearbyTrees.length < 4){
 		//Fort Gardener - only build if it is the only gardener in the area.
 		return FARMER;
 	}
@@ -393,7 +398,7 @@ int getEmptySpots() throws GameActionException{
 	MapLocation treeLocation;
 	// Have we found the right spot?
 	for (Direction buildDir : treeBuildDirs){
-		treeLocation = myLocation.add(buildDir, GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS*2+RobotType.GARDENER.bodyRadius);
+		treeLocation = myLocation.add(buildDir, GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS+RobotType.GARDENER.bodyRadius);
 		rc.setIndicatorDot(treeLocation, 255, 255, 255);
 		if (rc.isLocationOccupied(treeLocation) && rc.onTheMap(treeLocation)){
 			System.out.println("Cannot build tree at: "+treeLocation.toString());

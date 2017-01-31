@@ -145,7 +145,7 @@ public strictfp class SjxMicrogradients {
 //            RobotPlayer.rc.setIndicatorLine(myLocation, robot.getLocation(), 50, 0, 0);
 
             if (RobotPlayer.friendlyBots.getLocation().distanceTo(nearestLoc)
-                    < RobotPlayer.friendlyBots.getType().bodyRadius*2.)
+                    < RobotPlayer.friendlyBots.getType().bodyRadius*2.2)
                 return true;
         }
         return false;

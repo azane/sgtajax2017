@@ -2,6 +2,7 @@ package lumber_jack_s;
 import battlecode.common.*;
 import sjxbin.*;
 
+
 public strictfp class RobotPlayer {
     public static RobotController rc;
     // Make this a 'singleton'.
@@ -10,6 +11,7 @@ public strictfp class RobotPlayer {
     public static SjxPredictiveShooter predictiveShooter;
 
     public static SjxRobotBroadcastQueue enemyRobots;
+    public static SjxRobotBroadcastQueue friendlyBots;
 
     static int ARCHON_SEARCH_OFFSET = 20; //Other stuff is hardcoded into this :(
     
@@ -30,11 +32,38 @@ public strictfp class RobotPlayer {
     //  this base constructor, as per usual.
     public RobotPlayer() {
         try {
+
             rp = this;
+
+            double[] centerSum = new double[2];
+            int numArchons = 0;
+            for (MapLocation loc : rc.getInitialArchonLocations(myTeam)) {
+                centerSum[0] += loc.x;
+                centerSum[1] += loc.y;
+                numArchons++;
+            }
+            for (MapLocation loc : rc.getInitialArchonLocations(enemy)) {
+                centerSum[0] += loc.x;
+                centerSum[1] += loc.y;
+                numArchons++;
+            }
+
+            if (numArchons > 0) {
+                centerSum[0] /= numArchons;
+                centerSum[1] /= numArchons;
+            }
+
+            mapCenter = new MapLocation((float)centerSum[0], (float)centerSum[1]);
+            rc.setIndicatorDot(mapCenter, 100, 100, 100);
         }
         catch (Exception e) {
             System.out.println("Crashed on setting the instance to the static field.");
         }
+    }
+
+    private MapLocation mapCenter;
+    public MapLocation getMapCenter() {
+        return mapCenter;
     }
 
     /**
@@ -71,6 +100,13 @@ public strictfp class RobotPlayer {
         RobotPlayer.enemyRobots = new SjxRobotBroadcastQueue(rc,
                 998, 1002, 1000,
                 1001);
+
+        RobotPlayer.friendlyBots = new SjxRobotBroadcastQueue(rc,
+                // size of array.
+                rc.getInitialArchonLocations(rc.getTeam()).length,
+                enemyRobots.getLastWriteableChannel() + 3,
+                enemyRobots.getLastWriteableChannel() + 1,
+                enemyRobots.getLastWriteableChannel() + 2);
 
         // Instantiate for the singleton.
         new SjxMicrogradients();
@@ -125,20 +161,76 @@ public strictfp class RobotPlayer {
         bct.setMainMethodCost();
         bct.end();
     }
+    // This method can be overriden to hold the turn-essential code like shooting or striking.
+    // Turn skipping actions like yielding should call this if they can't call the full main.
+    // If a unit type does not override, it just dodges bullets. Overrides should call the super.
+    // Note, this and mainMethod should not be nested. Functionality and ordering are different, even
+    //  though they perform similar tasks.
+    public void essentialMethod() throws GameActionException {
+
+        // Bullet dodging is essential. And we need to force a move so we don't walk on our own bullets.
+        double[] bdodge = RobotPlayer.dodgeIshBullets();
+
+        MapLocation myLoc = rc.getLocation();
+
+        tryMove(myLoc.directionTo(new MapLocation(
+                (float)(myLoc.x + bdodge[0]), (float)(myLoc.y + bdodge[1]))));
+    }
 
     static void shootEmUp(MapLocation myLocation, RobotInfo targetBot) throws GameActionException{
+
+        // Leave a 5% chance for them to still shoot if below value.
+        // Limit to 5 trees.
+        if (rc.getTeamBullets() < 100 && Math.random() < .95 && rc.getTreeCount() < 4
+                // TODO check to see if we even have any farmers out that might be
+                //  trying to build.
+                && !(rc.senseNearbyTrees().length > 3))
+            return;
+
         if (targetBot != null && !rc.hasAttacked()) {
             if (myLocation.distanceTo(targetBot.getLocation())
-                    < ((targetBot.getType().bodyRadius * 5.) + rc.getType().bodyRadius)
+                    < ((targetBot.getType().bodyRadius * 2.5) + rc.getType().bodyRadius)
                     && rc.canFirePentadShot())
                 rc.firePentadShot(myLocation.directionTo(targetBot.getLocation()));
             else if (myLocation.distanceTo(targetBot.getLocation())
-                    < ((targetBot.getType().bodyRadius * 7.) + rc.getType().bodyRadius)
+                    < ((targetBot.getType().bodyRadius * 3.5) + rc.getType().bodyRadius)
                     && rc.canFireTriadShot())
                 rc.fireTriadShot(myLocation.directionTo(targetBot.getLocation()));
             else if (rc.canFireSingleShot())
                 rc.fireSingleShot(myLocation.directionTo(targetBot.getLocation()));
         }
+    }
+
+    static double[] dodgeIshBullets() throws GameActionException {
+
+        int sampleSize = 10;
+
+        BulletInfo[] bullets = rc.senseNearbyBullets(rc.getType().bodyRadius*4);
+
+        double[] gradient = new double[2];
+
+        for (int i = 0; i < Math.min(sampleSize, bullets.length); i++) {
+            // Sample a random bullet.
+            BulletInfo bullet = bullets[(int) Math.floor(Math.random() * bullets.length)];
+
+            MapLocation dontbehere = bullet.location.add(bullet.dir, bullet.speed);
+
+            double stdev = rc.getType().bodyRadius*1.4;
+
+//            rc.setIndicatorLine(dontbehere,
+//                    dontbehere.add(bullet.dir, (float)(stdev)),
+//                    255, 255, 255);
+//            rc.setIndicatorDot(dontbehere, 255, 255, 255);
+
+            gradient = SjxMath.elementwiseSum(
+                    gradient,
+                    SjxMath.gaussianDerivative(rc.getLocation(), dontbehere,
+                            stdev, 0.1),
+                    true
+            );
+        }
+        return gradient;
+        //return new double[2];
     }
 
     /**
@@ -188,13 +280,23 @@ public strictfp class RobotPlayer {
         while(currentCheck<=checksPerSide) {
             // Try the offset of the left side
             if(rc.canMove(dir.rotateLeftDegrees(degreeOffset*currentCheck))) {
-                rc.move(dir.rotateLeftDegrees(degreeOffset*currentCheck));
-                return true;
+                try {
+                    rc.move(dir.rotateLeftDegrees(degreeOffset*currentCheck));
+                    return true;
+                }
+                catch (GameActionException e) {
+                    return false;
+                }
             }
             // Try the offset on the right side
             if(rc.canMove(dir.rotateRightDegrees(degreeOffset*currentCheck))) {
-                rc.move(dir.rotateRightDegrees(degreeOffset*currentCheck));
-                return true;
+                try {
+                    rc.move(dir.rotateRightDegrees(degreeOffset * currentCheck));
+                    return true;
+                }
+                catch (GameActionException e) {
+                    return false;
+                }
             }
             // No move performed, try slightly further
             currentCheck++;
@@ -436,5 +538,20 @@ public strictfp class RobotPlayer {
     	num_bots++;
     	setNumberRobotsBuilt(type, num_bots);
     }
+
+
+    static boolean enemyArchonsDead () throws GameActionException{
+        int archon1x = rc.readBroadcast(ARCHON_SEARCH_OFFSET+1);
+        int archon2x = rc.readBroadcast(ARCHON_SEARCH_OFFSET+3);
+        int archon3x = rc.readBroadcast(ARCHON_SEARCH_OFFSET+6);
+
+        if (archon1x==0 && archon2x==0 && archon3x==0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
 }
 

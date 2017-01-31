@@ -9,6 +9,36 @@ import java.util.Random;
  */
 public strictfp class SjxMath {
 
+    // modified from http://stackoverflow.com/questions/3120357/get-closest-point-to-a-line
+    public static double[] getClosestPointOnLineSegment(double[] A, double[] B, double[] P)
+    {
+        double[] AP = SjxMath.elementwiseSum(P, A, true);//P - A;       //Vector from A to P
+        double[] AB = SjxMath.elementwiseSum(B, A, true);//B - A;       //Vector from A to B
+
+        //AB.LengthSquared();     //Magnitude of AB vector (it's length squared)
+        double magnitudeAB = SjxMath.euclideanSquaredDistance(AB, new double[AB.length]);
+        //Vector2.Dot(AP, AB);    //The DOT product of a_to_p and a_to_b
+        double ABAPproduct = SjxMath.dotProduct(AP, AB);
+        double distance = ABAPproduct / magnitudeAB; //The normalized "distance" from a to your closest point
+
+        if (distance < 0)     //Check if P projection is over vectorAB
+        {
+            return A;
+
+        }
+        else if (distance > 1) {
+            return B;
+        }
+        else
+        {
+            double[] closestPoint = new double[A.length];
+            closestPoint[0] = A[0] + AB[0]*distance;
+            closestPoint[1] = A[1] + AB[1]*distance;
+            return closestPoint;
+            //return A + AB * distance;
+        }
+    }
+
     public static String csvFrom2dArray(double[][] array) {
         String csv = "";
         for (double[] row : array) {
@@ -21,6 +51,11 @@ public strictfp class SjxMath {
     public static double sigmoid(double x) {
         return 2./(1. + Math.exp(-x)) -1.;
     }
+
+    public static double sigmoid(double x, double a, double b, double c, double d) {
+        return a*(1./(1. + Math.exp(-(b*x - c)))) + d;
+    }
+
     public static double sigmoidDerivative(double x) {
         return 2.*(Math.exp(x)/Math.pow(Math.exp(x) + 1., 2));
     }
@@ -36,17 +71,28 @@ public strictfp class SjxMath {
         return sum;
     }
 
-    public static double[] elementwiseSum(double[] x1, double[] x2, boolean negate) {
+    public static double[] elementwiseSum(double[] x1, double[] x2, boolean subtract) {
 
-        double[] sumVector = new double[x1.length];
+        double[] sumVector = new double[2];
 
-        double sign = 1.;
-        if (negate) {
-            sign *= -1.;
+        if (x2.length != 2 || x1.length != 2)
+            throw new RuntimeException("Must be of length 2.");
+
+//        double sign = 1.;
+//        if (negate) {
+//            sign *= -1.;
+//        }
+//
+//        for (int i = 0; i < x1.length; i++) {
+//            sumVector[i] = x1[i] + x2[i]*sign;
+//        }
+        if (subtract) {
+            sumVector[0] = x1[0] - x2[0];
+            sumVector[1] = x1[1] - x2[1];
         }
-
-        for (int i = 0; i < x1.length; i++) {
-            sumVector[i] = x1[i] + x2[i]*sign;
+        else {
+            sumVector[0] = x1[0] + x2[0];
+            sumVector[1] = x1[1] + x2[1];
         }
 
         return sumVector;

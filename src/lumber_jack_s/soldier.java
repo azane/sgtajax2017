@@ -1,11 +1,18 @@
 package lumber_jack_s;
 import battlecode.common.*;
-import sjxbin.SjxMath;
 import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
+import sjxbin.SjxMath;
 
 public strictfp class soldier extends RobotPlayer{
     static RobotController rc = RobotPlayer.rc;
+
+    private RobotInfo lastTarget = null;
+    public void essentialMethod() throws GameActionException {
+        super.essentialMethod(); // Dodge bullets and force a move (so we don't step on our bullets).
+        if (lastTarget != null)
+            shootEmUp(rc.getLocation(), lastTarget);
+    }
 
     public void mainMethod() throws GameActionException {
         // Donate bullets on last round
@@ -26,21 +33,29 @@ public strictfp class soldier extends RobotPlayer{
 
         gradient = SjxMicrogradients.instance.getMyGradient(myLocation, rc.senseNearbyRobots());
 
+        double[] bdodge = dodgeIshBullets();
+        gradient = SjxMath.elementwiseSum(gradient, bdodge, false);
+
         // Add scaled gradient to myLocation coordinates.
         MapLocation gradientDestination = new MapLocation(
                 myLocation.x + (float)gradient[0],
                 myLocation.y + (float)gradient[1]
         );
 
+
         Direction d = myLocation.directionTo(gradientDestination);
+        RobotInfo targetBot = SjxMicrogradients.instance.getShotLocation();
+
         // Move toward the new vector.
         if (d != null)
             tryMove(d);
 
-        RobotInfo targetBot = SjxMicrogradients.instance.getShotLocation();
+        if (targetBot != null)
+            shootEmUp(myLocation, targetBot);
+        else if (lastTarget != null)
+            shootEmUp(myLocation, lastTarget);
 
-        shootEmUp(myLocation, targetBot);
-
+        lastTarget = targetBot;
     }
 
     /**

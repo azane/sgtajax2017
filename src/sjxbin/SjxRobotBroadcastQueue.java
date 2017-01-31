@@ -254,15 +254,10 @@ public class SjxRobotBroadcastQueue {
 
         queue.readMetadata();
 
-        // Run the popping task a bit first, give it everything robots is empty.
-        // Note that this probably won't run to its full allotment anyway.
-        int popTaskBytecodeAllotment;
+        // Only run if robots is empty. // TODO explain messaging race condition.
         if (robots.length == 0)
-            popTaskBytecodeAllotment = bct.getBytecodeAllotment();
-        else
-            popTaskBytecodeAllotment = bct.getBytecodeAllotment()/3;
-        // Don't yield or read/write, we're taking care of that out here.
-        popInvalidsTask(popTaskBytecodeAllotment, false, false);
+            popInvalidsTask(bct.getBytecodeAllotment(), false, false);
+
 
         for (RobotInfo robot : robots) {
             if (bct.isAllotmentExceeded())
@@ -273,6 +268,10 @@ public class SjxRobotBroadcastQueue {
         queue.writeMetadata();
         bct.yieldForBroadcast();
         bct.end();
+    }
+
+    public int getLastWriteableChannel() {
+        return queue.getLastWriteableChannel();
     }
 
     public static boolean test(RobotController rc) {

@@ -4,11 +4,8 @@ package sjxbin;
 
 
 import battlecode.common.GameActionException;
-import battlecode.common.RobotController;
 import lumber_jack_s.RobotPlayer;
 import java.util.Random;
-
-import java.awt.*;
 
 /******************************************************************************
  *  Compilation:  javac Matrix.java

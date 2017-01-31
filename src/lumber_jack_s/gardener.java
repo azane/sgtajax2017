@@ -3,8 +3,6 @@ import battlecode.common.*;
 import sjxbin.SjxYieldBytecode;
 import sjxbin.SjxMath;
 
-import java.util.Random;
-
 public strictfp class gardener extends RobotPlayer{static RobotController rc = RobotPlayer.rc;
 
 static int GARDENER_HOME_RANGE = 40;
@@ -30,8 +28,8 @@ int LUMBERJACK_BUILD_LIMIT;
 int TANK_BUILD_LIMIT;
 float FRIENDLY_TREE_RADIUS;
 
-static RobotType[] EARLY_ROBOT_BUILD_ORDER = {LUMBERJACK, TANK, LUMBERJACK, SOLDIER, SOLDIER, LUMBERJACK, SCOUT, LUMBERJACK, LUMBERJACK, SOLDIER, SOLDIER, LUMBERJACK, SCOUT};
-static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, SOLDIER, TANK, SCOUT};
+static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, SCOUT, SOLDIER, SOLDIER, SCOUT, TANK};
+static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, TANK, SCOUT};
 
 
 Direction east = Direction.getEast();
@@ -60,8 +58,6 @@ public void mainMethod() throws GameActionException {
 	        	unitGardenerLoop();
 	        	break;
 	    }
-		// Search for enemy archons
-		searchForArchon();
 	}
 }
 /**
@@ -200,13 +196,22 @@ void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, in
 	RobotInfo[] robots = rc.senseNearbyRobots();
 	float robotX = 0;
 	float robotY = 0;
+	MapLocation nearestArchonLoc = null;
 	if (robots.length != 0){
 		for (RobotInfo robot : robots){
-			if (robot.getType() == GARDENER){
-				double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(), robotDeviation, robot.getRadius()*robotScale);
+			if (robot.getType() == RobotType.GARDENER || robot.getType() == RobotType.ARCHON){
+				double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(),
+						rc.getType().sensorRadius*.8, robot.getRadius()*2);
 				robotX = robotX + (float)dxdy[0]; //Add all x's and y's
 				robotY = robotY + (float)dxdy[1]; 
 			}
+
+			if (robot.getType() == RobotType.ARCHON && robot.getTeam() == rc.getTeam())
+				if (nearestArchonLoc == null ||
+						rc.getLocation().distanceSquaredTo(robot.getLocation())
+						< rc.getLocation().distanceSquaredTo(nearestArchonLoc)) {
+					nearestArchonLoc = robot.getLocation();
+				}
 		}
 		robotX = robotX/robots.length;
 		robotY = robotY/robots.length;
@@ -237,6 +242,35 @@ void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, in
 	// Finally, move to that new location
 	Direction moveDir = myLocation.directionTo(plopSpot);
 	tryMove(moveDir);
+
+	int emptySpots = treeBuildDirs.length;
+	foundSpot = false;
+	MapLocation treeLocation;
+	// Have we found the right spot?
+	for (Direction buildDir : treeBuildDirs){
+		treeLocation = myLocation.add(buildDir, GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS*2+RobotType.GARDENER.bodyRadius);
+		rc.setIndicatorDot(treeLocation, 255, 255, 255);
+		if (rc.isLocationOccupied(treeLocation)){
+			System.out.println("Cannot build tree at: "+treeLocation.toString());
+			emptySpots -= 1;
+		}
+	}
+
+
+	if (nearestArchonLoc != null)
+		rc.setIndicatorDot(nearestArchonLoc, 255, 255, 255);
+	boolean archonOkay = nearestArchonLoc == null;
+
+
+	if(emptySpots > 4
+			&& ( 	archonOkay
+							// TODO track how many times you've failed, if it's lots, then build.
+							// For now though, give a small chance of building regardless of archon situation.
+					)//|| Math.random() < 0.05)
+		){
+		foundSpot = true;
+	}	
+
 }
 
 

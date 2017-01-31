@@ -1,6 +1,7 @@
 package lumber_jack_s;
 import battlecode.common.*;
-import sjxbin.SjxBytecodeTracker;
+import sjxbin.SjxMath;
+import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
 
 public strictfp class archon extends RobotPlayer{
@@ -11,9 +12,19 @@ public strictfp class archon extends RobotPlayer{
     boolean phaseOne = false;
     Direction east = Direction.getEast();
     Direction[] buildDirs = new Direction[]{east, east.rotateLeftDegrees(60), east.rotateLeftDegrees(120), 
-    		east.rotateLeftDegrees(180), east.rotateLeftDegrees(240), east.rotateLeftDegrees(300)}; 
+    		east.rotateLeftDegrees(180), east.rotateLeftDegrees(240), east.rotateLeftDegrees(300)};
+
+    public void essentialMethod() throws GameActionException {
+    	super.essentialMethod();
+
+		tryMove(randomDirection());
+	}
 
     public void mainMethod() throws GameActionException {
+
+    	friendlyBots.enqueueBatchTask(new RobotInfo[]
+				{new RobotInfo(rc.getID(), rc.getTeam(), rc.getType(), rc.getLocation(),
+						0, 0, 0)}, Clock.getBytecodesLeft());
     	
     	int initComplete = rc.readBroadcast(INIT_OFFSET);
     	
@@ -21,59 +32,72 @@ public strictfp class archon extends RobotPlayer{
     		runInit();
     	}
     	else {
-	        // Debug
-	        if (rc.getRoundNum() > 100)
-	            System.out.println("mainMethod being yielded to!");
-	
-	
+
+			MapLocation myLocation = rc.getLocation();
+
 	        // Donate bullets on last round
 	        donateBullets();
-
-			// Search for enemy archons
-			searchForArchon();
 	        
-	        // Count the number of gardeners nearby.
-	        int numGardeners = countNearbyRobotsOfType(RobotType.GARDENER);
-	
-	        // Generate a random direction
-		    Direction dir = randomDirection();
-	
-		    if (numGardeners < 2){
-		        // Randomly attempt to build a gardener in this direction
-		        if (rc.canHireGardener(dir)) {
-		            rc.hireGardener(dir);
-		            addOneRobotBuilt(RobotType.GARDENER);
+	        // Count the number of robots nearby.  Make sure there's at least one gardener
+	        RobotInfo[] nearbyBots = rc.senseNearbyRobots(-1, myTeam);
+	        int gardenerCount = 0;
+	        int totalBotCount = 0;
+		    for (RobotInfo bot : nearbyBots){
+		        if (bot.type == RobotType.GARDENER){
+		        	gardenerCount++;
 		        }
+		        totalBotCount++;
+	        }
+
+		    double[] gradient = SjxMicrogradients.instance.getMyGradient(myLocation,
+					rc.senseNearbyRobots());
+
+			double[] bdodge = dodgeIshBullets();
+			gradient = SjxMath.elementwiseSum(gradient, bdodge, false);
+
+			// Add scaled gradient to myLocation coordinates.
+			MapLocation gradientDestination = new MapLocation(
+					myLocation.x + (float)gradient[0],
+					myLocation.y + (float)gradient[1]
+			);
+	
+		    if (gardenerCount < 3){
+				// Attempt to build a gardener a random direction.
+				Direction dir = randomDirection();
+				if (rc.canHireGardener(dir) && Math.random() < .50 && totalBotCount < 5) {
+					//getNumberRobotsBuilt(RobotType.GARDENER) < GARDENER_BUILD_LIMIT) {
+					rc.hireGardener(dir);
+					addOneRobotBuilt(RobotType.GARDENER);
+				}
 	        }
 	
-	        // Move randomly
-	        tryMove(randomDirection());
+	        // Move
+	        tryMove(myLocation.directionTo(gradientDestination));
 	
 	        // Broadcast archon's location for other robots on the team to know
-	        MapLocation myLocation = rc.getLocation();
 	        rc.broadcast(0,(int)myLocation.x);
 	        rc.broadcast(1,(int)myLocation.y);
     	}
 
 		// Test display for queue reading.
-		SjxBytecodeTracker bct = new SjxBytecodeTracker();
-		bct.start(0);
-		bct.poll();
-		enemyRobots.globalPrepIter();
-		System.out.println("Enemy bot stack:" + enemyRobots.getNumElements());
-		while (enemyRobots.next() && enemyRobots.getCurrentIndex() < 20) {
-			MapLocation loc = enemyRobots.getLocation();
-			int age = enemyRobots.getInfoAge();
-
-			int color = 255 - age*20;
-			if (color < 0) color = 0;
-			rc.setIndicatorDot(loc, color, color, 0);
-
-			int itercost = bct.getCostSinceLastPoll();
-			bct.poll();
-		}
-
-		bct.end();
+//		SjxBytecodeTracker bct = new SjxBytecodeTracker();
+//		bct.start(0);
+//		bct.poll();
+//		enemyRobots.globalPrepIter();
+//		System.out.println("Enemy bot stack:" + enemyRobots.getNumElements());
+//		while (enemyRobots.next() && enemyRobots.getCurrentIndex() < 20) {
+//			MapLocation loc = enemyRobots.getLocation();
+//			int age = enemyRobots.getInfoAge();
+//
+//			int color = 255 - age*20;
+//			if (color < 0) color = 0;
+//			rc.setIndicatorDot(loc, color, color, 0);
+//
+//			int itercost = bct.getCostSinceLastPoll();
+//			bct.poll();
+//		}
+//
+//		bct.end();
     }
 
     /**

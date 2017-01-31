@@ -141,6 +141,10 @@ public class SjxBroadcastQueue {
         }
     }
 
+    public int getLastWriteableChannel() {
+        return lastWriteableChannel;
+    }
+
     private int getChannel(int index, String label) {
 
         if (index < 0 || index >= numElements)

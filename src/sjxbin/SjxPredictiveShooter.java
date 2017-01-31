@@ -4,7 +4,6 @@ import battlecode.common.*;
 
 import lumber_jack_s.RobotPlayer;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.ArrayList;

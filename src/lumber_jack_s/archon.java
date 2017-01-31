@@ -27,6 +27,9 @@ public strictfp class archon extends RobotPlayer{
 						0, 0, 0)}, Clock.getBytecodesLeft());
     	
     	int initComplete = rc.readBroadcast(INIT_OFFSET);
+
+		// Donate bullets on last round
+		donateBullets();
     	
     	if (initComplete == 0){
     		runInit();
@@ -34,9 +37,6 @@ public strictfp class archon extends RobotPlayer{
     	else {
 
 			MapLocation myLocation = rc.getLocation();
-
-	        // Donate bullets on last round
-	        donateBullets();
 	        
 	        // Count the number of robots nearby.  Make sure there's at least one gardener
 	        RobotInfo[] nearbyBots = rc.senseNearbyRobots(-1, myTeam);

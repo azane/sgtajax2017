@@ -265,8 +265,12 @@ public class SjxRobotBroadcastQueue {
             queue.enqueue(convert(robot, rc));
             bct.poll();
         }
-        queue.writeMetadata();
-        bct.yieldForBroadcast();
+
+        // Only write metadata if no other bot picked it up.
+        if (bct.getStartRound() == rc.getRoundNum())
+            queue.writeMetadata();
+            bct.yieldForBroadcast();
+
         bct.end();
     }
 

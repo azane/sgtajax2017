@@ -164,5 +164,4 @@ public strictfp class archon extends RobotPlayer{
 		return false;
 	}
 
-
 }

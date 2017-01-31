@@ -468,6 +468,20 @@ public strictfp class RobotPlayer {
         }
 
     }
+    
+	
+	static int countNearbyRobotsOfType(RobotType type) throws GameActionException{
+		//Sense all nearby robots and return the number of gardeners.
+        RobotInfo[] nearbyBots = rc.senseNearbyRobots();
+        int gardenerCount = 0;
+	    for (RobotInfo bot : nearbyBots){
+	        if (bot.getType() == type){
+	        	gardenerCount++;
+	        }
+        }
+        return gardenerCount;
+	}
+    
     static int getNumberRobotsBuilt(RobotType type) throws GameActionException{
     	int channel = 0;
 //    	System.out.println("In getNumberRobotsBuilt for type: "+type.toString());

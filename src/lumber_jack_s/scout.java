@@ -31,85 +31,6 @@ public strictfp class scout extends RobotPlayer{
         if (rc.getRoundNum()%10 == 0) {
             everyTenLocation = rc.getLocation();
         }
-        System.out.println(everyTenLocation);
-
-
-        //--- Scout Collect Bullets
-        //-------------------------
-
-        // Top priority is collecting all the bullets from trees
-        for (TreeInfo tree : trees) {
-            if (tree.getContainedBullets() != 0) {
-                if (rc.canShake(tree.getLocation())){
-                    rc.shake(tree.getLocation());
-                } else {
-                    dirToMove = myLocation.directionTo(tree.getLocation());
-                    tryMoveWithDodge(dirToMove);
-                    break;
-                }
-            }
-        }
-        //-----------------------
-        //--- End Collect Bullets
-
-
-        //--- Scout Avoid Enemy Ranged Code
-        //---------------------------------
-
-        // Count number of enemy units that can damage and number of gardeners
-        for (RobotInfo robot : robots) {
-            RobotType botType = robot.getType();
-            if (botType == RobotType.SOLDIER || botType == RobotType.TANK || botType == RobotType.LUMBERJACK) {
-                if (myLocation.distanceTo(robot.getLocation()) < 15) {
-                    tryMoveWithDodge(myLocation.directionTo(robot.getLocation()).opposite());
-                    break;
-                }
-            }
-        }
-        //--- End Avoid Enemy Ranged Code
-        //-------------------------------
-
-
-        // ToDo Is this section necessary still?? Maybe not but I don't want to mess with stuff so I'm leaving it.
-        //--- Scout Search Code
-        //---------------------
-
-        // Looks for archon and broadcasts location, the broadcast queue might eliminate this?
-        if (searchForArchon() != null) {
-            enemyArchonLocation = searchForArchon();
-            foundEnemyArchon = true;
-        } else {
-            foundEnemyArchon = false;
-        }
-        //--- End Search Code
-        //-------------------
-
-
-        //--- Scout Attack Code
-        //---------------------
-
-        // Attack gardeners, get close to them but not too close, don't fire from far away
-        if (robots.length > 0) {
-            for (RobotInfo robot : robots) {
-                if (robot.getType() == RobotType.GARDENER && rc.canFireSingleShot()) {
-                    Direction towardGardener = myLocation.directionTo(robot.getLocation());
-                    double distanceToGardener = myLocation.distanceTo(robot.getLocation());
-                    if (distanceToGardener > 2.6){
-                        tryMoveWithDodge(towardGardener);
-                    }
-                    if (distanceToGardener < 4) {
-                        rc.fireSingleShot(towardGardener);
-                    }
-                    break;
-                }
-            }
-        }
-        //--- End Attack Code
-        //-------------------
-
-
-        //--- Scout Move Code
-        //-------------------
 
         // Pick a path, reassess every 100 rounds
         int currentRound = rc.getRoundNum();
@@ -123,9 +44,86 @@ public strictfp class scout extends RobotPlayer{
             personality = 1;
         }
 
-        // personality 0 is the archon circling code
+        // Non scouring code: collect bullets, kill gardeners
         if (personality == 0) {
-            if (rc.hasAttacked() == false) {
+            //--- Scout Collect Bullets
+            //-------------------------
+
+            // Top priority is collecting all the bullets from trees
+            for (TreeInfo tree : trees) {
+                if (tree.getContainedBullets() != 0) {
+                    if (rc.canShake(tree.getLocation())) {
+                        rc.shake(tree.getLocation());
+                    } else {
+                        dirToMove = myLocation.directionTo(tree.getLocation());
+                        tryMoveWithDodge(dirToMove);
+                        break;
+                    }
+                }
+            }
+            //-----------------------
+            //--- End Collect Bullets
+
+
+            //--- Scout Avoid Enemy Ranged Code
+            //---------------------------------
+
+            // Count number of enemy units that can damage and number of gardeners
+            for (RobotInfo robot : robots) {
+                RobotType botType = robot.getType();
+                if (botType == RobotType.SOLDIER || botType == RobotType.TANK || botType == RobotType.LUMBERJACK) {
+                    if (myLocation.distanceTo(robot.getLocation()) < 15) {
+                        tryMoveWithDodge(myLocation.directionTo(robot.getLocation()).opposite());
+                        break;
+                    }
+                }
+            }
+            //--- End Avoid Enemy Ranged Code
+            //-------------------------------
+
+
+            // ToDo Is this section necessary still?? Maybe not but I don't want to mess with stuff so I'm leaving it.
+            //--- Scout Search Code
+            //---------------------
+
+            // Looks for archon and broadcasts location, the broadcast queue might eliminate this?
+            if (searchForArchon() != null) {
+                enemyArchonLocation = searchForArchon();
+                foundEnemyArchon = true;
+            } else {
+                foundEnemyArchon = false;
+            }
+            //--- End Search Code
+            //-------------------
+
+
+            //--- Scout Attack Code
+            //---------------------
+
+            // Attack gardeners, get close to them but not too close, don't fire from far away
+            if (robots.length > 0) {
+                for (RobotInfo robot : robots) {
+                    if (robot.getType() == RobotType.GARDENER && rc.canFireSingleShot()) {
+                        Direction towardGardener = myLocation.directionTo(robot.getLocation());
+                        double distanceToGardener = myLocation.distanceTo(robot.getLocation());
+                        if (distanceToGardener > 2.6) {
+                            tryMoveWithDodge(towardGardener);
+                        }
+                        if (distanceToGardener < 4 && rc.getTeamBullets() > 100) {
+                            rc.fireSingleShot(towardGardener);
+                        }
+                        break;
+                    }
+                }
+            }
+            //--- End Attack Code
+            //-------------------
+
+
+            //--- Scout Move Code
+            //-------------------
+
+            if (!rc.hasAttacked()) {
                 Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
                 if (enemyArchonLocation != null) {
                     // Move towards the enemy archon or perpendicular to it
@@ -136,11 +134,13 @@ public strictfp class scout extends RobotPlayer{
                     }
                 }
             }
-            // personality 1 is the map scouring
-        } else if (personality == 1 || true){
+            //--- End Move Code
+            //-----------------
+
+        } else if (personality == 1){ // personality 1 is the map scouring
             Direction towardCenter = myLocation.directionTo(mapCenter);
             if (atCenter) {
-                tryMoveWithDodge(towardCenter.rotateLeftDegrees(100));
+                tryMoveWithDodge(towardCenter.rotateLeftDegrees(120));
             } else {
                 tryMoveWithDodge(towardCenter);
             }
@@ -150,40 +150,8 @@ public strictfp class scout extends RobotPlayer{
             } else if (myLocation == everyTenLocation) {
                 atCenter = false;
                 tryMove(towardCenter);
-            } else {
-                atCenter = false;
             }
         }
-
-
-/*        // If the enemy archons are not dead, keep circling them
-        if (rc.hasAttacked() == false && !enemyArchonsDead()) {
-            Direction towardsEnemyArchon = myLocation.directionTo(enemyArchonLocation);
-            if (enemyArchonLocation != null) {
-                // Move towards the enemy archon or perpendicular to it
-                if (foundEnemyArchon) {
-                    tryMoveWithDodge(towardsEnemyArchon.rotateLeftDegrees(90));
-                } else {
-                    tryMoveWithDodge(towardsEnemyArchon);
-                }
-            }
-        } else {//if (enemyArchonsDead()){
-            Direction towardCenter = myLocation.directionTo(mapCenter);
-            if (atCenter) {
-                tryMoveWithDodge(towardCenter.rotateLeftDegrees(100));
-            } else {
-                tryMoveWithDodge(towardCenter);
-            }
-
-            if (myLocation.distanceTo(mapCenter) < 5) {
-                atCenter = true;
-            } else if (myLocation == everyTenLocation) {
-                atCenter = false;
-                tryMove(towardCenter);
-            }
-        }*/
-        //--- End Move Code
-        //-----------------
 
     }
 

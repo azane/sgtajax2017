@@ -165,33 +165,33 @@ void findEmptySpot() throws GameActionException{
 	MapLocation myLocation = rc.getLocation();
 	
 	//Move away from trees
-	gardenerMove(2, 4, 1, 2);
+	boolean okay = gardenerMove(2, 4, 1, 2);
 	
 
 	int emptySpots = getEmptySpots();
 
-	RobotInfo[] robots = rc.senseNearbyRobots();
-	MapLocation nearestArchonLoc = null;
-	for (RobotInfo robot : robots){
-		if (robot.getType() == RobotType.ARCHON && robot.getTeam() == rc.getTeam())
-			if (nearestArchonLoc == null || myLocation.distanceSquaredTo(robot.getLocation()) < myLocation.distanceSquaredTo(nearestArchonLoc)) {
-				nearestArchonLoc = robot.getLocation();
-			}
-	}
+//	RobotInfo[] robots = rc.senseNearbyRobots();
+//	MapLocation nearestArchonLoc = null;
+//	for (RobotInfo robot : robots){
+//		if (robot.getType() == RobotType.ARCHON && robot.getTeam() == rc.getTeam())
+//			if (nearestArchonLoc == null || myLocation.distanceSquaredTo(robot.getLocation()) < myLocation.distanceSquaredTo(nearestArchonLoc)) {
+//				nearestArchonLoc = robot.getLocation();
+//			}
+//	}
 
-	if (nearestArchonLoc != null)
-		rc.setIndicatorDot(nearestArchonLoc, 255, 255, 255);
-	boolean archonOkay = nearestArchonLoc == null;
+//	if (nearestArchonLoc != null)
+//		rc.setIndicatorDot(nearestArchonLoc, 255, 255, 255);
+//	boolean archonOkay = nearestArchonLoc == null;
 
 
-	if((emptySpots > 3 && archonOkay) || rc.getRoundNum() - startTurn > SETTLE_ROUND)
+	if((emptySpots > 3 && okay) || rc.getRoundNum() - startTurn > SETTLE_ROUND)
 	{
 		foundSpot = true;
 	}	
 
 }
 
-void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, int robotScale) throws GameActionException{
+boolean gardenerMove(double treeDeviation, int treeScale, double robotDeviation, int robotScale) throws GameActionException{
 	MapLocation myLocation = rc.getLocation();
 	TreeInfo[] trees = rc.senseNearbyTrees();
 	float treeX = 0;
@@ -245,8 +245,12 @@ void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, in
 	
 	float newX = treeX + robotX + enemyRobotX - (float)bdodge[0];
 	float newY = treeY + robotY + enemyRobotY - (float)bdodge[1];
-	
-	
+
+	double[] mapEdge = hateTheMapEdge();
+
+	newX -= mapEdge[0];
+	newY -= mapEdge[1];
+
 	MapLocation plopSpot = new MapLocation(myLocation.x - newX, myLocation.y - newY);
 	rc.setIndicatorDot(plopSpot, 0, 0, 0); // Set an indicator to see where the dot is going.
 	
@@ -255,6 +259,10 @@ void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, in
 	Direction moveDir = myLocation.directionTo(plopSpot);
 	tryMove(moveDir);
 
+	if (newX == 0. && newY == 0.)
+	    return true;
+	else
+	    return false;
 
 }
 

@@ -178,11 +178,33 @@ public strictfp class RobotPlayer {
                 (float)(myLoc.x + bdodge[0]), (float)(myLoc.y + bdodge[1]))));
     }
 
-    public double[] hateTheMapEdge() {
+    public double[] hateTheMapEdge() throws  GameActionException{
 
         // Generate 4 points at sense radius in the cardinal diretions.
+        // Create negative gaussians on those points IFF they are off the map.
 
-        return new double[2];
+        MapLocation myLocation = rc.getLocation();
+        float range = (float)(rc.getType().sensorRadius*.75);
+
+        MapLocation[] locs = new MapLocation[] {
+                myLocation.add(Direction.EAST, range),
+                myLocation.add(Direction.WEST, range),
+                myLocation.add(Direction.NORTH, range),
+                myLocation.add(Direction.SOUTH, range)
+        };
+
+        double[] grad = new double[2];
+
+        for (MapLocation loc : locs) {
+            if (!rc.onTheMap(loc))
+                grad = SjxMath.elementwiseSum(
+                        SjxMath.gaussianDerivative(myLocation, loc, range, -10.),
+                        grad,
+                        false
+            );
+        }
+
+        return grad;
 
     }
 

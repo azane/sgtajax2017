@@ -54,6 +54,7 @@ public strictfp class archon extends RobotPlayer{
 
 			double[] bdodge = dodgeIshBullets();
 			gradient = SjxMath.elementwiseSum(gradient, bdodge, false);
+			gradient = SjxMath.elementwiseSum(gradient, hateTheMapEdge(), false);
 
 			// Add scaled gradient to myLocation coordinates.
 			MapLocation gradientDestination = new MapLocation(

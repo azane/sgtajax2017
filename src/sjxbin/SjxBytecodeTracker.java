@@ -127,7 +127,7 @@ public class SjxBytecodeTracker {
         // If we have enough bytecode to run the main method, and then yield, do that.
         // Otherwise, run the essential method only. This method is worth failing to broadcast.
         // We'll call the main method anyway 10% of the time, just in case we get a fluke main.
-        if ((Clock.getBytecodesLeft() > mainMethodCost*1.2 && Math.random() < .6) || Math.random() < .1)
+        if ((Clock.getBytecodesLeft() > mainMethodCost*1.2) || Math.random() < .1)
             yieldToMain();
         else {
             try {

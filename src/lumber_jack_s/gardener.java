@@ -239,8 +239,8 @@ void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, in
 	
 	double[] bdodge = dodgeIshBullets();
 	
-	float newX = treeX + robotX + enemyRobotX + (float)bdodge[0];
-	float newY = treeY + robotY + enemyRobotY + (float)bdodge[1];
+	float newX = treeX + robotX + enemyRobotX - (float)bdodge[0];
+	float newY = treeY + robotY + enemyRobotY - (float)bdodge[1];
 	
 	
 	MapLocation plopSpot = new MapLocation(myLocation.x - newX, myLocation.y - newY);

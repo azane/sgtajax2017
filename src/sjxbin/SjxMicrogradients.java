@@ -108,7 +108,6 @@ public strictfp class SjxMicrogradients {
                 break;
             case SCOUT:
                 break;
-
         }
     }
     //endregion

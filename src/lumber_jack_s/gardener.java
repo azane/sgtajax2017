@@ -155,7 +155,8 @@ void unitGardenerLoop() throws GameActionException{
 	//Move away from trees and enemy robots
 	gardenerMove(1, 2, 2, 5);
 	
-	if (getUnitGardenerCount() > 1 && getFarmerCount()*2 < getUnitGardenerCount()*5 && getEmptySpots() > 5){
+	if (getUnitGardenerCount() > 1 && getFarmerCount()*2 < getUnitGardenerCount()*5 && getEmptySpots() > 5
+			&& Math.random() < 2./getUnitGardenerCount()){
 		PERSONALITY = FARMER;
 	}
 	

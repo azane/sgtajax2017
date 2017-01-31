@@ -58,9 +58,12 @@ public strictfp class scout extends RobotPlayer{
                         //treeFound = true;
                         return;
                     } else {
-                        tryMove(myLocation.directionTo(tree.getLocation()));
-                        findTree = true;
-                        break;
+                        // If there isn't already a scout in this tree.
+                        if (rc.senseNearbyRobots(RobotType.SCOUT.bodyRadius*5).length == 0) {
+                            tryMove(myLocation.directionTo(tree.getLocation()));
+                            findTree = true;
+                            break;
+                        }
                     }
                 }
             }

@@ -41,7 +41,7 @@ public strictfp class scout extends RobotPlayer{
                     rc.shake(tree.getLocation());
                 } else {
                     dirToMove = myLocation.directionTo(tree.getLocation());
-                    tryMove(dirToMove);
+                    tryMoveWithDodge(dirToMove);
                     break;
                 }
             }
@@ -52,51 +52,18 @@ public strictfp class scout extends RobotPlayer{
 
         //--- Scout Avoid Enemy Ranged Code
         //---------------------------------
-        int damagingEnemyCount = 0;
-        int enemyGardenerCount = 0;
-        MapLocation enemyRanger = null;
 
         // Count number of enemy units that can damage and number of gardeners
         for (RobotInfo robot : robots) {
             RobotType botType = robot.getType();
             if (botType == RobotType.SOLDIER || botType == RobotType.TANK || botType == RobotType.LUMBERJACK) {
-                if (myLocation.distanceTo(robot.getLocation()) < 10) {
-                    damagingEnemyCount++;
-                    enemyRanger = robot.getLocation();
-                }
-            } else if (botType == RobotType.GARDENER) {
-                enemyGardenerCount++;
-            }
-        }
-
-        // If only one enemy that can damage scout and at least one gardener, make a line with the gardener between the enemy and scout
-        if (damagingEnemyCount == 1 && enemyGardenerCount >= 1) {
-            for (RobotInfo robot : robots) {
-                if (robot.getType() == RobotType.GARDENER) {
-                    MapLocation gardenerLocation = robot.getLocation();
-                    Direction angle = enemyRanger.directionTo(gardenerLocation);
-                    float offset = 2.8f;
-
-                    MapLocation destination = new MapLocation(angle.getDeltaX(offset), angle.getDeltaY(offset));
-                    if (rc.canMove(destination) && !rc.hasMoved()) {
-                        rc.move(destination);
-                    } else {
-                        tryMove(myLocation.directionTo(destination));
-                    }
-                }
-            }
-        // If at least one enemy that can hurt us and no gardeners to attack, go sit in the closest tree
-        } else if (damagingEnemyCount >= 1) {
-            for (TreeInfo tree : trees) {
-                if (tree.getRadius() > 1){
-                    if (rc.canMove(tree.getLocation()) && !rc.hasMoved()) {
-                        rc.move(tree.getLocation());
-                    } else {
-                        tryMove(myLocation.directionTo(tree.getLocation()));
-                    }
+                if (myLocation.distanceTo(robot.getLocation()) < 15) {
+                    tryMoveWithDodge(myLocation.directionTo(robot.getLocation()).opposite());
+                    break;
                 }
             }
         }
+        // ToDo Add in code to flee from enemies at all costs
 
         //--- End Avoid Enemy Ranged Code
         //-------------------------------
@@ -126,10 +93,10 @@ public strictfp class scout extends RobotPlayer{
                 if (robot.getType() == RobotType.GARDENER && rc.canFireSingleShot()) {
                     Direction towardGardener = myLocation.directionTo(robot.getLocation());
                     double distanceToGardener = myLocation.distanceTo(robot.getLocation());
-                    if (distanceToGardener > 2.75){
-                        tryMove(towardGardener);
+                    if (distanceToGardener > 2.6){
+                        tryMoveWithDodge(towardGardener);
                     }
-                    if (distanceToGardener < 5) {
+                    if (distanceToGardener < 4) {
                         rc.fireSingleShot(towardGardener);
                     }
                     break;
@@ -149,17 +116,17 @@ public strictfp class scout extends RobotPlayer{
             if (enemyArchonLocation != null) {
                 // Move towards the enemy archon or perpendicular to it
                 if (foundEnemyArchon) {
-                    tryMove(towardsEnemyArchon.rotateLeftDegrees(90));
+                    tryMoveWithDodge(towardsEnemyArchon.rotateLeftDegrees(90));
                 } else {
-                    tryMove(towardsEnemyArchon);
+                    tryMoveWithDodge(towardsEnemyArchon);
                 }
             }
         } else if (enemyArchonsDead()){
             Direction towardCenter = myLocation.directionTo(mapCenter);
             if (atCenter) {
-                tryMove(towardCenter.rotateLeftDegrees(100));
+                tryMoveWithDodge(towardCenter.rotateLeftDegrees(100));
             } else {
-                tryMove(towardCenter);
+                tryMoveWithDodge(towardCenter);
             }
 
             if (myLocation.distanceTo(mapCenter) < 10) {
@@ -302,6 +269,17 @@ public strictfp class scout extends RobotPlayer{
         } catch (Exception e) {
             System.out.println("MapCenter Exception");
             return null;
+        }
+    }
+
+    public void tryMoveWithDodge(Direction dir) throws GameActionException {
+        MapLocation myLocation = rc.getLocation();
+        MapLocation destination = new MapLocation(myLocation.x + dir.getDeltaX(1.25f), myLocation.y + dir.getDeltaY(1.25f));
+        double[] gradient = RobotPlayer.rp.dodgeIshBullets();
+        MapLocation smartDestination = new MapLocation((float)(destination.x + gradient[0]), (float)(destination.y + gradient[1]));
+
+        if (rc.canMove(smartDestination)) {
+            rc.move(smartDestination);
         }
     }
 

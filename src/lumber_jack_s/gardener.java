@@ -5,10 +5,6 @@ import sjxbin.SjxMath;
 
 public strictfp class gardener extends RobotPlayer{static RobotController rc = RobotPlayer.rc;
 
-static int GARDENER_HOME_RANGE = 40;
-
-static float MAX_PRODUCTION = GameConstants.BULLET_TREE_BULLET_PRODUCTION_RATE * GameConstants.BULLET_TREE_MAX_HEALTH;
-
 static RobotType SOLDIER = RobotType.SOLDIER;
 static RobotType SCOUT = RobotType.SCOUT;
 static RobotType LUMBERJACK = RobotType.LUMBERJACK;
@@ -16,9 +12,7 @@ static RobotType TANK = RobotType.TANK;
 static RobotType ARCHON = RobotType.ARCHON;
 static RobotType GARDENER = RobotType.GARDENER;
 
-static MapLocation startLoc;
 static Team myTeam;
-static int treeRoundLimit;
 static RobotType[] robotTypeList = {SCOUT, LUMBERJACK, SOLDIER, TANK};
 static int PERSONALITY;
 
@@ -27,6 +21,10 @@ int SOLDIER_BUILD_LIMIT;
 int LUMBERJACK_BUILD_LIMIT;
 int TANK_BUILD_LIMIT;
 float FRIENDLY_TREE_RADIUS;
+int updatedRound;
+
+static final int FARMER = 1;
+static final int UNITGARDENER = 2;
 
 static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, SCOUT, SOLDIER, SOLDIER, SCOUT, TANK};
 static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, TANK, SCOUT};
@@ -51,14 +49,17 @@ public void mainMethod() throws GameActionException {
 	}
 	else {
 	    switch(PERSONALITY){
-	        case 1:
-	        	fortGardenerLoop();
+	        case FARMER:
+	        	addFarmer();
+	        	farmerLoop();
 	        	break;
-	        case 2:
+	        case UNITGARDENER:
+	        	addUnitGardener();
 	        	unitGardenerLoop();
 	        	break;
 	    }
 	}
+	resetGardenerArray();
 }
 /**
  * run() is the method that is called when a robot is instantiated in the Battlecode world.
@@ -70,10 +71,8 @@ void runGardener(RobotController rc) throws GameActionException {
     // This is the RobotController object. You use it to perform actions from this robot,
     // and to get information on its readCurrent status.
     gardener.rc = rc;
-    treeRoundLimit = rc.getRoundLimit() - (int)MAX_PRODUCTION * (int)GameConstants.BULLET_TREE_COST;
     
     System.out.println("I'm a gardener!");
-    startLoc = rc.getLocation();
     
     PERSONALITY = getPersonality();
 
@@ -122,12 +121,15 @@ void runInit() throws GameActionException{
 }
 
 
-void fortGardenerLoop() throws GameActionException{
+void farmerLoop() throws GameActionException{
 	rc.setIndicatorDot(rc.getLocation(), 0, 255, 0);
 	if (!foundSpot){
 		//Find empty spot
 		System.out.println("Phase One");
 		findEmptySpot();
+	}
+	else if (Math.random() < Math.min(1, (float)rc.getRoundNum()/100) && getUnitGardenerCount() > 0){
+		buildTree();
 	}
 	else {
 		buildTree();
@@ -149,6 +151,10 @@ void unitGardenerLoop() throws GameActionException{
 	//Move away from trees and enemy robots
 	gardenerMove(1, 2, 2, 5);
 	
+	if (getUnitGardenerCount() > 1 && getFarmerCount()*2 < getUnitGardenerCount()*5 && getEmptySpots() > 5){
+		PERSONALITY = FARMER;
+	}
+	
 }
 
 void findEmptySpot() throws GameActionException{
@@ -158,20 +164,24 @@ void findEmptySpot() throws GameActionException{
 	gardenerMove(2, 4, 1, 2);
 	
 
-	int emptySpots = treeBuildDirs.length;
-	foundSpot = false;
-	MapLocation treeLocation;
-	// Have we found the right spot?
-	for (Direction buildDir : treeBuildDirs){
-		treeLocation = myLocation.add(buildDir, GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS*2+GARDENER.bodyRadius);
-		rc.setIndicatorDot(treeLocation, 255, 255, 255);
-		if (rc.isLocationOccupied(treeLocation) && rc.onTheMap(treeLocation)){
-			System.out.println("Cannot build tree at: "+treeLocation.toString());
-			emptySpots -= 1;
-		}
+	int emptySpots = getEmptySpots();
+
+	RobotInfo[] robots = rc.senseNearbyRobots();
+	MapLocation nearestArchonLoc = null;
+	for (RobotInfo robot : robots){
+		if (robot.getType() == RobotType.ARCHON && robot.getTeam() == rc.getTeam())
+			if (nearestArchonLoc == null || myLocation.distanceSquaredTo(robot.getLocation()) < myLocation.distanceSquaredTo(nearestArchonLoc)) {
+				nearestArchonLoc = robot.getLocation();
+			}
 	}
-	
-	if(emptySpots > 4){
+
+	if (nearestArchonLoc != null)
+		rc.setIndicatorDot(nearestArchonLoc, 255, 255, 255);
+	boolean archonOkay = nearestArchonLoc == null;
+
+
+	if(emptySpots > 4 && archonOkay)
+	{
 		foundSpot = true;
 	}	
 
@@ -196,7 +206,6 @@ void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, in
 	RobotInfo[] robots = rc.senseNearbyRobots();
 	float robotX = 0;
 	float robotY = 0;
-	MapLocation nearestArchonLoc = null;
 	if (robots.length != 0){
 		for (RobotInfo robot : robots){
 			if (robot.getType() == RobotType.GARDENER || robot.getType() == RobotType.ARCHON){
@@ -206,12 +215,6 @@ void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, in
 				robotY = robotY + (float)dxdy[1]; 
 			}
 
-			if (robot.getType() == RobotType.ARCHON && robot.getTeam() == rc.getTeam())
-				if (nearestArchonLoc == null ||
-						rc.getLocation().distanceSquaredTo(robot.getLocation())
-						< rc.getLocation().distanceSquaredTo(nearestArchonLoc)) {
-					nearestArchonLoc = robot.getLocation();
-				}
 		}
 		robotX = robotX/robots.length;
 		robotY = robotY/robots.length;
@@ -243,33 +246,6 @@ void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, in
 	Direction moveDir = myLocation.directionTo(plopSpot);
 	tryMove(moveDir);
 
-	int emptySpots = treeBuildDirs.length;
-	foundSpot = false;
-	MapLocation treeLocation;
-	// Have we found the right spot?
-	for (Direction buildDir : treeBuildDirs){
-		treeLocation = myLocation.add(buildDir, GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS*2+RobotType.GARDENER.bodyRadius);
-		rc.setIndicatorDot(treeLocation, 255, 255, 255);
-		if (rc.isLocationOccupied(treeLocation)){
-			System.out.println("Cannot build tree at: "+treeLocation.toString());
-			emptySpots -= 1;
-		}
-	}
-
-
-	if (nearestArchonLoc != null)
-		rc.setIndicatorDot(nearestArchonLoc, 255, 255, 255);
-	boolean archonOkay = nearestArchonLoc == null;
-
-
-	if(emptySpots > 4
-			&& ( 	archonOkay
-							// TODO track how many times you've failed, if it's lots, then build.
-							// For now though, give a small chance of building regardless of archon situation.
-					)//|| Math.random() < 0.05)
-		){
-		foundSpot = true;
-	}	
 
 }
 
@@ -335,7 +311,6 @@ void buildRobotInOrder() throws GameActionException{
 }
 
 boolean underBuildLimit(RobotType type) throws GameActionException{
-	System.out.println("In underBuildLimit");
 	return (getNumberRobotsBuilt(type) < getBuildLimit(type));
 }
 
@@ -381,13 +356,23 @@ void waterFunc() throws GameActionException{
 }
 
 int getPersonality() throws GameActionException{
+	//First check if there is a type that hasn't been made yet.
+	int numFarmers = getFarmerCount();
+	int numUnitGardeners = getUnitGardenerCount();
+	if (numFarmers < 1 && numUnitGardeners >= 1){
+		return FARMER;
+	}
+	else if (numUnitGardeners < 1 && numFarmers >= 1){
+		return UNITGARDENER;
+	}
+	
+	
 	//If we have lots of space around us return 1 for fort gardener
 	TreeInfo [] nearbyTrees = rc.senseNearbyTrees();
-	int numGardeners = countNearbyRobotsOfType(GARDENER);
 
-	if((nearbyTrees.length < 6 && numGardeners == 0) || (nearbyTrees.length < 4 && numGardeners < 2)){
+	if(nearbyTrees.length < 3){
 		//Fort Gardener - only build if it is the only gardener in the area.
-		return 1;
+		return FARMER;
 	}
 	else {
 		//Unit Gardener - build if there aren't many nearby trees and if there's already a gardener in the area.
@@ -395,7 +380,72 @@ int getPersonality() throws GameActionException{
 	    SOLDIER_BUILD_LIMIT = 150;
 	    LUMBERJACK_BUILD_LIMIT = 200;
 	    TANK_BUILD_LIMIT = 50;
-		return 2;
+		return UNITGARDENER;
 	}
 }
+
+
+
+int getEmptySpots() throws GameActionException{
+	MapLocation myLocation = rc.getLocation();
+	int emptySpots = treeBuildDirs.length;
+	MapLocation treeLocation;
+	// Have we found the right spot?
+	for (Direction buildDir : treeBuildDirs){
+		treeLocation = myLocation.add(buildDir, GameConstants.GENERAL_SPAWN_OFFSET+GameConstants.BULLET_TREE_RADIUS*2+RobotType.GARDENER.bodyRadius);
+		rc.setIndicatorDot(treeLocation, 255, 255, 255);
+		if (rc.isLocationOccupied(treeLocation) && rc.onTheMap(treeLocation)){
+			System.out.println("Cannot build tree at: "+treeLocation.toString());
+			emptySpots -= 1;
+		}
+	}
+	return emptySpots;
+}
+
+
+void resetGardenerArray() throws GameActionException{
+	int currentRound = rc.getRoundNum();
+	int arrayRound = rc.readBroadcast(GARDENER_ARRAY_OFFSET);
+	if (arrayRound != currentRound){
+		int oldFarmerCount = rc.readBroadcast(GARDENER_ARRAY_OFFSET+1);
+		int oldUnitGardenerCount = rc.readBroadcast(GARDENER_ARRAY_OFFSET+2);
+		rc.broadcast(GARDENER_ARRAY_OFFSET, currentRound);
+		rc.broadcast(GARDENER_ARRAY_OFFSET+1, 0);
+		rc.broadcast(GARDENER_ARRAY_OFFSET+2, 0);
+		rc.broadcast(GARDENER_ARRAY_OFFSET+3, oldFarmerCount);
+		rc.broadcast(GARDENER_ARRAY_OFFSET+4, oldUnitGardenerCount);
+		System.out.println("Last Farmer count: "+oldFarmerCount+" Last Unit Gardener count: "+oldUnitGardenerCount);
+	}
+}
+
+int getFarmerCount() throws GameActionException{
+	return rc.readBroadcast(GARDENER_ARRAY_OFFSET+3);
+}
+
+int getUnitGardenerCount() throws GameActionException{
+	return rc.readBroadcast(GARDENER_ARRAY_OFFSET+4);
+}
+
+void addFarmer() throws GameActionException{
+	int farmerCount = rc.readBroadcast(GARDENER_ARRAY_OFFSET+1);
+	int round = rc.getRoundNum();
+	if (round != updatedRound){
+		farmerCount += 1;
+		rc.broadcast(GARDENER_ARRAY_OFFSET+1, farmerCount);
+		updatedRound = round;
+	}
+}
+
+
+void addUnitGardener() throws GameActionException{
+	int unitGardenerCount = rc.readBroadcast(GARDENER_ARRAY_OFFSET+2);
+	int round = rc.getRoundNum();
+	if (round != updatedRound){
+		unitGardenerCount += 1;
+		rc.broadcast(GARDENER_ARRAY_OFFSET+2, unitGardenerCount);
+		updatedRound = round;
+	}	
+}
+
+
 }

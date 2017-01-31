@@ -22,6 +22,7 @@ public strictfp class RobotPlayer {
     static int SOLDIERS_BUILT_OFFSET = 2;
     static int SCOUTS_BUILT_OFFSET = 3;
     static int TANKS_BUILT_OFFSET = 4;
+    static int GARDENER_ARRAY_OFFSET = 920;
     static int INIT_OFFSET = 950;
 
     protected Team myTeam = rc.getTeam();

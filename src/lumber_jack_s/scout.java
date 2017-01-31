@@ -166,8 +166,10 @@ public strictfp class scout extends RobotPlayer{
                         }
                     }
                 }
-                MapLocation enemyClusterCenter = new MapLocation (enemyX/enemyCount,enemyY/enemyCount);
-                tryMove(myLocation.directionTo(enemyClusterCenter).opposite());
+                if (enemyCount > 0) {
+                    MapLocation enemyClusterCenter = new MapLocation (enemyX/enemyCount,enemyY/enemyCount);
+                    tryMove(myLocation.directionTo(enemyClusterCenter).opposite());
+                }
             }
 
             Direction towardCenter = myLocation.directionTo(mapCenter);

@@ -36,15 +36,31 @@ public strictfp class scout extends RobotPlayer{
         }
 
         // Sit in tree if enemies are nearby
-        if (robots.length > 0) {
+        boolean findTree = false;
+        int numBullets = rc.senseNearbyBullets((float)(RobotType.SCOUT.sensorRadius)).length;
+        if (numBullets > 3)
+            findTree = true;
+        else if (robots.length > 0) {
             for (RobotInfo robot : robots) {
                 RobotType botType = robot.getType();
                 if (botType == RobotType.SOLDIER || botType == RobotType.TANK || botType == RobotType.LUMBERJACK) {
-                    for (TreeInfo tree : trees) {
-                        if (tree.getRadius() > 1) {
-                            tryMove(myLocation.directionTo(tree.getLocation()));
-                            break;
-                        }
+                    findTree = true;
+                    break;
+                }
+            }
+        }
+
+        if (findTree) {
+            for (TreeInfo tree : trees) {
+                if (tree.getRadius() > RobotType.SCOUT.bodyRadius * 1.1) {
+                    if (myLocation.distanceTo(tree.getLocation())
+                            < tree.getRadius() - RobotType.SCOUT.bodyRadius) {
+                        //treeFound = true;
+                        return;
+                    } else {
+                        tryMove(myLocation.directionTo(tree.getLocation()));
+                        findTree = true;
+                        break;
                     }
                 }
             }

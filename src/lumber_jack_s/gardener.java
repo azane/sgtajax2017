@@ -15,7 +15,7 @@ static RobotType GARDENER = RobotType.GARDENER;
 static Team myTeam;
 static RobotType[] robotTypeList = {SCOUT, LUMBERJACK, SOLDIER, TANK};
 static int PERSONALITY;
-static int SETTLE_ROUND = 100;
+static int SETTLE_ROUND = 50;
 
 int SCOUT_BUILD_LIMIT;
 int SOLDIER_BUILD_LIMIT;
@@ -28,9 +28,9 @@ int startTurn;
 static final int FARMER = 1;
 static final int UNITGARDENER = 2;
 
-static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, SCOUT, SOLDIER,
+static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, SOLDIER, SCOUT,
         LUMBERJACK, SCOUT, SOLDIER, TANK};
-static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, TANK, SCOUT, SOLDIER};
+static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, TANK, SOLDIER, SCOUT, SOLDIER};
 
 
 Direction east = Direction.getEast();

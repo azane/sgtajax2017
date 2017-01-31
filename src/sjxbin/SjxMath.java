@@ -9,6 +9,36 @@ import java.util.Random;
  */
 public strictfp class SjxMath {
 
+    // modified from http://stackoverflow.com/questions/3120357/get-closest-point-to-a-line
+    public static double[] getClosestPointOnLineSegment(double[] A, double[] B, double[] P)
+    {
+        double[] AP = SjxMath.elementwiseSum(P, A, true);//P - A;       //Vector from A to P
+        double[] AB = SjxMath.elementwiseSum(B, A, true);//B - A;       //Vector from A to B
+
+        //AB.LengthSquared();     //Magnitude of AB vector (it's length squared)
+        double magnitudeAB = SjxMath.euclideanSquaredDistance(AB, new double[AB.length]);
+        //Vector2.Dot(AP, AB);    //The DOT product of a_to_p and a_to_b
+        double ABAPproduct = SjxMath.dotProduct(AP, AB);
+        double distance = ABAPproduct / magnitudeAB; //The normalized "distance" from a to your closest point
+
+        if (distance < 0)     //Check if P projection is over vectorAB
+        {
+            return A;
+
+        }
+        else if (distance > 1) {
+            return B;
+        }
+        else
+        {
+            double[] closestPoint = new double[A.length];
+            closestPoint[0] = A[0] + AB[0]*distance;
+            closestPoint[1] = A[1] + AB[1]*distance;
+            return closestPoint;
+            //return A + AB * distance;
+        }
+    }
+
     public static String csvFrom2dArray(double[][] array) {
         String csv = "";
         for (double[] row : array) {

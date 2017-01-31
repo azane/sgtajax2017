@@ -11,6 +11,7 @@ public strictfp class RobotPlayer {
     public static SjxPredictiveShooter predictiveShooter;
 
     public static SjxRobotBroadcastQueue enemyRobots;
+    public static SjxRobotBroadcastQueue friendlyBots;
 
     static int ARCHON_SEARCH_OFFSET = 20; //Other stuff is hardcoded into this :(
     
@@ -99,6 +100,13 @@ public strictfp class RobotPlayer {
         RobotPlayer.enemyRobots = new SjxRobotBroadcastQueue(rc,
                 998, 1002, 1000,
                 1001);
+
+        RobotPlayer.friendlyBots = new SjxRobotBroadcastQueue(rc,
+                // size of array.
+                rc.getInitialArchonLocations(rc.getTeam()).length,
+                enemyRobots.getLastWriteableChannel() + 3,
+                enemyRobots.getLastWriteableChannel() + 1,
+                enemyRobots.getLastWriteableChannel() + 2);
 
         // Instantiate for the singleton.
         new SjxMicrogradients();

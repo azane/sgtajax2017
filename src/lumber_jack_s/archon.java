@@ -1,6 +1,5 @@
 package lumber_jack_s;
 import battlecode.common.*;
-import sjxbin.SjxBytecodeTracker;
 import sjxbin.SjxMath;
 import sjxbin.SjxMicrogradients;
 import sjxbin.SjxYieldBytecode;
@@ -22,6 +21,10 @@ public strictfp class archon extends RobotPlayer{
 	}
 
     public void mainMethod() throws GameActionException {
+
+    	friendlyBots.enqueueBatchTask(new RobotInfo[]
+				{new RobotInfo(rc.getID(), rc.getTeam(), rc.getType(), rc.getLocation(),
+						0, 0, 0)}, Clock.getBytecodesLeft());
     	
     	int initComplete = rc.readBroadcast(INIT_OFFSET);
     	

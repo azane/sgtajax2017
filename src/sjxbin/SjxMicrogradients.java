@@ -6,6 +6,7 @@ import lumber_jack_s.RobotPlayer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 /**
  * Created by azane on 1/18/17.
@@ -124,14 +125,41 @@ public strictfp class SjxMicrogradients {
             return temp;
         }
     }
+
+    private boolean willShootArchon(MapLocation myLocation, RobotInfo robot) {
+        RobotPlayer.friendlyBots.globalPrepIter();
+        while (RobotPlayer.friendlyBots.next()) {
+//            RobotPlayer.rc.setIndicatorDot(RobotPlayer.friendlyBots.getLocation(),
+//                    0, 50, 0);
+
+            double[] me = new double[] {myLocation.x, myLocation.y};
+            double[] baddy = new double[] {robot.getLocation().x, robot.getLocation().y};
+            double[] friend = new double[]
+                    {RobotPlayer.friendlyBots.getLocation().x, RobotPlayer.friendlyBots.getLocation().y};
+
+            double[] nearest = SjxMath.getClosestPointOnLineSegment(me, baddy, friend);
+            MapLocation nearestLoc = new MapLocation((float)nearest[0], (float)nearest[1]);
+
+//            RobotPlayer.rc.setIndicatorDot(nearestLoc,
+//                    255, 0, 0);
+//            RobotPlayer.rc.setIndicatorLine(myLocation, robot.getLocation(), 50, 0, 0);
+
+            if (RobotPlayer.friendlyBots.getLocation().distanceTo(nearestLoc)
+                    < RobotPlayer.friendlyBots.getType().bodyRadius*2.)
+                return true;
+        }
+        return false;
+    }
     private void updateTarget(MapLocation myLocation, RobotInfo robot) {
         // Pick the closest
-            if (!willShootFriends(myLocation, robot.location))
-                if (target == null
-                        || (getRobotGroup(robot) != RobotGroup.ENEMYECONOMIC
-                            && getRobotGroup(target) == RobotGroup.ENEMYECONOMIC)
-                        || robot.location.distanceSquaredTo(myLocation) < target.location.distanceSquaredTo(myLocation))
-                    target = robot;
+        // Note we aren't checking if we're shooting archons here.
+        // That's for long range only and is done in the gradient iteration.
+        if (!willShootFriends(myLocation, robot.location))
+            if (target == null
+                    || (getRobotGroup(robot) != RobotGroup.ENEMYECONOMIC
+                        && getRobotGroup(target) == RobotGroup.ENEMYECONOMIC)
+                    || robot.location.distanceSquaredTo(myLocation) < target.location.distanceSquaredTo(myLocation))
+                target = robot;
     }
 
     private TreeInfo closestTree = null;
@@ -226,7 +254,7 @@ public strictfp class SjxMicrogradients {
                     gradient = SjxMath.elementwiseSum(
                             avoidFriendlyRaiderGradient(myLocation, robot),
                             gradient, true);
-                // Kite friendlies, but avoid each other more.
+                // Kite friendlyBots, but avoid each other more.
                 if (rg == RobotGroup.FRIENDLYECONOMIC)
                     gradient = SjxMath.elementwiseSum(
                             friendlyDonutGradient(myLocation, robot),
@@ -350,14 +378,17 @@ public strictfp class SjxMicrogradients {
 
                 // If recent
                 if (badBots.getInfoAge() < 2) {
+                    RobotInfo badbot = badBots.getRobot();
                     double dist = badBots.getLocation().distanceTo(myLocation);
                     if (    dist < SjxMath.sigmoid(me.getTeamBullets(), 80., .02, 5, 20)
                             && target == null
-                            && getRobotGroup(myType, myTeam) != RobotGroup.FRIENDLYECONOMIC)
-                        updateTarget(myLocation, badBots.getRobot());
+                            && getRobotGroup(myType, myTeam) != RobotGroup.FRIENDLYECONOMIC
+                            // Only check archon shot when doing long range.
+                            && !willShootArchon(myLocation, badbot))
+                        updateTarget(myLocation, badbot);
                     if (dist < myType.sensorRadius * 3.) {
                         gradient = SjxMath.elementwiseSum(
-                                getMyGradient(myLocation, badBots.getRobot()), gradient, false);
+                                getMyGradient(myLocation, badbot), gradient, false);
                     }
                 }
 
@@ -387,7 +418,8 @@ public strictfp class SjxMicrogradients {
                 }
 
                 gradient = SjxMath.elementwiseSum(gradient,
-                        SjxMath.gaussianDerivative(myLocation, badBots.getLocation(), 70., _macroScale),
+                        SjxMath.gaussianDerivative(myLocation, badBots.getLocation(),
+                                70., _macroScale),
                 false);
             }
 

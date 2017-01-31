@@ -270,6 +270,10 @@ public class SjxRobotBroadcastQueue {
         bct.end();
     }
 
+    public int getLastWriteableChannel() {
+        return queue.getLastWriteableChannel();
+    }
+
     public static boolean test(RobotController rc) {
         return TestSjxRobotBroadcastQueue.test(rc);
     }

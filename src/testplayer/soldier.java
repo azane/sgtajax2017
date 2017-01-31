@@ -52,7 +52,7 @@ public strictfp class soldier extends RobotPlayer{
                 // Iterate nearby bots, calculating the gradient by which this bot should move.
                 for (int i = 0; i < robots.length; ++i) {
                     if (robots[i].getTeam() == enemy
-                            // Ignore scouts, they fly over friendlies and cause friendly fire.
+                            // Ignore scouts, they fly over friendlyBots and cause friendly fire.
                             && robots[i].type != RobotType.SCOUT) {
                         // Use the same doughnut function for all enemies, for now.
                         // Add the gradient from this bot.
@@ -84,7 +84,7 @@ public strictfp class soldier extends RobotPlayer{
                             case SOLDIER:
                             case TANK:
                             case LUMBERJACK:
-                                // Use a standard gaussian curve for friendlies.
+                                // Use a standard gaussian curve for friendlyBots.
                                 friendlyGradient = SjxMath.elementwiseSum(
                                         friendlyGradient,
                                         SjxMath.gaussianDerivative(myLocation, robots[i].location,
@@ -97,7 +97,7 @@ public strictfp class soldier extends RobotPlayer{
                     }
                 }
 
-                // Normalize so each macro element of micro sets (sets of enemies, friendlies) is weighted correctly
+                // Normalize so each macro element of micro sets (sets of enemies, friendlyBots) is weighted correctly
                 //  against other macro elements (archon loc).
                 if (numAllies > 0) {
                     friendlyGradient[0] /= numAllies;

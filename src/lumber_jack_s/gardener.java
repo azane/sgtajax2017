@@ -298,12 +298,13 @@ void buildRobotInOrder() throws GameActionException{
     // If we can build a robot, look all directions and try and build a specific robot in that direction
 	if (rc.isBuildReady()) {
 		for (Direction robotBuildDir : treeBuildDirs){
-	        if (rc.canBuildRobot(robotToBuild, robotBuildDir) && underBuildLimit(robotToBuild)){
+        	rc.setIndicatorDot(rc.getLocation().add(robotBuildDir, GameConstants.GENERAL_SPAWN_OFFSET+GARDENER.bodyRadius+robotToBuild.bodyRadius), rc.getRoundNum()*20%255, rc.getRoundNum()*3%255, rc.getRoundNum()%255);
+	        if (rc.canBuildRobot(robotToBuild, robotBuildDir)){
 	        	rc.buildRobot(robotToBuild, robotBuildDir);
-	        	addOneRobotBuilt(robotToBuild);
 	        	++buildNum;
 	        	break;
 	        }
+	        System.out.println("Failed to build unit");
 		}
 	}
     //--- End Build Code

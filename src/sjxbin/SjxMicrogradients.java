@@ -144,7 +144,7 @@ public strictfp class SjxMicrogradients {
 //            RobotPlayer.rc.setIndicatorLine(myLocation, robot.getLocation(), 50, 0, 0);
 
             if (RobotPlayer.friendlyBots.getLocation().distanceTo(nearestLoc)
-                    < RobotPlayer.friendlyBots.getType().bodyRadius*2.2)
+                    < RobotPlayer.friendlyBots.getType().bodyRadius*1.99)
                 return true;
         }
         return false;
@@ -281,12 +281,42 @@ public strictfp class SjxMicrogradients {
                             gradient, true);
                 break;
             case TANK:
+                if (robot.team != myTeam) {
+
+                    gradient = SjxMath.elementwiseSum(
+                            chargeEnemyGradient(myLocation, robot),
+                            gradient, false);
+
+//                    else
+//                        gradient = SjxMath.elementwiseSum(
+//                                enemyKitingDonutGradient(myLocation, robot),
+//                                gradient, false);
+
+                    // Update firing target.
+                    updateTarget(myLocation, robot);
+                }
+                else
+                    // Donut school friendly military.
+                    if (rg == RobotGroup.FRIENDLYMILITARY) {
+                        gradient = SjxMath.elementwiseSum(
+                                friendlyDonutGradient(myLocation, robot),
+                                gradient, false);
+                    }
+                    else
+                        // Just add to shooting gradients.
+                        addToShootingGradients(myLocation, robot);
+                break;
             case SOLDIER:
                 if (robot.team != myTeam) {
-                    // Kite all enemies.
-                    gradient = SjxMath.elementwiseSum(
-                            enemyKitingDonutGradient(myLocation, robot),
-                            gradient, false);
+                    if (rg == RobotGroup.ENEMYECONOMIC)
+                        gradient = SjxMath.elementwiseSum(
+                                chargeEnemyGradient(myLocation, robot),
+                                gradient, false);
+                    else
+                        // Kite all enemies besides economics.
+                        gradient = SjxMath.elementwiseSum(
+                                enemyKitingDonutGradient(myLocation, robot),
+                                gradient, false);
 
                     // Update firing target.
                     updateTarget(myLocation, robot);
@@ -399,7 +429,10 @@ public strictfp class SjxMicrogradients {
                 switch (getRobotGroup(badBots.getType(), myTeam.opponent())) {
                     case ENEMYECONOMIC:
                         if (myType != RobotType.ARCHON && myType != RobotType.GARDENER) {
-                            _macroScale = macroEconomicTargetScale;
+                            if (me.getTreeCount() < 24)
+                                _macroScale = 0;
+                            else
+                                _macroScale = macroEconomicTargetScale;
                         }
                         else
                             _macroScale = 0;
@@ -573,10 +606,10 @@ public strictfp class SjxMicrogradients {
 
         // Outside
         double[] outside = SjxMath.gaussianDerivative(
-                myLocation, robot.location, range, friendlyMilitaryAttractionScale);
+                myLocation, robot.location, myType.sensorRadius*2., friendlyMilitaryAttractionScale);
         // Inside
         double[] inside = SjxMath.gaussianDerivative(
-                myLocation, robot.location, myType.bodyRadius*4., friendlyMilitaryRepulsionScale);
+                myLocation, robot.location, myType.bodyRadius*2.6, friendlyMilitaryRepulsionScale);
 
         updateShootGradients(outside, robot);
 
@@ -593,7 +626,6 @@ public strictfp class SjxMicrogradients {
 
         return gradient;
     }
-
 
     // double[][] is <outside, inside>
     private HashMap<RobotType, double[]> kitingDeviations = createKitingDeviations();
@@ -615,14 +647,14 @@ public strictfp class SjxMicrogradients {
         }
         else {
             myMap.put(RobotType.SOLDIER, new double[] {RobotType.SOLDIER.sensorRadius*3.,
-                    RobotType.SOLDIER.sensorRadius*1.5});
+                    RobotType.SOLDIER.sensorRadius*.8});
             myMap.put(RobotType.TANK, new double[] {RobotType.TANK.sensorRadius*3.,
-                    RobotType.TANK.sensorRadius*1.5});
+                    RobotType.TANK.sensorRadius*.8});
         }
         myMap.put(RobotType.ARCHON, new double[] {RobotType.ARCHON.sensorRadius*2.,
-                RobotType.ARCHON.sensorRadius*1.2});
+                RobotType.ARCHON.sensorRadius*.5});
         myMap.put(RobotType.GARDENER, new double[] {RobotType.GARDENER.sensorRadius*2.,
-                RobotType.GARDENER.sensorRadius*1.2});
+                RobotType.GARDENER.sensorRadius*.5});
         return myMap;
     }
     public double[] enemyKitingDonutGradient(MapLocation myLocation, RobotInfo robot) {

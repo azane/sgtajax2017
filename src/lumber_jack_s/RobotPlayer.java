@@ -182,19 +182,16 @@ public strictfp class RobotPlayer {
 
         // Leave a 5% chance for them to still shoot if below value.
         // Limit to 5 trees.
-        if (rc.getTeamBullets() < 100 && Math.random() < .95 && rc.getTreeCount() < 4
-                // TODO check to see if we even have any farmers out that might be
-                //  trying to build.
-                && !(rc.senseNearbyTrees().length > 3))
+        if (rc.getTeamBullets() < 100 && Math.random() < .95 && rc.getTreeCount() < 4)
             return;
 
         if (targetBot != null && !rc.hasAttacked()) {
             if (myLocation.distanceTo(targetBot.getLocation())
-                    < ((targetBot.getType().bodyRadius * 2.5) + rc.getType().bodyRadius)
+                    < ((targetBot.getType().bodyRadius * 5.5) + rc.getType().bodyRadius)
                     && rc.canFirePentadShot())
                 rc.firePentadShot(myLocation.directionTo(targetBot.getLocation()));
             else if (myLocation.distanceTo(targetBot.getLocation())
-                    < ((targetBot.getType().bodyRadius * 3.5) + rc.getType().bodyRadius)
+                    < ((targetBot.getType().bodyRadius * 5.5) + rc.getType().bodyRadius)
                     && rc.canFireTriadShot())
                 rc.fireTriadShot(myLocation.directionTo(targetBot.getLocation()));
             else if (rc.canFireSingleShot())

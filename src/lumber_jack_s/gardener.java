@@ -28,8 +28,9 @@ int startTurn;
 static final int FARMER = 1;
 static final int UNITGARDENER = 2;
 
-static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, SCOUT, SOLDIER, SOLDIER, SCOUT, TANK};
-static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, TANK, SCOUT};
+static RobotType[] EARLY_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, SCOUT, SOLDIER,
+        LUMBERJACK, SCOUT, SOLDIER, TANK};
+static RobotType[] LATE_ROBOT_BUILD_ORDER = {SOLDIER, LUMBERJACK, TANK, SOLDIER, TANK, SCOUT, SOLDIER};
 
 
 Direction east = Direction.getEast();
@@ -292,8 +293,14 @@ boolean buildRobot(RobotType robot) throws GameActionException{
 }
 
 void buildRobotInOrder() throws GameActionException{
+
+    if (rc.getTeamBullets() < 110 && rc.getTreeCount() < 3 && rc.getRobotCount() > 3) {
+        return;
+    }
+
 	RobotType robotToBuild;
-	if (rc.getRoundNum() < rc.getRoundLimit()/2){
+	//if (rc.getRoundNum() < rc.getRoundLimit()/2){
+    if (rc.getTreeCount() < 18) {
 		robotToBuild = EARLY_ROBOT_BUILD_ORDER[buildNum %EARLY_ROBOT_BUILD_ORDER.length];
 	}
 	else {

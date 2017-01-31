@@ -215,8 +215,11 @@ void gardenerMove(double treeDeviation, int treeScale, double robotDeviation, in
 			if (robot.getType() == RobotType.GARDENER || robot.getType() == RobotType.ARCHON){
 				double[] dxdy = SjxMath.gaussianDerivative(myLocation, robot.getLocation(),
 						rc.getType().sensorRadius*.8, robot.getRadius()*2);
-				robotX = robotX + (float)dxdy[0]; //Add all x's and y's
-				robotY = robotY + (float)dxdy[1]; 
+				double _scale = 1.;
+				if (robot.getType() == RobotType.ARCHON)
+				    _scale = 5.;
+				robotX = robotX + (float)(dxdy[0]*_scale); //Add all x's and y's
+				robotY = robotY + (float)(dxdy[1]*_scale);
 			}
 
 		}

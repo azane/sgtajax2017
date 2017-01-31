@@ -178,6 +178,14 @@ public strictfp class RobotPlayer {
                 (float)(myLoc.x + bdodge[0]), (float)(myLoc.y + bdodge[1]))));
     }
 
+    public double[] hateTheMapEdge() {
+
+        // Generate 4 points at sense radius in the cardinal diretions.
+
+        return new double[2];
+
+    }
+
     static void shootEmUp(MapLocation myLocation, RobotInfo targetBot) throws GameActionException{
 
         // Leave a 5% chance for them to still shoot if below value.

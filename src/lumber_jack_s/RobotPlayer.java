@@ -2,6 +2,9 @@ package lumber_jack_s;
 import battlecode.common.*;
 import sjxbin.*;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 
 public strictfp class RobotPlayer {
     public static RobotController rc;
@@ -208,10 +211,23 @@ public strictfp class RobotPlayer {
 
     }
 
-    static void shootEmUp(MapLocation myLocation, RobotInfo targetBot) throws GameActionException{
+    protected static LinkedList<RobotInfo> targets = new LinkedList<RobotInfo>();
+    static void shootEmUp(MapLocation myLocation, RobotInfo potentialTarget) throws GameActionException{
 
-        // Leave a 5% chance for them to still shoot if below value.
-        // Limit to 5 trees.
+        targets.addFirst(potentialTarget);
+
+        RobotInfo targetBot = null;
+
+        if (targets.size() > 5)
+            targets.removeLast();
+
+        for (RobotInfo robot : targets)
+            if (robot != null) {
+                targetBot = robot;
+                break;
+            }
+
+        // Leave a 5% chance for them to still shoot if below value. If we have trees, then shoot.
         if (rc.getTeamBullets() < 100 && Math.random() < .95 && rc.getTreeCount() < 4)
             return;
 

@@ -7,11 +7,9 @@ import sjxbin.SjxMath;
 public strictfp class soldier extends RobotPlayer{
     static RobotController rc = RobotPlayer.rc;
 
-    private RobotInfo lastTarget = null;
     public void essentialMethod() throws GameActionException {
         super.essentialMethod(); // Dodge bullets and force a move (so we don't step on our bullets).
-        if (lastTarget != null)
-            shootEmUp(rc.getLocation(), lastTarget);
+        shootEmUp(rc.getLocation(), null);
     }
 
     public void mainMethod() throws GameActionException {
@@ -50,12 +48,7 @@ public strictfp class soldier extends RobotPlayer{
         if (d != null)
             tryMove(d);
 
-        if (targetBot != null)
-            shootEmUp(myLocation, targetBot);
-        else if (lastTarget != null)
-            shootEmUp(myLocation, lastTarget);
-
-        lastTarget = targetBot;
+        shootEmUp(myLocation, targetBot);
     }
 
     /**
